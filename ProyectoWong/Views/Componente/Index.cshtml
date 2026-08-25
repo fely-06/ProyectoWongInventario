@@ -1,0 +1,853 @@
+﻿@{
+    Layout = null;
+    ViewBag.Title = "Componentes - SIV";
+}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewBag.Title</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="~/Content/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
+
+    <style>
+            :root {
+                --color-amarillo: #f3eeb6;
+                --color-verde-claro: #d4db74;
+                --color-verde: #9abf17;
+                --color-aqua: #84bf93;
+                --color-aqua-claro: #aed9c5;
+                --color-azul-claro: #ddecf1;
+                --color-texto: #4a5568;
+                --color-texto-claro: #718096;
+                --color-blanco-glass: rgba(255, 255, 255, 0.85);
+            }
+
+            body {
+                font-family: 'Nunito', sans-serif;
+                background: linear-gradient(135deg, var(--color-azul-claro) 0%, var(--color-amarillo) 50%, var(--color-aqua-claro) 100%);
+                min-height: 100vh;
+                margin: 0;
+                position: relative;
+                overflow-x: hidden;
+                color: var(--color-texto);
+            }
+
+            @@keyframes float {
+                0%, 100% { transform: translateY(0px) scale(1); }
+                50% { transform: translateY(-20px) scale(1.05); }
+            }
+
+            .bg-blob {
+                position: fixed;
+                border-radius: 50%;
+                filter: blur(60px);
+                z-index: 0;
+                opacity: 0.6;
+                animation: float 8s ease-in-out infinite;
+            }
+            .blob-1 { width: 400px; height: 400px; background: var(--color-verde-claro); top: -100px; left: -100px; }
+            .blob-2 { width: 350px; height: 350px; background: var(--color-aqua); bottom: -80px; right: -80px; animation-delay: 2s; }
+            .blob-3 { width: 250px; height: 250px; background: var(--color-amarillo); top: 30%; right: 20%; animation-delay: 4s; }
+
+            .dashboard-wrapper {
+                display: flex;
+                min-height: 100vh;
+                padding: 1.5rem;
+                gap: 1.5rem;
+                position: relative;
+                z-index: 1;
+            }
+
+            .sidebar {
+                width: 260px;
+                background: var(--color-blanco-glass);
+                backdrop-filter: blur(12px);
+                -webkit-backdrop-filter: blur(12px);
+                border-radius: 24px;
+                padding: 2rem 1.5rem;
+                display: flex;
+                flex-direction: column;
+                box-shadow: 0 10px 30px rgba(132, 191, 147, 0.15), 0 0 0 2px rgba(255, 255, 255, 0.6);
+                flex-shrink: 0;
+            }
+
+            .sidebar-logo {
+                color: var(--color-verde);
+                font-size: 1.8rem;
+                font-weight: 800;
+                display: flex;
+                align-items: center;
+                gap: 0.5rem;
+                margin-bottom: 2.5rem;
+                padding-left: 0.5rem;
+            }
+            .sidebar-logo i { color: var(--color-aqua); font-size: 2rem; }
+
+            .nav-menu { list-style: none; padding: 0; margin: 0; flex-grow: 1; }
+            .nav-item { margin-bottom: 0.75rem; }
+
+            .nav-link {
+                display: flex;
+                align-items: center;
+                gap: 0.75rem;
+                padding: 0.85rem 1.25rem;
+                border-radius: 16px;
+                color: var(--color-texto);
+                font-weight: 700;
+                font-size: 0.95rem;
+                text-decoration: none;
+                transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+                border: 2px solid transparent;
+            }
+            .nav-link i { font-size: 1.2rem; transition: transform 0.3s ease; }
+            .nav-link:hover {
+                background-color: var(--color-amarillo);
+                color: var(--color-verde);
+                transform: translateX(5px);
+            }
+            .nav-link:hover i { transform: scale(1.1); }
+            .nav-link.active {
+                background: linear-gradient(135deg, var(--color-verde) 0%, var(--color-aqua) 100%);
+                color: white;
+                box-shadow: 0 4px 15px rgba(154, 191, 23, 0.3);
+            }
+            .nav-link.active i { color: white; }
+
+            .sidebar-footer {
+                margin-top: auto;
+                padding-top: 1.5rem;
+                border-top: 2px solid var(--color-azul-claro);
+            }
+
+            .btn-logout {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 0.5rem;
+                width: 100%;
+                padding: 0.75rem;
+                border-radius: 16px;
+                border: 2px solid #fecaca;
+                background-color: #fef2f2;
+                color: #e11d48;
+                font-weight: 700;
+                text-decoration: none;
+                transition: all 0.3s ease;
+            }
+            .btn-logout:hover {
+                background-color: #e11d48;
+                color: white;
+                border-color: #e11d48;
+            }
+
+            .main-content {
+                flex-grow: 1;
+                display: flex;
+                flex-direction: column;
+                gap: 1.5rem;
+            }
+
+            .top-bar {
+                background: var(--color-blanco-glass);
+                backdrop-filter: blur(12px);
+                border-radius: 24px;
+                padding: 1.25rem 2rem;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                box-shadow: 0 10px 30px rgba(132, 191, 147, 0.15), 0 0 0 2px rgba(255, 255, 255, 0.6);
+            }
+
+            .welcome-text h2 { margin: 0; font-size: 1.5rem; font-weight: 800; color: var(--color-texto); }
+            .welcome-text p { margin: 0; font-size: 0.9rem; color: var(--color-texto-claro); font-weight: 600; }
+
+            .user-profile { display: flex; align-items: center; gap: 1rem; }
+            .user-avatar {
+                width: 45px; height: 45px; border-radius: 50%;
+                background: linear-gradient(135deg, var(--color-amarillo), var(--color-verde-claro));
+                display: flex; align-items: center; justify-content: center;
+                font-weight: 800; color: var(--color-verde); font-size: 1.2rem;
+                border: 2px solid white; box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+            }
+
+            .content-card {
+                background: var(--color-blanco-glass);
+                backdrop-filter: blur(12px);
+                border-radius: 24px;
+                padding: 2rem;
+                box-shadow: 0 10px 30px rgba(132, 191, 147, 0.15), 0 0 0 2px rgba(255, 255, 255, 0.6);
+                animation: slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+            }
+
+            @@keyframes slideUp {
+                from { opacity: 0; transform: translateY(20px); }
+                to { opacity: 1; transform: translateY(0); }
+            }
+
+            .card-header-custom {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 1.5rem;
+            }
+            .card-header-custom h3 {
+                margin: 0; font-size: 1.3rem; font-weight: 800; color: var(--color-verde);
+                display: flex; align-items: center; gap: 0.5rem;
+            }
+
+            .btn-cute-primary {
+                background: linear-gradient(135deg, var(--color-verde) 0%, var(--color-aqua) 100%);
+                border: none; border-radius: 50px; padding: 0.6rem 1.25rem;
+                color: white; font-weight: 700; font-size: 0.9rem;
+                display: inline-flex; align-items: center; gap: 0.5rem;
+                text-decoration: none; transition: all 0.3s ease;
+                box-shadow: 0 4px 15px rgba(154, 191, 23, 0.3);
+                cursor: pointer;
+            }
+            .btn-cute-primary:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 6px 20px rgba(154, 191, 23, 0.4);
+                color: white;
+            }
+
+            .btn-cute-secondary {
+                background: var(--color-azul-claro);
+                border: none; border-radius: 50px; padding: 0.6rem 1.25rem;
+                color: var(--color-texto); font-weight: 700; font-size: 0.9rem;
+                display: inline-flex; align-items: center; gap: 0.5rem;
+                text-decoration: none; transition: all 0.3s ease;
+                cursor: pointer;
+            }
+            .btn-cute-secondary:hover {
+                background: #c5e0ea;
+                color: var(--color-texto);
+            }
+
+            .table-cute {
+                width: 100%; border-collapse: separate; border-spacing: 0 0.75rem;
+            }
+            .table-cute thead th {
+                background-color: var(--color-azul-claro); color: var(--color-texto);
+                font-weight: 700; font-size: 0.85rem; text-transform: uppercase;
+                letter-spacing: 0.05em; padding: 1rem 1.25rem; border: none;
+            }
+            .table-cute thead th:first-child { border-radius: 12px 0 0 12px; }
+            .table-cute thead th:last-child { border-radius: 0 12px 12px 0; }
+
+            .table-cute tbody tr {
+                background-color: white; box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+                transition: all 0.2s ease;
+            }
+            .table-cute tbody tr:hover {
+                transform: scale(1.01); box-shadow: 0 4px 12px rgba(132, 191, 147, 0.2);
+            }
+            .table-cute tbody td {
+                padding: 1rem 1.25rem; vertical-align: middle; border: none;
+                font-size: 0.95rem; color: var(--color-texto);
+            }
+            .table-cute tbody td:first-child { border-radius: 12px 0 0 12px; }
+            .table-cute tbody td:last-child { border-radius: 0 12px 12px 0; }
+
+            .badge-cute {
+                padding: 0.35rem 0.75rem; border-radius: 50px; font-size: 0.75rem; font-weight: 700;
+            }
+            .badge-cute-success { background-color: var(--color-verde-claro); color: #3f4d12; }
+            .badge-cute-warning { background-color: #fef3c7; color: #92400e; }
+            .badge-cute-danger { background-color: #fee2e2; color: #991b1b; }
+
+            .action-btn {
+                width: 32px; height: 32px; border-radius: 8px; border: none;
+                display: inline-flex; align-items: center; justify-content: center;
+                margin-right: 0.25rem; transition: all 0.2s ease; text-decoration: none;
+                cursor: pointer;
+            }
+            .btn-edit { background-color: var(--color-azul-claro); color: #2563eb; }
+            .btn-edit:hover { background-color: #2563eb; color: white; }
+            .btn-delete { background-color: #fee2e2; color: #dc2626; }
+            .btn-delete:hover { background-color: #dc2626; color: white; }
+
+            /* Solo estilos visuales, NO display */
+.modal-content {
+    border-radius: 24px;
+    border: 2px solid rgba(255, 255, 255, 0.8);
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(12px);
+    box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+}
+
+.modal-header {
+    border-bottom: 2px solid var(--color-azul-claro);
+    padding: 1.5rem 2rem;
+}
+
+.modal-title {
+    font-weight: 800;
+    color: var(--color-verde);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.modal-body {
+    padding: 2rem;
+}
+
+.modal-footer {
+    border-top: 2px solid var(--color-azul-claro);
+    padding: 1.5rem 2rem;
+}
+
+            .modal-dialog {
+                margin: 1.75rem auto;
+                max-width: 900px;
+            }
+
+            .modal-dialog-centered {
+                display: flex;
+                align-items: center;
+                min-height: calc(100% - 3.5rem);
+            }
+
+            .modal-content {
+                border-radius: 24px;
+                border: 2px solid rgba(255, 255, 255, 0.8);
+                background: rgba(255, 255, 255, 0.95);
+                backdrop-filter: blur(12px);
+                box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+                position: relative;
+                width: 100%;
+            }
+
+            .modal-backdrop {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background-color: rgba(0, 0, 0, 0.5);
+                z-index: 1040;
+            }
+
+            .modal-header {
+                border-bottom: 2px solid var(--color-azul-claro);
+                padding: 1.5rem 2rem;
+            }
+            .modal-title {
+                font-weight: 800;
+                color: var(--color-verde);
+                display: flex;
+                align-items: center;
+                gap: 0.5rem;
+            }
+            .modal-body { padding: 2rem; }
+            .modal-footer {
+                border-top: 2px solid var(--color-azul-claro);
+                padding: 1.5rem 2rem;
+            }
+            .form-label {
+                font-weight: 700;
+                color: var(--color-texto);
+                font-size: 0.9rem;
+                margin-bottom: 0.4rem;
+            }
+            .form-control, .form-select {
+                border-radius: 12px;
+                border: 2px solid var(--color-azul-claro);
+                padding: 0.6rem 1rem;
+                font-size: 0.95rem;
+                transition: all 0.3s ease;
+                background-color: rgba(255,255,255,0.8);
+            }
+            .form-control:focus, .form-select:focus {
+                border-color: var(--color-aqua);
+                box-shadow: 0 0 0 0.2rem rgba(132, 191, 147, 0.25);
+                background-color: #fff;
+            }
+            .form-check-input:checked {
+                background-color: var(--color-verde);
+                border-color: var(--color-verde);
+            }
+
+            .image-preview-cute {
+                border: 2px dashed var(--color-aqua-claro);
+                border-radius: 16px;
+                padding: 1rem;
+                text-align: center;
+                background-color: rgba(174, 217, 197, 0.1);
+                min-height: 100px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                margin-top: 0.5rem;
+            }
+            .image-preview-cute img {
+                max-width: 100%;
+                max-height: 150px;
+                border-radius: 12px;
+                box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            }
+
+            .alert-cute {
+                background-color: var(--color-azul-claro);
+                color: var(--color-texto);
+                border-radius: 12px;
+                border: none;
+                font-weight: 600;
+            }
+
+            @@media (max-width: 768px) {
+                .dashboard-wrapper { flex-direction: column; padding: 1rem; }
+                .sidebar { width: 100%; padding: 1.5rem; }
+                .nav-link { padding: 0.75rem 1rem; }
+                .card-header-custom { flex-direction: column; gap: 1rem; align-items: flex-start; }
+                .modal-dialog { margin: 0.5rem; max-width: 100%; }
+            }
+    </style>
+</head>
+<body>
+    <div class="bg-blob blob-1"></div>
+    <div class="bg-blob blob-2"></div>
+    <div class="bg-blob blob-3"></div>
+
+    <div class="dashboard-wrapper">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-logo">
+                <i class="bi bi-patch-check-fill"></i> SIV
+            </div>
+
+            <ul class="nav-menu">
+                <li class="nav-item">
+                    <a class="nav-link" asp-controller="Dashboard" asp-action="Index">
+                        <i class="bi bi-grid-fill"></i> Inicio
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" asp-controller="Usuario" asp-action="Index">
+                        <i class="bi bi-people-fill"></i> Usuarios
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link active" asp-controller="Componente" asp-action="Index">
+                        <i class="bi bi-cpu-fill"></i> Componentes
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" asp-controller="Inventory" asp-action="Index">
+                        <i class="bi bi-box-seam-fill"></i> Inventario
+                    </a>
+                </li>
+            </ul>
+
+            <div class="sidebar-footer">
+                <a asp-controller="Auth" asp-action="Logout" class="btn-logout">
+                    <i class="bi bi-box-arrow-left"></i> Cerrar Sesión
+                </a>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="top-bar">
+                <div class="welcome-text">
+                    <p>Administra el catálogo y stock de componentes.</p>
+                </div>
+                <div class="user-profile">
+                    <div style="text-align: right;">
+                        <div style="font-weight: 700; font-size: 0.95rem;">Admin SIV</div>
+                        <div style="font-size: 0.8rem; color: var(--color-texto-claro);">admin@siv.com</div>
+                    </div>
+                    <div class="user-avatar">A</div>
+                </div>
+            </div>
+
+            <div class="content-card">
+                <!-- Filtros -->
+                
+
+                <!-- Header de Tabla -->
+                <div class="card-header-custom">
+                    <h3><i class="bi bi-box-seam-fill"></i> Listado de Componentes</h3>
+                    <button class="btn-cute-primary" onclick="abrirModalCrear()">
+                        <i class="bi bi-plus-lg"></i> Nuevo Componente
+                    </button>
+                </div>
+
+                <!-- Tabla -->
+                <div class="table-responsive">
+                    <table class="table-cute">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Número de Pieza</th>
+                                <th>Nombre</th>
+                                <th class="text-center">Cantidad</th>
+                                <th>Categoría</th>
+                                <th>Proveedor</th>
+                                <th class="text-end">Precio</th>
+                                <th>Ubicación</th>
+                                <th class="text-center">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="bodyComponentes">
+                            <tr>
+                                <td colspan="9" class="text-center text-muted py-4">
+                                    <i class="bi bi-hourglass-split me-2"></i>Cargando datos...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal - CORREGIDO -->
+    <div class="modal fade" id="modalComponente" tabindex="-1" aria-hidden="true" style="display: none;">
+        <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalTitulo">
+                        <i class="bi bi-box-seam-fill"></i> Nuevo Componente
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="cId" />
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Número de Pieza <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="cNumeroPieza" maxlength="50" />
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Nombre <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="cNombre" maxlength="150" />
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Cantidad</label>
+                            <input type="number" class="form-control" id="cCantidad" min="0" value="0" />
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Mínimo Inventario</label>
+                            <input type="number" class="form-control" id="cMinimo" min="0" value="0" />
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Máximo Inventario</label>
+                            <input type="number" class="form-control" id="cMaximo" min="0" value="0" />
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Categoría</label>
+                            <input type="text" class="form-control" id="cCategoria" maxlength="100" />
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Proveedor</label>
+                            <input type="text" class="form-control" id="cProveedor" maxlength="150" />
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Precio</label>
+                            <input type="number" class="form-control" id="cPrecio" min="0" step="0.01" value="0" />
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Unidad de Medida</label>
+                            <input type="text" class="form-control" id="cUnidadMedida" maxlength="50" />
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Ubicación</label>
+                            <input type="text" class="form-control" id="cUbicacion" maxlength="150" />
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Número de Lote</label>
+                            <input type="text" class="form-control" id="cNumeroLote" maxlength="100" />
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Fecha de Caducidad</label>
+                            <input type="date" class="form-control" id="cFechaCaducidad" />
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Número de Serie</label>
+                            <input type="text" class="form-control" id="cNumeroSerie" maxlength="100" />
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Descripción</label>
+                        <textarea class="form-control" id="cDescripcion" rows="2" maxlength="500"></textarea>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Imagen</label>
+                        <input type="file" class="form-control" id="cImagen" accept="image/*" onchange="previewImagen(this)" />
+                        <div id="imagenPreview" class="image-preview-cute">
+                            <span class="text-muted"><i class="bi bi-image me-2"></i>Sin imagen seleccionada</span>
+                        </div>
+                    </div>
+
+                    <div class="form-check mt-3">
+                        <input class="form-check-input" type="checkbox" id="cActivo" checked />
+                        <label class="form-check-label fw-semibold ms-1" for="cActivo">Componente Activo</label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn-cute-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button class="btn-cute-primary" onclick="guardar()">
+                        <i class="bi bi-save-fill"></i> Guardar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/Scripts/bootstrap.bundle.min.js"></script>
+
+    <script>
+            var modal = null;
+            var editandoId = null;
+
+            $(function () {
+                // Inicializar modal de Bootstrap
+                var modalElement = document.getElementById('modalComponente');
+                if (modalElement) {
+                    modal = new bootstrap.Modal(modalElement);
+                }
+                cargar();
+            });
+
+            function cargar() {
+                $.get('@Url.Action("Consultar", "Componente")', function (r) {
+                    var tbody = $('#bodyComponentes');
+                    tbody.empty();
+
+                    if (!r.success || !r.result || !r.result.length) {
+                        tbody.html('<tr><td colspan="9" class="text-center text-muted py-4"><i class="bi bi-inbox me-2"></i>Sin registros encontrados</td></tr>');
+                        return;
+                    }
+
+                    $.each(r.result, function (i, d) {
+                        var badgeClass = d.cantidad <= d.minimoInventario ? 'badge-cute-danger' :
+                                         d.cantidad >= d.maximoInventario ? 'badge-cute-warning' : 'badge-cute-success';
+
+                        tbody.append('<tr>' +
+                            '<td><strong>' + d.id + '</strong></td>' +
+                            '<td class="fw-bold">' + escHtml(d.numeroPieza) + '</td>' +
+                            '<td>' + escHtml(d.nombre) + '</td>' +
+                            '<td class="text-center"><span class="badge-cute ' + badgeClass + '">' + d.cantidad + '</span></td>' +
+                            '<td>' + escHtml(d.categoria || '-') + '</td>' +
+                            '<td>' + escHtml(d.proveedor || '-') + '</td>' +
+                            '<td class="text-end fw-semibold">$' + parseFloat(d.precio || 0).toFixed(2) + '</td>' +
+                            '<td>' + escHtml(d.ubicacion || '-') + '</td>' +
+                            '<td class="text-center">' +
+                                '<button class="action-btn btn-edit" onclick="editar(' + d.id + ')" title="Editar"><i class="bi bi-pencil-fill"></i></button>' +
+                                '<button class="action-btn btn-delete" onclick="eliminar(' + d.id + ')" title="Eliminar"><i class="bi bi-trash-fill"></i></button>' +
+                            '</td></tr>');
+                    });
+                });
+            }
+
+            function aplicarFiltros() {
+                showToast('Filtros aplicados (simulado)', 'info');
+            }
+
+            function limpiarFiltros() {
+                $('#filtroNumeroPieza, #filtroNombre').val('');
+                $('#filtroCategoria').val('');
+                cargar();
+            }
+
+            function abrirModalCrear() {
+                editandoId = null;
+                $('#modalTitulo').html('<i class="bi bi-box-seam-fill"></i> Nuevo Componente');
+                $('#cId, #cNumeroPieza, #cNombre, #cDescripcion, #cCategoria, #cProveedor, #cUnidadMedida, #cNumeroLote, #cNumeroSerie, #cUbicacion, #cFechaCaducidad').val('');
+                $('#cPrecio').val('0');
+                $('#cCantidad, #cMinimo, #cMaximo').val('0');
+                $('#cActivo').prop('checked', true);
+                $('#imagenPreview').html('<span class="text-muted"><i class="bi bi-image me-2"></i>Sin imagen seleccionada</span>');
+                $('#cImagen').val('');
+
+                if (modal) {
+                    modal.show();
+                }
+            }
+
+            function editar(id) {
+                $('#cImagen').val('');
+                $.get('@Url.Action("ObtenerComponente", "Componente")/' + id, function (r) {
+                    if (!r.success || !r.result) {
+                        showToast('No se pudo cargar el componente', 'danger');
+                        return;
+                    }
+
+                    var d = r.result;
+                    editandoId = id;
+
+                    $('#modalTitulo').html('<i class="bi bi-pencil-fill"></i> Editar Componente');
+                    $('#cId').val(d.id);
+                    $('#cNumeroPieza').val(d.numeroPieza);
+                    $('#cNombre').val(d.nombre);
+                    $('#cCantidad').val(d.cantidad);
+                    $('#cMinimo').val(d.minimoInventario);
+                    $('#cMaximo').val(d.maximoInventario);
+                    $('#cDescripcion').val(d.descripcion || '');
+                    $('#cCategoria').val(d.categoria || '');
+                    $('#cProveedor').val(d.proveedor || '');
+                    $('#cPrecio').val(d.precio);
+                    $('#cUnidadMedida').val(d.unidadMedida || '');
+                    $('#cNumeroLote').val(d.numeroLote || '');
+                    $('#cNumeroSerie').val(d.numeroSerie || '');
+                    $('#cUbicacion').val(d.ubicacion || '');
+
+                    if (d.fechaCaducidad) {
+                        var fecha = new Date(d.fechaCaducidad);
+                        $('#cFechaCaducidad').val(fecha.toISOString().split('T')[0]);
+                    } else {
+                        $('#cFechaCaducidad').val('');
+                    }
+
+                    $('#cActivo').prop('checked', d.activo);
+
+                    if (d.tieneImagen) {
+                        $('#imagenPreview').html('<div class="alert-cute p-2 w-100"><i class="bi bi-image me-2"></i> Hay una imagen guardada. Sube una nueva para reemplazarla.</div>');
+                    } else {
+                        $('#imagenPreview').html('<span class="text-muted"><i class="bi bi-image me-2"></i>Sin imagen seleccionada</span>');
+                    }
+
+                    if (modal) {
+                        modal.show();
+                    }
+                });
+            }
+
+            function guardar() {
+                var formData = new FormData();
+                formData.append('Id', editandoId || 0);
+                formData.append('NumeroPieza', $('#cNumeroPieza').val().trim());
+                formData.append('Nombre', $('#cNombre').val().trim());
+                formData.append('Cantidad', $('#cCantidad').val());
+                formData.append('MinimoInventario', $('#cMinimo').val());
+                formData.append('MaximoInventario', $('#cMaximo').val());
+                formData.append('Descripcion', $('#cDescripcion').val().trim());
+                formData.append('Categoria', $('#cCategoria').val().trim());
+                formData.append('Proveedor', $('#cProveedor').val().trim());
+                formData.append('Precio', $('#cPrecio').val());
+                formData.append('UnidadMedida', $('#cUnidadMedida').val().trim());
+                formData.append('NumeroLote', $('#cNumeroLote').val().trim());
+
+                var fecha = $('#cFechaCaducidad').val();
+                if (fecha) {
+                    formData.append('FechaCaducidad', fecha);
+                }
+
+                formData.append('NumeroSerie', $('#cNumeroSerie').val().trim());
+                formData.append('Ubicacion', $('#cUbicacion').val().trim());
+                formData.append('Activo', $('#cActivo').is(':checked'));
+
+                var fileInput = document.getElementById('cImagen');
+                if (fileInput.files.length > 0) {
+                    formData.append('imagenFile', fileInput.files[0]);
+                }
+
+                $.ajax({
+                    url: '@Url.Action("GuardarComponente", "Componente")',
+                    type: 'POST',
+                    data: formData,
+                    processData: false,
+                    contentType: false,
+                    success: function (r) {
+                        if (!r.success) {
+                            showToast(r.mensaje, 'danger');
+                            return;
+                        }
+                        if (modal) {
+                            modal.hide();
+                        }
+                        showToast(r.mensaje, 'success');
+                        cargar();
+                    },
+                    error: function () {
+                        showToast('Error de conexión con el servidor', 'danger');
+                    }
+                });
+            }
+
+            function eliminar(id) {
+                if (!confirm('¿Desactivar este componente? (Borrado lógico)')) return;
+
+                $.ajax({
+                    url: '@Url.Action("EliminarComponente", "Componente")/' + id,
+                    type: 'DELETE',
+                    success: function (r) {
+                        showToast(r.mensaje, r.success ? 'success' : 'danger');
+                        if (r.success) cargar();
+                    }
+                });
+            }
+
+            function escHtml(str) {
+                return $('<div>').text(String(str || '')).html();
+            }
+
+            function previewImagen(input) {
+                if (input.files && input.files[0]) {
+                    var reader = new FileReader();
+                    reader.onload = function(e) {
+                        $('#imagenPreview').html('<img src="' + e.target.result + '" alt="Vista previa" />');
+                    }
+                    reader.readAsDataURL(input.files[0]);
+                } else {
+                    $('#imagenPreview').html('<span class="text-muted"><i class="bi bi-image me-2"></i>Sin imagen seleccionada</span>');
+                }
+            }
+
+            function showToast(mensaje, tipo = 'info') {
+                let toastContainer = document.getElementById('toast-container');
+                if (!toastContainer) {
+                    toastContainer = document.createElement('div');
+                    toastContainer.id = 'toast-container';
+                    toastContainer.className = 'toast-container position-fixed bottom-0 end-0 p-3';
+                    toastContainer.style.zIndex = '9999';
+                    document.body.appendChild(toastContainer);
+                }
+
+                const bgClass = tipo === 'success' ? 'bg-success text-white' :
+                                tipo === 'danger' ? 'bg-danger text-white' :
+                                tipo === 'warning' ? 'bg-warning text-dark' : 'bg-info text-white';
+
+                const toastId = 'toast-' + Date.now();
+                const toastHtml = `
+                    <div id="${toastId}" class="toast align-items-center ${bgClass} border-0 shadow-lg" role="alert" aria-live="assertive" aria-atomic="true" style="border-radius: 16px;">
+                        <div class="d-flex">
+                            <div class="toast-body fw-semibold">${mensaje}</div>
+                            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                        </div>
+                    </div>
+                `;
+                toastContainer.insertAdjacentHTML('beforeend', toastHtml);
+                const toastElement = document.getElementById(toastId);
+                const toast = new bootstrap.Toast(toastElement, { delay: 3000 });
+                toast.show();
+                toastElement.addEventListener('hidden.bs.toast', () => toastElement.remove());
+            }
+    </script>
+</body>
+</html>

@@ -1,0 +1,443 @@
+﻿@* Declaramos el modelo (puedes cambiarlo por tu ViewModel real, ej: DashboardViewModel) *@
+@model dynamic
+
+@{
+    Layout = null; 
+    ViewBag.Title = "Dashboard - SIV";
+}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewBag.Title</title>
+    
+    <!-- Fuente redondeada y amigable -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="~/Content/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
+    
+    <style>
+        :root {
+            --color-amarillo: #f3eeb6;
+            --color-verde-claro: #d4db74;
+            --color-verde: #9abf17;
+            --color-aqua: #84bf93;
+            --color-aqua-claro: #aed9c5;
+            --color-azul-claro: #ddecf1;
+            --color-texto: #4a5568;
+            --color-texto-claro: #718096;
+            --color-blanco-glass: rgba(255, 255, 255, 0.85);
+        }
+
+        body {
+            font-family: 'Nunito', sans-serif;
+            background: linear-gradient(135deg, var(--color-azul-claro) 0%, var(--color-amarillo) 50%, var(--color-aqua-claro) 100%);
+            min-height: 100vh;
+            margin: 0;
+            position: relative;
+            overflow-x: hidden;
+            color: var(--color-texto);
+        }
+
+/* IMPORTANTE: @@keyframes y @@media deben estar al inicio absoluto de la línea sin espacios */
+@@keyframes float {
+    0%, 100% { transform: translateY(0px) scale(1); }
+    50% { transform: translateY(-20px) scale(1.05); }
+}
+
+        .bg-blob {
+            position: fixed;
+            border-radius: 50%;
+            filter: blur(60px);
+            z-index: 0;
+            opacity: 0.6;
+            animation: float 8s ease-in-out infinite;
+        }
+        .blob-1 { width: 400px; height: 400px; background: var(--color-verde-claro); top: -100px; left: -100px; }
+        .blob-2 { width: 350px; height: 350px; background: var(--color-aqua); bottom: -80px; right: -80px; animation-delay: 2s; }
+        .blob-3 { width: 250px; height: 250px; background: var(--color-amarillo); top: 30%; right: 20%; animation-delay: 4s; }
+
+        .dashboard-wrapper {
+            display: flex;
+            min-height: 100vh;
+            padding: 1.5rem;
+            gap: 1.5rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        .sidebar {
+            width: 260px;
+            background: var(--color-blanco-glass);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-radius: 24px;
+            padding: 2rem 1.5rem;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 10px 30px rgba(132, 191, 147, 0.15), 0 0 0 2px rgba(255, 255, 255, 0.6);
+            flex-shrink: 0;
+        }
+
+        .sidebar-logo {
+            color: var(--color-verde);
+            font-size: 1.8rem;
+            font-weight: 800;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 2.5rem;
+            padding-left: 0.5rem;
+        }
+        .sidebar-logo i { color: var(--color-aqua); font-size: 2rem; }
+
+        .nav-menu {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            flex-grow: 1;
+        }
+
+        .nav-item { margin-bottom: 0.75rem; }
+
+        .nav-link {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.85rem 1.25rem;
+            border-radius: 16px;
+            color: var(--color-texto);
+            font-weight: 700;
+            font-size: 0.95rem;
+            text-decoration: none;
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            border: 2px solid transparent;
+        }
+
+        .nav-link i { font-size: 1.2rem; transition: transform 0.3s ease; }
+
+        .nav-link:hover {
+            background-color: var(--color-amarillo);
+            color: var(--color-verde);
+            transform: translateX(5px);
+        }
+        .nav-link:hover i { transform: scale(1.1); }
+
+        .nav-link.active {
+            background: linear-gradient(135deg, var(--color-verde) 0%, var(--color-aqua) 100%);
+            color: white;
+            box-shadow: 0 4px 15px rgba(154, 191, 23, 0.3);
+        }
+        .nav-link.active i { color: white; }
+
+        .sidebar-footer {
+            margin-top: auto;
+            padding-top: 1.5rem;
+            border-top: 2px solid var(--color-azul-claro);
+        }
+
+        .btn-logout {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            width: 100%;
+            padding: 0.75rem;
+            border-radius: 16px;
+            border: 2px solid #fecaca;
+            background-color: #fef2f2;
+            color: #e11d48;
+            font-weight: 700;
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+        .btn-logout:hover {
+            background-color: #e11d48;
+            color: white;
+            border-color: #e11d48;
+        }
+
+        .main-content {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .top-bar {
+            background: var(--color-blanco-glass);
+            backdrop-filter: blur(12px);
+            border-radius: 24px;
+            padding: 1.25rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 10px 30px rgba(132, 191, 147, 0.15), 0 0 0 2px rgba(255, 255, 255, 0.6);
+        }
+
+        .welcome-text h2 {
+            margin: 0;
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: var(--color-texto);
+        }
+        .welcome-text p {
+            margin: 0;
+            font-size: 0.9rem;
+            color: var(--color-texto-claro);
+            font-weight: 600;
+        }
+
+        .user-profile {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        .user-avatar {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--color-amarillo), var(--color-verde-claro));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            color: var(--color-verde);
+            font-size: 1.2rem;
+            border: 2px solid white;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+        }
+
+        .content-card {
+            background: var(--color-blanco-glass);
+            backdrop-filter: blur(12px);
+            border-radius: 24px;
+            padding: 2rem;
+            flex-grow: 1;
+            box-shadow: 0 10px 30px rgba(132, 191, 147, 0.15), 0 0 0 2px rgba(255, 255, 255, 0.6);
+            animation: slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+@@keyframes slideUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+        .card-header-custom {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+        .card-header-custom h3 {
+            margin: 0;
+            font-size: 1.3rem;
+            font-weight: 800;
+            color: var(--color-verde);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-cute-primary {
+            background: linear-gradient(135deg, var(--color-verde) 0%, var(--color-aqua) 100%);
+            border: none;
+            border-radius: 50px;
+            padding: 0.6rem 1.25rem;
+            color: white;
+            font-weight: 700;
+            font-size: 0.9rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(154, 191, 23, 0.3);
+        }
+        .btn-cute-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(154, 191, 23, 0.4);
+            color: white;
+        }
+
+        .table-cute {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0 0.75rem;
+        }
+        .table-cute thead th {
+            background-color: var(--color-azul-claro);
+            color: var(--color-texto);
+            font-weight: 700;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            padding: 1rem 1.25rem;
+            border: none;
+        }
+        .table-cute thead th:first-child { border-radius: 12px 0 0 12px; }
+        .table-cute thead th:last-child { border-radius: 0 12px 12px 0; }
+
+        .table-cute tbody tr {
+            background-color: white;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+            transition: all 0.2s ease;
+        }
+        .table-cute tbody tr:hover {
+            transform: scale(1.01);
+            box-shadow: 0 4px 12px rgba(132, 191, 147, 0.2);
+        }
+        .table-cute tbody td {
+            padding: 1rem 1.25rem;
+            vertical-align: middle;
+            border: none;
+            font-size: 0.95rem;
+            color: var(--color-texto);
+        }
+        .table-cute tbody td:first-child { border-radius: 12px 0 0 12px; }
+        .table-cute tbody td:last-child { border-radius: 0 12px 12px 0; }
+
+        .badge-cute {
+            padding: 0.35rem 0.75rem;
+            border-radius: 50px;
+            font-size: 0.75rem;
+            font-weight: 700;
+        }
+        .badge-active { background-color: var(--color-amarillo); color: #857a10; }
+        .badge-inactive { background-color: #fee2e2; color: #991b1b; }
+
+        .action-btn {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            border: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 0.25rem;
+            transition: all 0.2s ease;
+            text-decoration: none;
+        }
+        .btn-edit { background-color: var(--color-azul-claro); color: #2563eb; }
+        .btn-edit:hover { background-color: #2563eb; color: white; }
+        .btn-delete { background-color: #fee2e2; color: #dc2626; }
+        .btn-delete:hover { background-color: #dc2626; color: white; }
+
+@@media (max-width: 768px) {
+    .dashboard-wrapper { flex-direction: column; padding: 1rem; }
+    .sidebar { width: 100%; padding: 1.5rem; }
+    .nav-link { padding: 0.75rem 1rem; }
+}
+    </style>
+</head>
+<body>
+    <div class="bg-blob blob-1"></div>
+    <div class="bg-blob blob-2"></div>
+    <div class="bg-blob blob-3"></div>
+
+    <div class="dashboard-wrapper">
+        <aside class="sidebar">
+            <div class="sidebar-logo">
+                <i class="bi bi-patch-check-fill"></i> SIV
+            </div>
+
+            <ul class="nav-menu">
+                <li class="nav-item">
+                    <a class="nav-link active" asp-controller="Dashboard" asp-action="Index">
+                        <i class="bi bi-grid-fill"></i> Inicio
+                    </a>
+                </li>
+                <li class="nav-item">
+        <a class="nav-link" asp-controller="Usuario" asp-action="Index">
+            <i class="bi bi-people-fill"></i> Usuarios
+        </a>
+    </li>
+                <li class="nav-item">
+                    <a class="nav-link" asp-controller="Componente" asp-action="Index">
+                        <i class="bi bi-cpu-fill"></i> Componentes
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" asp-controller="Inventory" asp-action="Index">
+                        <i class="bi bi-box-seam-fill"></i> Inventario
+                    </a>
+                </li>
+            </ul>
+
+            <div class="sidebar-footer">
+                <a asp-controller="Auth" asp-action="Logout" class="btn-logout">
+                    <i class="bi bi-box-arrow-left"></i> Cerrar Sesión
+                </a>
+            </div>
+        </aside>
+
+        <main class="main-content">
+            <div class="top-bar">
+                <div class="welcome-text">
+                    <h2>¡Hola, Administrador! 👋</h2>
+                    <p>Aquí tienes un resumen de tu sistema hoy.</p>
+                </div>
+                <div class="user-profile">
+                    <div style="text-align: right;">
+                        <div style="font-weight: 700; font-size: 0.95rem;">Admin SIV</div>
+                        <div style="font-size: 0.8rem; color: var(--color-texto-claro);">admin@siv.com</div>
+                    </div>
+                    <div class="user-avatar">A</div>
+                </div>
+            </div>
+
+            <div class="content-card">
+                <div class="card-header-custom">
+                    <h3><i class="bi bi-people-fill"></i> Gestión de Usuarios</h3>
+                    <a asp-action="Create" class="btn-cute-primary">
+                        <i class="bi bi-plus-lg"></i> Nuevo Usuario
+                    </a>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table-cute">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Nombre</th>
+                                <th>Correo</th>
+                                <th>Estado</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>#001</strong></td>
+                                <td>Juan Pérez</td>
+                                <td>juan@empresa.com</td>
+                                <td><span class="badge-cute badge-active">Activo</span></td>
+                                <td>
+                                    <a href="#" class="action-btn btn-edit" title="Editar"><i class="bi bi-pencil-fill"></i></a>
+                                    <a href="#" class="action-btn btn-delete" title="Eliminar"><i class="bi bi-trash-fill"></i></a>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><strong>#002</strong></td>
+                                <td>María García</td>
+                                <td>maria@empresa.com</td>
+                                <td><span class="badge-cute badge-inactive">Inactivo</span></td>
+                                <td>
+                                    <a href="#" class="action-btn btn-edit" title="Editar"><i class="bi bi-pencil-fill"></i></a>
+                                    <a href="#" class="action-btn btn-delete" title="Eliminar"><i class="bi bi-trash-fill"></i></a>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="~/Scripts/bootstrap.bundle.min.js"></script>
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+</body>
+</html>

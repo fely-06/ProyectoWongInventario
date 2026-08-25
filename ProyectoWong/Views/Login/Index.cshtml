@@ -1,0 +1,294 @@
+﻿@* 1. Declaramos qué modelo usa esta vista *@
+@model ProyectoWong.Models.Login
+
+@{
+    Layout = null; // Correcto: No usamos el layout principal para el login
+    ViewBag.Title = "Iniciar sesión";
+}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewBag.Title</title>
+
+    <!-- Fuente redondeada y amigable para el toque "cute" -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="~/Content/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
+
+    <style>
+            :root {
+                --color-amarillo: #f3eeb6;
+                --color-verde-claro: #d4db74;
+                --color-verde: #9abf17;
+                --color-aqua: #84bf93;
+                --color-aqua-claro: #aed9c5;
+                --color-azul-claro: #ddecf1;
+                --color-texto: #4a5568;
+                --color-error: #e11d48;
+            }
+
+            body {
+                font-family: 'Nunito', sans-serif;
+                background: linear-gradient(135deg, var(--color-azul-claro) 0%, var(--color-amarillo) 50%, var(--color-aqua-claro) 100%);
+                min-height: 100vh;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                margin: 0;
+                position: relative;
+                overflow-x: hidden;
+            }
+
+            /* Formas suaves de fondo para un toque más jugoso/cute */
+            .bg-blob {
+                position: absolute;
+                border-radius: 50%;
+                filter: blur(50px);
+                z-index: 0;
+                opacity: 0.7;
+
+                @@keyframes float {
+                    0%, 100% {
+                        transform: translateY(0px) scale(1);
+                    }
+
+                    50% {
+                        transform: translateY(-20px) scale(1.05);
+                    }
+                }
+
+                animation: float 8s ease-in-out infinite;
+            }
+
+            .blob-1 {
+                width: 350px;
+                height: 350px;
+                background: var(--color-verde-claro);
+                top: -80px;
+                left: -80px;
+                animation-delay: 0s;
+            }
+
+            .blob-2 {
+                width: 300px;
+                height: 300px;
+                background: var(--color-aqua);
+                bottom: -60px;
+                right: -60px;
+                animation-delay: 2s;
+            }
+
+            .blob-3 {
+                width: 200px;
+                height: 200px;
+                background: var(--color-amarillo);
+                top: 40%;
+                right: 15%;
+                animation-delay: 4s;
+            }
+
+            .login-card {
+                background: rgba(255, 255, 255, 0.85);
+                backdrop-filter: blur(12px);
+                -webkit-backdrop-filter: blur(12px);
+                border-radius: 28px;
+                padding: 2.5rem 2rem;
+                width: 100%;
+                max-width: 400px;
+                box-shadow: 0 20px 40px rgba(132, 191, 147, 0.25), 0 0 0 2px rgba(255, 255, 255, 0.8);
+                position: relative;
+                z-index: 1;
+
+                @@keyframes slideUp {
+                    from {
+                        opacity: 0;
+                        transform: translateY(30px);
+                    }
+
+                    to {
+                        opacity: 1;
+                        transform: translateY(0);
+                    }
+                }
+
+                animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+            }
+
+            .login-logo {
+                color: var(--color-verde);
+                font-size: 2.4rem;
+                font-weight: 800;
+                letter-spacing: -0.5px;
+                display: inline-flex;
+                align-items: center;
+                gap: 0.5rem;
+            }
+
+                .login-logo i {
+                    color: var(--color-aqua);
+                    font-size: 2.6rem;
+                }
+
+            .login-sub {
+                color: #718096;
+                font-size: 0.95rem;
+                margin-bottom: 2rem;
+                font-weight: 600;
+            }
+
+            .form-label {
+                font-size: 0.85rem;
+                font-weight: 700;
+                color: var(--color-texto);
+                margin-bottom: 0.4rem;
+                margin-left: 0.25rem;
+            }
+
+            /* Inputs redondeados y suaves */
+            .input-group {
+                border: 2px solid var(--color-azul-claro);
+                border-radius: 16px;
+                overflow: hidden;
+                transition: all 0.3s ease;
+                background: #ffffff;
+            }
+
+                .input-group:focus-within {
+                    border-color: var(--color-verde);
+                    box-shadow: 0 0 0 4px rgba(154, 191, 23, 0.15);
+                }
+
+            .input-group-text {
+                background-color: var(--color-amarillo);
+                border: none;
+                color: var(--color-verde);
+                font-size: 1.1rem;
+                padding: 0.6rem 1rem;
+            }
+
+            .input-group .form-control {
+                border: none;
+                background-color: transparent;
+                font-size: 0.95rem;
+                color: var(--color-texto);
+                padding: 0.6rem 1rem;
+            }
+
+                .input-group .form-control::placeholder {
+                    color: #a0aec0;
+                    font-weight: 600;
+                }
+
+                .input-group .form-control:focus {
+                    box-shadow: none;
+                    background-color: transparent;
+                }
+
+            /* Botón jugoso y redondeado */
+            .btn-login {
+                background: linear-gradient(135deg, var(--color-verde) 0%, var(--color-aqua) 100%);
+                border: none;
+                border-radius: 50px;
+                font-weight: 700;
+                letter-spacing: 0.02em;
+                color: white;
+                padding: 0.75rem;
+                font-size: 1rem;
+                margin-top: 1rem;
+                transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+                box-shadow: 0 4px 15px rgba(154, 191, 23, 0.3);
+            }
+
+                .btn-login:hover {
+                    background: linear-gradient(135deg, var(--color-aqua) 0%, var(--color-verde) 100%);
+                    color: white;
+                    transform: translateY(-3px);
+                    box-shadow: 0 8px 25px rgba(132, 191, 147, 0.4);
+                }
+
+                .btn-login:active {
+                    transform: translateY(-1px);
+                }
+
+            /* Mensajes de error suaves pero visibles */
+            .error-msg {
+                font-size: 0.85rem;
+                border-radius: 12px;
+                border: 1px solid #fecaca;
+                background-color: #fef2f2;
+                color: var(--color-error);
+            }
+
+            .field-validation-error {
+                font-size: 0.78rem;
+                color: var(--color-error);
+                margin-top: 0.35rem;
+                margin-left: 0.25rem;
+                display: block;
+                font-weight: 600;
+            }
+
+                .field-validation-error::before {
+                    content: "⚠ ";
+                    font-size: 0.85rem;
+                }
+    </style>
+</head>
+<body>
+    <!-- Elementos decorativos de fondo -->
+    <div class="bg-blob blob-1"></div>
+    <div class="bg-blob blob-2"></div>
+    <div class="bg-blob blob-3"></div>
+
+    <div class="login-card">
+        <div class="text-center mb-1">
+            <span class="login-logo">
+                <i class="bi bi-patch-check-fill"></i> SIV
+            </span>
+            <p class="login-sub">¡Hola! Ingresa tus credenciales para continuar ✨</p>
+        </div>
+
+        @* Muestra errores generales (ej: "Usuario o contraseña incorrectos") *@
+        <div asp-validation-summary="ModelOnly" class="alert py-2 error-msg text-center" role="alert"></div>
+
+        @* 2. Usamos asp-action para que apunte al método [HttpPost] Login del mismo controlador *@
+        <form asp-action="Login" method="post" novalidate>
+
+            <div class="mb-3">
+                <label asp-for="Username" class="form-label">Usuario o Correo</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="bi bi-envelope-fill"></i></span>
+                    @* 3. asp-for vincula este input directamente con la propiedad del Modelo *@
+                    <input asp-for="Username" class="form-control" placeholder="correo@empresa.com" autofocus />
+                </div>
+                @* 4. Muestra el error de validación del Modelo si está vacío *@
+                <span asp-validation-for="Username" class="field-validation-error"></span>
+            </div>
+
+            <div class="mb-4">
+                <label asp-for="Password" class="form-label">Contraseña</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="bi bi-lock-fill"></i></span>
+                    <input asp-for="Password" class="form-control" placeholder="••••••••" />
+                </div>
+                <span asp-validation-for="Password" class="field-validation-error"></span>
+            </div>
+
+            <button type="submit" class="btn btn-login w-100">
+                <i class="bi bi-box-arrow-in-right me-1"></i> Ingresar
+            </button>
+        </form>
+    </div>
+
+    <script src="~/Scripts/bootstrap.bundle.min.js"></script>
+    <!-- Scripts de validación de jQuery (necesarios para que la validación funcione en el navegador) -->
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/jquery-validation/dist/jquery.validate.min.js"></script>
+    <script src="~/lib/jquery-validation-unobtrusive/jquery.validate.unobtrusive.min.js"></script>
+</body>
+</html>
