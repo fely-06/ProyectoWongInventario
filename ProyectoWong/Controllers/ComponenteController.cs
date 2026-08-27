@@ -196,7 +196,7 @@ namespace ProyectoWong.Controllers
                 componente.Activo = false;
                 await _context.SaveChangesAsync();
 
-                return Json(Respuesta.OK("Componente desactivado"));
+                return Json(Respuesta.OK("Componente eliminado"));
             }
             catch (Exception e)
             {

@@ -625,232 +625,264 @@
     <script src="~/lib/bootstrap/dist/js/bootstrap.js"></script>
 
     <script>
-            var modal = null;
-            var editandoId = null;
+        var modal = null;
+        var editandoId = null;
 
-            $(function () {
-                // Inicializar modal de Bootstrap
-                var modalElement = document.getElementById('modalComponente');
-                if (modalElement) {
-                    modal = new bootstrap.Modal(modalElement);
-                }
-                cargar();
-            });
+        $(function () {
+        // Inicializar modal de Bootstrap
+        var modalElement = document.getElementById('modalComponente');
+        if (modalElement) {
+        modal = new bootstrap.Modal(modalElement);
+        }
+        cargar();
+        });
 
-            function cargar() {
-                $.get('@Url.Action("Consultar", "Componente")', function (r) {
-                    var tbody = $('#bodyComponentes');
-                    tbody.empty();
+        function cargar() {
+        $.get('/Componente/consultar-componentes', function (r) {
+        var tbody = $('#bodyComponentes');
+        tbody.empty();
 
-                    if (!r.success || !r.result || !r.result.length) {
-                        tbody.html('<tr><td colspan="9" class="text-center text-muted py-4"><i class="bi bi-inbox me-2"></i>Sin registros encontrados</td></tr>');
-                        return;
-                    }
+        if (!r.success || !r.result || !r.result.length) {
+        tbody.html('<tr><td colspan="9" class="text-center text-muted py-4"><i class="bi bi-inbox me-2"></i>Sin registros encontrados</td></tr>');
+        return;
+        }
 
-                    $.each(r.result, function (i, d) {
-                        var badgeClass = d.cantidad <= d.minimoInventario ? 'badge-cute-danger' :
-                                         d.cantidad >= d.maximoInventario ? 'badge-cute-warning' : 'badge-cute-success';
+        $.each(r.result, function (i, d) {
+        var badgeClass = d.cantidad <= d.minimoInventario ? 'badge-cute-danger' :
+        d.cantidad >= d.maximoInventario ? 'badge-cute-warning' : 'badge-cute-success';
 
-                        tbody.append('<tr>' +
-                            '<td><strong>' + d.id + '</strong></td>' +
-                            '<td class="fw-bold">' + escHtml(d.numeroPieza) + '</td>' +
-                            '<td>' + escHtml(d.nombre) + '</td>' +
-                            '<td class="text-center"><span class="badge-cute ' + badgeClass + '">' + d.cantidad + '</span></td>' +
-                            '<td>' + escHtml(d.categoria || '-') + '</td>' +
-                            '<td>' + escHtml(d.proveedor || '-') + '</td>' +
-                            '<td class="text-end fw-semibold">$' + parseFloat(d.precio || 0).toFixed(2) + '</td>' +
-                            '<td>' + escHtml(d.ubicacion || '-') + '</td>' +
-                            '<td class="text-center">' +
-                                '<button class="action-btn btn-edit" onclick="editar(' + d.id + ')" title="Editar"><i class="bi bi-pencil-fill"></i></button>' +
-                                '<button class="action-btn btn-delete" onclick="eliminar(' + d.id + ')" title="Eliminar"><i class="bi bi-trash-fill"></i></button>' +
-                            '</td></tr>');
-                    });
-                });
-            }
+        tbody.append('<tr>' +
+        '<td><strong>' + d.id + '</strong></td>' +
+        '<td class="fw-bold">' + escHtml(d.numeroPieza) + '</td>' +
+        '<td>' + escHtml(d.nombre) + '</td>' +
+        '<td class="text-center"><span class="badge-cute ' + badgeClass + '">' + d.cantidad + '</span></td>' +
+        '<td>' + escHtml(d.categoria || '-') + '</td>' +
+        '<td>' + escHtml(d.proveedor || '-') + '</td>' +
+        '<td class="text-end fw-semibold">$' + parseFloat(d.precio || 0).toFixed(2) + '</td>' +
+        '<td>' + escHtml(d.ubicacion || '-') + '</td>' +
+        '<td class="text-center">' +
+        '<button class="action-btn btn-edit" onclick="editar(' + d.id + ')" title="Editar"><i class="bi bi-pencil-fill"></i></button>' +
+        '<button class="action-btn btn-delete" onclick="eliminar(' + d.id + ')" title="Eliminar"><i class="bi bi-trash-fill"></i></button>' +
+        '</td></tr>');
+        });
+        }).fail(function() {
+        showToast('Error al cargar los componentes', 'danger');
+        });
+        }
 
-            function aplicarFiltros() {
-                showToast('Filtros aplicados (simulado)', 'info');
-            }
+        function aplicarFiltros() {
+        showToast('Filtros aplicados (simulado)', 'info');
+        }
 
-            function limpiarFiltros() {
-                $('#filtroNumeroPieza, #filtroNombre').val('');
-                $('#filtroCategoria').val('');
-                cargar();
-            }
+        function limpiarFiltros() {
+        $('#filtroNumeroPieza, #filtroNombre').val('');
+        $('#filtroCategoria').val('');
+        cargar();
+        }
 
-            function abrirModalCrear() {
-                editandoId = null;
-                $('#modalTitulo').html('<i class="bi bi-box-seam-fill"></i> Nuevo Componente');
-                $('#cId, #cNumeroPieza, #cNombre, #cDescripcion, #cCategoria, #cProveedor, #cUnidadMedida, #cNumeroLote, #cNumeroSerie, #cUbicacion, #cFechaCaducidad').val('');
-                $('#cPrecio').val('0');
-                $('#cCantidad, #cMinimo, #cMaximo').val('0');
-                $('#cActivo').prop('checked', true);
-                $('#imagenPreview').html('<span class="text-muted"><i class="bi bi-image me-2"></i>Sin imagen seleccionada</span>');
-                $('#cImagen').val('');
+        // ¡ESTA ERA LA FUNCIÓN QUE FALTABA!
+        function abrirModalCrear() {
+        editandoId = null;
+        $('#modalTitulo').html('<i class="bi bi-box-seam-fill"></i> Nuevo Componente');
+        $('#cId, #cNumeroPieza, #cNombre, #cDescripcion, #cCategoria, #cProveedor, #cUnidadMedida, #cNumeroLote, #cNumeroSerie, #cUbicacion, #cFechaCaducidad').val('');
+        $('#cPrecio').val('0');
+        $('#cCantidad, #cMinimo, #cMaximo').val('0');
+        $('#cActivo').prop('checked', true);
+        $('#imagenPreview').html('<span class="text-muted"><i class="bi bi-image me-2"></i>Sin imagen seleccionada</span>');
+        $('#cImagen').val('');
 
-                if (modal) {
-                    modal.show();
-                }
-            }
+        if (modal) {
+        modal.show();
+        }
+        }
 
-            function editar(id) {
-                $('#cImagen').val('');
-                $.get('@Url.Action("ObtenerComponente", "Componente")/' + id, function (r) {
-                    if (!r.success || !r.result) {
-                        showToast('No se pudo cargar el componente', 'danger');
-                        return;
-                    }
+        function editar(id) {
+        $('#cImagen').val('');
 
-                    var d = r.result;
-                    editandoId = id;
+        $.get('/Componente/obtener-componente/' + id, function (r) {
+        if (!r.success || !r.result) {
+        showToast('No se pudo cargar el componente', 'danger');
+        return;
+        }
 
-                    $('#modalTitulo').html('<i class="bi bi-pencil-fill"></i> Editar Componente');
-                    $('#cId').val(d.id);
-                    $('#cNumeroPieza').val(d.numeroPieza);
-                    $('#cNombre').val(d.nombre);
-                    $('#cCantidad').val(d.cantidad);
-                    $('#cMinimo').val(d.minimoInventario);
-                    $('#cMaximo').val(d.maximoInventario);
-                    $('#cDescripcion').val(d.descripcion || '');
-                    $('#cCategoria').val(d.categoria || '');
-                    $('#cProveedor').val(d.proveedor || '');
-                    $('#cPrecio').val(d.precio);
-                    $('#cUnidadMedida').val(d.unidadMedida || '');
-                    $('#cNumeroLote').val(d.numeroLote || '');
-                    $('#cNumeroSerie').val(d.numeroSerie || '');
-                    $('#cUbicacion').val(d.ubicacion || '');
+        var d = r.result;
+        editandoId = id;
 
-                    if (d.fechaCaducidad) {
-                        var fecha = new Date(d.fechaCaducidad);
-                        $('#cFechaCaducidad').val(fecha.toISOString().split('T')[0]);
-                    } else {
-                        $('#cFechaCaducidad').val('');
-                    }
+        $('#modalTitulo').html('<i class="bi bi-pencil-fill"></i> Editar Componente');
+        $('#cId').val(d.id);
+        $('#cNumeroPieza').val(d.numeroPieza);
+        $('#cNombre').val(d.nombre);
+        $('#cCantidad').val(d.cantidad);
+        $('#cMinimo').val(d.minimoInventario);
+        $('#cMaximo').val(d.maximoInventario);
+        $('#cDescripcion').val(d.descripcion || '');
+        $('#cCategoria').val(d.categoria || '');
+        $('#cProveedor').val(d.proveedor || '');
+        $('#cPrecio').val(d.precio);
+        $('#cUnidadMedida').val(d.unidadMedida || '');
+        $('#cNumeroLote').val(d.numeroLote || '');
+        $('#cNumeroSerie').val(d.numeroSerie || '');
+        $('#cUbicacion').val(d.ubicacion || '');
 
-                    $('#cActivo').prop('checked', d.activo);
+        // El controlador ya devuelve "yyyy-MM-dd", lo asignamos directo para evitar bugs de zona horaria
+        if (d.fechaCaducidad) {
+        $('#cFechaCaducidad').val(d.fechaCaducidad);
+        } else {
+        $('#cFechaCaducidad').val('');
+        }
 
-                    if (d.tieneImagen) {
-                        $('#imagenPreview').html('<div class="alert-cute p-2 w-100"><i class="bi bi-image me-2"></i> Hay una imagen guardada. Sube una nueva para reemplazarla.</div>');
-                    } else {
-                        $('#imagenPreview').html('<span class="text-muted"><i class="bi bi-image me-2"></i>Sin imagen seleccionada</span>');
-                    }
+        $('#cActivo').prop('checked', d.activo);
 
-                    if (modal) {
-                        modal.show();
-                    }
-                });
-            }
+        // Mostrar la imagen real si existe
+        if (d.tieneImagen) {
+        $('#imagenPreview').html(`<img src="/Componente/obtener-imagen/${id}" alt="Imagen del componente" style="max-width: 100%; max-height: 150px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1);" />`);
+        } else {
+        $('#imagenPreview').html('<span class="text-muted"><i class="bi bi-image me-2"></i>Sin imagen seleccionada</span>');
+        }
 
-            function guardar() {
-                var formData = new FormData();
-                formData.append('Id', editandoId || 0);
-                formData.append('NumeroPieza', $('#cNumeroPieza').val().trim());
-                formData.append('Nombre', $('#cNombre').val().trim());
-                formData.append('Cantidad', $('#cCantidad').val());
-                formData.append('MinimoInventario', $('#cMinimo').val());
-                formData.append('MaximoInventario', $('#cMaximo').val());
-                formData.append('Descripcion', $('#cDescripcion').val().trim());
-                formData.append('Categoria', $('#cCategoria').val().trim());
-                formData.append('Proveedor', $('#cProveedor').val().trim());
-                formData.append('Precio', $('#cPrecio').val());
-                formData.append('UnidadMedida', $('#cUnidadMedida').val().trim());
-                formData.append('NumeroLote', $('#cNumeroLote').val().trim());
+        if (modal) {
+        modal.show();
+        }
+        }).fail(function() {
+        showToast('Error de conexión al cargar el componente', 'danger');
+        });
+        }
 
-                var fecha = $('#cFechaCaducidad').val();
-                if (fecha) {
-                    formData.append('FechaCaducidad', fecha);
-                }
+        function guardar() {
+        // Validación básica en el frontend
+        if (!$('#cNumeroPieza').val().trim()) {
+        showToast('El Número de Pieza es obligatorio', 'warning');
+        return;
+        }
+        if (!$('#cNombre').val().trim()) {
+        showToast('El Nombre es obligatorio', 'warning');
+        return;
+        }
 
-                formData.append('NumeroSerie', $('#cNumeroSerie').val().trim());
-                formData.append('Ubicacion', $('#cUbicacion').val().trim());
-                formData.append('Activo', $('#cActivo').is(':checked'));
+        var formData = new FormData();
+        // Si editandoId es null (modo crear), envía 0. El controlador lo interpreta como creación.
+        formData.append('Id', editandoId || 0);
+        formData.append('NumeroPieza', $('#cNumeroPieza').val().trim());
+        formData.append('Nombre', $('#cNombre').val().trim());
+        formData.append('Cantidad', $('#cCantidad').val());
+        formData.append('MinimoInventario', $('#cMinimo').val());
+        formData.append('MaximoInventario', $('#cMaximo').val());
+        formData.append('Descripcion', $('#cDescripcion').val().trim());
+        formData.append('Categoria', $('#cCategoria').val().trim());
+        formData.append('Proveedor', $('#cProveedor').val().trim());
+        formData.append('Precio', $('#cPrecio').val());
+        formData.append('UnidadMedida', $('#cUnidadMedida').val().trim());
+        formData.append('NumeroLote', $('#cNumeroLote').val().trim());
 
-                var fileInput = document.getElementById('cImagen');
-                if (fileInput.files.length > 0) {
-                    formData.append('imagenFile', fileInput.files[0]);
-                }
+        var fecha = $('#cFechaCaducidad').val();
+        if (fecha) {
+        formData.append('FechaCaducidad', fecha);
+        }
 
-                $.ajax({
-                    url: '@Url.Action("GuardarComponente", "Componente")',
-                    type: 'POST',
-                    data: formData,
-                    processData: false,
-                    contentType: false,
-                    success: function (r) {
-                        if (!r.success) {
-                            showToast(r.mensaje, 'danger');
-                            return;
-                        }
-                        if (modal) {
-                            modal.hide();
-                        }
-                        showToast(r.mensaje, 'success');
-                        cargar();
-                    },
-                    error: function () {
-                        showToast('Error de conexión con el servidor', 'danger');
-                    }
-                });
-            }
+        formData.append('NumeroSerie', $('#cNumeroSerie').val().trim());
+        formData.append('Ubicacion', $('#cUbicacion').val().trim());
+        formData.append('Activo', $('#cActivo').is(':checked'));
 
-            function eliminar(id) {
-                if (!confirm('¿Desactivar este componente? (Borrado lógico)')) return;
+        var fileInput = document.getElementById('cImagen');
+        if (fileInput.files.length > 0) {
+        formData.append('imagenFile', fileInput.files[0]);
+        }
 
-                $.ajax({
-                    url: '@Url.Action("EliminarComponente", "Componente")/' + id,
-                    type: 'DELETE',
-                    success: function (r) {
-                        showToast(r.mensaje, r.success ? 'success' : 'danger');
-                        if (r.success) cargar();
-                    }
-                });
-            }
+        $.ajax({
+        url: '/Componente/guardar-componente',
+        type: 'POST',
+        data: formData,
+        processData: false,
+        contentType: false,
+        success: function (r) {
+        if (!r.success) {
+        showToast(r.mensaje || 'Error al guardar', 'danger');
+        return;
+        }
+        if (modal) {
+        modal.hide();
+        }
+        showToast(r.mensaje || 'Guardado exitosamente', 'success');
+        cargar();
+        },
+        error: function () {
+        showToast('Error de conexión con el servidor', 'danger');
+        }
+        });
+        }
 
-            function escHtml(str) {
-                return $('<div>').text(String(str || '')).html();
-            }
+        function eliminar(id) {
+        if (!confirm('¿Eliminar este componente?')) return;
 
-            function previewImagen(input) {
-                if (input.files && input.files[0]) {
-                    var reader = new FileReader();
-                    reader.onload = function(e) {
-                        $('#imagenPreview').html('<img src="' + e.target.result + '" alt="Vista previa" />');
-                    }
-                    reader.readAsDataURL(input.files[0]);
-                } else {
-                    $('#imagenPreview').html('<span class="text-muted"><i class="bi bi-image me-2"></i>Sin imagen seleccionada</span>');
-                }
-            }
+        $.ajax({
+        url: '/Componente/eliminar-componente/' + id,
+        type: 'DELETE',
+        success: function (r) {
+        showToast(r.mensaje, r.success ? 'success' : 'danger');
+        if (r.success) cargar();
+        },
+        error: function() {
+        showToast('Error de conexión al eliminar', 'danger');
+        }
+        });
+        }
 
-            function showToast(mensaje, tipo = 'info') {
-                let toastContainer = document.getElementById('toast-container');
-                if (!toastContainer) {
-                    toastContainer = document.createElement('div');
-                    toastContainer.id = 'toast-container';
-                    toastContainer.className = 'toast-container position-fixed bottom-0 end-0 p-3';
-                    toastContainer.style.zIndex = '9999';
-                    document.body.appendChild(toastContainer);
-                }
+        function escHtml(str) {
+        return $('<div>').text(String(str || '')).html();
+        }
 
-                const bgClass = tipo === 'success' ? 'bg-success text-white' :
-                                tipo === 'danger' ? 'bg-danger text-white' :
-                                tipo === 'warning' ? 'bg-warning text-dark' : 'bg-info text-white';
+        function previewImagen(input) {
+        if (input.files && input.files[0]) {
+        var reader = new FileReader();
+        reader.onload = function(e) {
+        $('#imagenPreview').html('<img src="' + e.target.result + '" alt="Vista previa" style="max-width: 100%; max-height: 150px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1);" />');
+        }
+        reader.readAsDataURL(input.files[0]);
+        } else {
+        // Si se limpia el input en modo edición, restauramos la imagen original si existe
+        if (editandoId) {
+        $.get('/Componente/obtener-componente/' + editandoId, function(r) {
+        if (r.success && r.result && r.result.tieneImagen) {
+        $('#imagenPreview').html(`<img src="/Componente/obtener-imagen/${editandoId}" alt="Imagen del componente" style="max-width: 100%; max-height: 150px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1);" />`);
+        } else {
+        $('#imagenPreview').html('<span class="text-muted"><i class="bi bi-image me-2"></i>Sin imagen seleccionada</span>');
+        }
+        });
+        } else {
+        $('#imagenPreview').html('<span class="text-muted"><i class="bi bi-image me-2"></i>Sin imagen seleccionada</span>');
+        }
+        }
+        }
 
-                const toastId = 'toast-' + Date.now();
-                const toastHtml = `
-                    <div id="${toastId}" class="toast align-items-center ${bgClass} border-0 shadow-lg" role="alert" aria-live="assertive" aria-atomic="true" style="border-radius: 16px;">
-                        <div class="d-flex">
-                            <div class="toast-body fw-semibold">${mensaje}</div>
-                            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
-                        </div>
-                    </div>
-                `;
-                toastContainer.insertAdjacentHTML('beforeend', toastHtml);
-                const toastElement = document.getElementById(toastId);
-                const toast = new bootstrap.Toast(toastElement, { delay: 3000 });
-                toast.show();
-                toastElement.addEventListener('hidden.bs.toast', () => toastElement.remove());
-            }
+        function showToast(mensaje, tipo = 'info') {
+        let toastContainer = document.getElementById('toast-container');
+        if (!toastContainer) {
+        toastContainer = document.createElement('div');
+        toastContainer.id = 'toast-container';
+        toastContainer.className = 'toast-container position-fixed bottom-0 end-0 p-3';
+        toastContainer.style.zIndex = '9999';
+        document.body.appendChild(toastContainer);
+        }
+
+        const bgClass = tipo === 'success' ? 'bg-success text-white' :
+        tipo === 'danger' ? 'bg-danger text-white' :
+        tipo === 'warning' ? 'bg-warning text-dark' : 'bg-info text-white';
+
+        const toastId = 'toast-' + Date.now();
+        const toastHtml = `
+        <div id="${toastId}" class="toast align-items-center ${bgClass} border-0 shadow-lg" role="alert" aria-live="assertive" aria-atomic="true" style="border-radius: 16px;">
+        <div class="d-flex">
+        <div class="toast-body fw-semibold">${mensaje}</div>
+        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+        </div>
+        `;
+        toastContainer.insertAdjacentHTML('beforeend', toastHtml);
+        const toastElement = document.getElementById(toastId);
+        const toast = new bootstrap.Toast(toastElement, { delay: 3000 });
+        toast.show();
+        toastElement.addEventListener('hidden.bs.toast', () => toastElement.remove());
+        }
     </script>
 </body>
 </html>
