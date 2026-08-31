@@ -20,6 +20,9 @@ namespace ProyectoWong.Data
         public DbSet<Ubicacion> Ubicaciones { get; set; }
         public DbSet<MovimientoInventario> MovimientosInventario { get; set; }
         public DbSet<Proveedor> Proveedores { get; set; }
+        public DbSet<Producto> Productos { get; set; }
+        public DbSet<ProductoComponente> ProductoComponentes { get; set; }
+        public DbSet<EscalaDescuento> EscalasDescuento { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -30,11 +33,27 @@ namespace ProyectoWong.Data
 
             // Componente
             modelBuilder.Entity<Componente>().HasKey(c => c.Id);
+            modelBuilder.Entity<ProductoComponente>()
+    .HasOne(pc => pc.Producto)
+    .WithMany(p => p.Componentes)
+    .HasForeignKey(pc => pc.ProductoId)
+    .OnDelete(DeleteBehavior.Cascade);
 
+            modelBuilder.Entity<ProductoComponente>()
+                .HasOne(pc => pc.Componente)
+                .WithMany()
+                .HasForeignKey(pc => pc.ComponenteId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<EscalaDescuento>()
+    .HasOne(e => e.Producto)
+    .WithMany(p => p.EscalasDescuento)  // ← Con navegación bidireccional
+    .HasForeignKey(e => e.ProductoId)
+    .OnDelete(DeleteBehavior.Cascade);
             // OrdenCompra -> OrdenCompraDetalle
             modelBuilder.Entity<OrdenCompraDetalle>()
                 .HasOne(od => od.OrdenCompra)
-                .WithMany(oc => oc.Detalles) 
+                .WithMany(oc => oc.Detalles)
                 .HasForeignKey(od => od.OrdenCmpraId)
                 .OnDelete(DeleteBehavior.Cascade);
 
@@ -47,7 +66,7 @@ namespace ProyectoWong.Data
             // Recepcion -> RecepcionDetalle
             modelBuilder.Entity<RecepcionDetalle>()
                 .HasOne(rd => rd.Recepcion)
-                .WithMany(r => r.Detalles) 
+                .WithMany(r => r.Detalles)
                 .HasForeignKey(rd => rd.RecepcionId)
                 .OnDelete(DeleteBehavior.Cascade);
 
@@ -80,7 +99,7 @@ namespace ProyectoWong.Data
 
             modelBuilder.Entity<MovimientoInventario>()
                 .HasOne(m => m.Pallet)
-                .WithMany(p => p.Movimientos) 
+                .WithMany(p => p.Movimientos)
                 .HasForeignKey(m => m.PalletId)
                 .OnDelete(DeleteBehavior.Cascade);
 

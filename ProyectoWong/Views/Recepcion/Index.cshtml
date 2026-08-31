@@ -1,0 +1,859 @@
+﻿@{
+    Layout = null;
+    ViewBag.Title = "Recepción - SIV";
+}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewBag.Title</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
+
+    <style>
+        :root {
+            --color-amarillo: #f3eeb6;
+            --color-verde-claro: #d4db74;
+            --color-verde: #9abf17;
+            --color-aqua: #84bf93;
+            --color-aqua-claro: #aed9c5;
+            --color-azul-claro: #ddecf1;
+            --color-texto: #4a5568;
+            --color-texto-claro: #718096;
+            --color-blanco-glass: rgba(255, 255, 255, 0.85);
+        }
+
+        body {
+            font-family: 'Nunito', sans-serif;
+            background: linear-gradient(135deg, var(--color-azul-claro) 0%, var(--color-amarillo) 50%, var(--color-aqua-claro) 100%);
+            min-height: 100vh;
+            margin: 0;
+            position: relative;
+            overflow-x: hidden;
+            color: var(--color-texto);
+        }
+
+        @@keyframes float {
+            0%, 100% { transform: translateY(0px) scale(1); }
+            50% { transform: translateY(-20px) scale(1.05); }
+        }
+
+        .bg-blob { position: fixed; border-radius: 50%; filter: blur(60px); z-index: 0; opacity: 0.6; animation: float 8s ease-in-out infinite; pointer-events: none; }
+        .blob-1 { width: 400px; height: 400px; background: var(--color-verde-claro); top: -100px; left: -100px; }
+        .blob-2 { width: 350px; height: 350px; background: var(--color-aqua); bottom: -80px; right: -80px; animation-delay: 2s; }
+        .blob-3 { width: 250px; height: 250px; background: var(--color-amarillo); top: 30%; right: 20%; animation-delay: 4s; }
+
+        .dashboard-wrapper { display: flex; min-height: 100vh; padding: 1.5rem; gap: 1.5rem; position: relative; z-index: 1; }
+
+        .sidebar {
+            width: 260px; background: var(--color-blanco-glass); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+            border-radius: 24px; padding: 2rem 1.5rem; display: flex; flex-direction: column;
+            box-shadow: 0 10px 30px rgba(132, 191, 147, 0.15), 0 0 0 2px rgba(255, 255, 255, 0.6); flex-shrink: 0;
+        }
+        .sidebar-logo { color: var(--color-verde); font-size: 1.8rem; font-weight: 800; display: flex; align-items: center; gap: 0.5rem; margin-bottom: 2.5rem; padding-left: 0.5rem; }
+        .sidebar-logo i { color: var(--color-aqua); font-size: 2rem; }
+        .nav-menu { list-style: none; padding: 0; margin: 0; flex-grow: 1; }
+        .nav-item { margin-bottom: 0.75rem; }
+        .nav-link { display: flex; align-items: center; gap: 0.75rem; padding: 0.85rem 1.25rem; border-radius: 16px; color: var(--color-texto); font-weight: 700; font-size: 0.95rem; text-decoration: none; transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1); border: 2px solid transparent; }
+        .nav-link i { font-size: 1.2rem; transition: transform 0.3s ease; }
+        .nav-link:hover { background-color: var(--color-amarillo); color: var(--color-verde); transform: translateX(5px); }
+        .nav-link:hover i { transform: scale(1.1); }
+        .nav-link.active { background: linear-gradient(135deg, var(--color-verde) 0%, var(--color-aqua) 100%); color: white; box-shadow: 0 4px 15px rgba(154, 191, 23, 0.3); }
+        .nav-link.active i { color: white; }
+        .sidebar-footer { margin-top: auto; padding-top: 1.5rem; border-top: 2px solid var(--color-azul-claro); }
+        .btn-logout { display: flex; align-items: center; justify-content: center; gap: 0.5rem; width: 100%; padding: 0.75rem; border-radius: 16px; border: 2px solid #fecaca; background-color: #fef2f2; color: #e11d48; font-weight: 700; text-decoration: none; transition: all 0.3s ease; }
+        .btn-logout:hover { background-color: #e11d48; color: white; border-color: #e11d48; }
+
+        .main-content { flex-grow: 1; display: flex; flex-direction: column; gap: 1.5rem; min-width: 0; }
+        .top-bar { background: var(--color-blanco-glass); backdrop-filter: blur(12px); border-radius: 24px; padding: 1.25rem 2rem; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 10px 30px rgba(132, 191, 147, 0.15), 0 0 0 2px rgba(255, 255, 255, 0.6); }
+        .welcome-text h2 { margin: 0; font-size: 1.5rem; font-weight: 800; color: var(--color-texto); }
+        .welcome-text p { margin: 0; font-size: 0.9rem; color: var(--color-texto-claro); font-weight: 600; }
+
+        .content-card { background: var(--color-blanco-glass); backdrop-filter: blur(12px); border-radius: 24px; padding: 2rem; box-shadow: 0 10px 30px rgba(132, 191, 147, 0.15), 0 0 0 2px rgba(255, 255, 255, 0.6); animation: slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1); }
+        @@keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .card-header-custom { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem; }
+        .card-header-custom h3 { margin: 0; font-size: 1.3rem; font-weight: 800; color: var(--color-verde); display: flex; align-items: center; gap: 0.5rem; }
+
+        .btn-cute-primary { background: linear-gradient(135deg, var(--color-verde) 0%, var(--color-aqua) 100%); border: none; border-radius: 50px; padding: 0.6rem 1.25rem; color: white; font-weight: 700; font-size: 0.9rem; display: inline-flex; align-items: center; gap: 0.5rem; text-decoration: none; transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(154, 191, 23, 0.3); cursor: pointer; }
+        .btn-cute-primary:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(154, 191, 23, 0.4); color: white; }
+        .btn-cute-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
+        .btn-cute-secondary { background: var(--color-azul-claro); border: none; border-radius: 50px; padding: 0.6rem 1.25rem; color: var(--color-texto); font-weight: 700; font-size: 0.9rem; display: inline-flex; align-items: center; gap: 0.5rem; text-decoration: none; transition: all 0.3s ease; cursor: pointer; }
+        .btn-cute-secondary:hover { background: #c5e0ea; color: var(--color-texto); }
+        .btn-cute-sm { padding: 0.4rem 0.9rem; font-size: 0.8rem; border-radius: 50px; border: none; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 0.35rem; }
+
+        .table-cute { width: 100%; border-collapse: separate; border-spacing: 0 0.75rem; }
+        .table-cute thead th { background-color: var(--color-azul-claro); color: var(--color-texto); font-weight: 700; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; padding: 0.85rem 1rem; border: none; }
+        .table-cute thead th:first-child { border-radius: 12px 0 0 12px; }
+        .table-cute thead th:last-child { border-radius: 0 12px 12px 0; }
+        .table-cute tbody tr { background-color: white; box-shadow: 0 2px 8px rgba(0,0,0,0.03); transition: all 0.2s ease; }
+        .table-cute tbody tr:hover { transform: scale(1.005); box-shadow: 0 4px 12px rgba(132, 191, 147, 0.2); }
+        .table-cute tbody td { padding: 0.85rem 1rem; vertical-align: middle; border: none; font-size: 0.9rem; color: var(--color-texto); }
+        .table-cute tbody td:first-child { border-radius: 12px 0 0 12px; }
+        .table-cute tbody td:last-child { border-radius: 0 12px 12px 0; }
+
+        .badge-cute { padding: 0.35rem 0.75rem; border-radius: 50px; font-size: 0.75rem; font-weight: 700; white-space: nowrap; }
+        .badge-cute-success { background-color: var(--color-verde-claro); color: #3f4d12; }
+        .badge-cute-warning { background-color: #fef3c7; color: #92400e; }
+        .badge-cute-danger { background-color: #fee2e2; color: #991b1b; }
+        .badge-cute-info { background-color: var(--color-azul-claro); color: #1e5a73; }
+
+        .form-label { font-weight: 700; color: var(--color-texto); font-size: 0.9rem; margin-bottom: 0.4rem; }
+        .form-control, .form-select { border-radius: 12px; border: 2px solid var(--color-azul-claro); padding: 0.6rem 1rem; font-size: 0.95rem; transition: all 0.3s ease; background-color: rgba(255,255,255,0.8); }
+        .form-control:focus, .form-select:focus { border-color: var(--color-aqua); box-shadow: 0 0 0 0.2rem rgba(132, 191, 147, 0.25); background-color: #fff; }
+        .form-check-input:checked { background-color: var(--color-verde); border-color: var(--color-verde); }
+
+        .alert-cute { background-color: var(--color-azul-claro); color: var(--color-texto); border-radius: 12px; border: none; font-weight: 600; }
+
+        .modal-dialog { margin: 1.75rem auto; max-width: 700px; }
+        .modal-dialog-centered { display: flex; align-items: center; min-height: calc(100% - 3.5rem); }
+        .modal-content { border-radius: 24px; border: 2px solid rgba(255, 255, 255, 0.8); background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(12px); box-shadow: 0 20px 40px rgba(0,0,0,0.1); position: relative; width: 100%; }
+        .modal-header { border-bottom: 2px solid var(--color-azul-claro); padding: 1.5rem 2rem; }
+        .modal-title { font-weight: 800; color: var(--color-verde); display: flex; align-items: center; gap: 0.5rem; }
+        .modal-body { padding: 2rem; }
+        .modal-footer { border-top: 2px solid var(--color-azul-claro); padding: 1.5rem 2rem; }
+
+        /* ── Stepper del flujo de recepción ─────────────────────────── */
+        .stepper { display: flex; align-items: flex-start; justify-content: space-between; gap: 0.25rem; overflow-x: auto; padding-bottom: 0.5rem; }
+        .step { display: flex; flex-direction: column; align-items: center; gap: 0.4rem; flex: 1; min-width: 78px; position: relative; }
+        .step-circle { width: 44px; height: 44px; border-radius: 50%; background: white; border: 3px solid var(--color-azul-claro); display: flex; align-items: center; justify-content: center; font-size: 1.1rem; transition: all 0.3s ease; color: var(--color-texto-claro); }
+        .step.active .step-circle { border-color: var(--color-verde); background: linear-gradient(135deg, var(--color-verde) 0%, var(--color-aqua) 100%); color: white; box-shadow: 0 4px 12px rgba(154, 191, 23, 0.35); }
+        .step.done .step-circle { border-color: var(--color-aqua); background: var(--color-aqua-claro); color: #2f6b47; }
+        .step-label { font-size: 0.7rem; font-weight: 700; text-align: center; color: var(--color-texto-claro); }
+        .step.active .step-label { color: var(--color-verde); }
+        .step-line { position: absolute; top: 22px; left: 50%; width: 100%; height: 3px; background: var(--color-azul-claro); z-index: -1; }
+        .step:last-child .step-line { display: none; }
+        .step.done .step-line { background: var(--color-aqua); }
+
+        .section-locked { opacity: 0.45; pointer-events: none; filter: grayscale(0.4); }
+        .qa-check { display: flex; align-items: center; justify-content: space-between; padding: 0.85rem 1.1rem; border-radius: 14px; background: rgba(255,255,255,0.7); border: 2px solid var(--color-azul-claro); margin-bottom: 0.75rem; }
+        .qa-check label { font-weight: 700; margin: 0; }
+
+        @@media (max-width: 768px) {
+            .dashboard-wrapper { flex-direction: column; padding: 1rem; }
+            .sidebar { width: 100%; padding: 1.5rem; }
+            .modal-dialog { margin: 0.5rem; max-width: 100%; }
+            .stepper { justify-content: flex-start; }
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-blob blob-1"></div>
+    <div class="bg-blob blob-2"></div>
+    <div class="bg-blob blob-3"></div>
+
+    <div class="dashboard-wrapper">
+        <!-- Sidebar -->
+        @await Html.PartialAsync("_Sidebar")
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="top-bar">
+                <div class="welcome-text">
+                    <h2><i class="bi bi-box-seam-fill"></i> Recepción de Materiales</h2>
+                    <p>Recibir, identificar, inspeccionar, registrar, etiquetar y almacenar.</p>
+                </div>
+                <button class="btn-cute-secondary" onclick="reiniciarWizard()">
+                    <i class="bi bi-arrow-repeat"></i> Nueva recepción
+                </button>
+            </div>
+
+            <!-- STEPPER -->
+            <div class="content-card">
+                <div class="stepper" id="stepper">
+                    <div class="step active" data-step="1"><div class="step-line"></div><div class="step-circle">🚚</div><div class="step-label">Recepción</div></div>
+                    <div class="step" data-step="2"><div class="step-line"></div><div class="step-circle">📄</div><div class="step-label">Scan PO</div></div>
+                    <div class="step" data-step="3"><div class="step-line"></div><div class="step-circle">📦</div><div class="step-label">Material</div></div>
+                    <div class="step" data-step="4"><div class="step-line"></div><div class="step-circle">🏷️</div><div class="step-label">Lote</div></div>
+                    <div class="step" data-step="5"><div class="step-line"></div><div class="step-circle">⚖️</div><div class="step-label">Cantidad</div></div>
+                    <div class="step" data-step="6"><div class="step-line"></div><div class="step-circle">🔍</div><div class="step-label">QA</div></div>
+                    <div class="step" data-step="7"><div class="step-line"></div><div class="step-circle">🖨️</div><div class="step-label">Etiqueta</div></div>
+                    <div class="step" data-step="8"><div class="step-line"></div><div class="step-circle">📍</div><div class="step-label">Ubicación</div></div>
+                    <div class="step" data-step="9"><div class="step-line"></div><div class="step-circle">✅</div><div class="step-label">Confirmar</div></div>
+                </div>
+            </div>
+
+            <!-- PASO 1-2: SCAN PO -->
+            <div class="content-card" id="panelOC">
+                <div class="card-header-custom">
+                    <h3><i class="bi bi-file-earmark-text-fill"></i> Paso 1 · Escanear / Buscar Orden de Compra</h3>
+                    <span class="badge-cute badge-cute-info" id="badgeRecepcionEstado">Sin iniciar</span>
+                </div>
+
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-4">
+                        <label class="form-label">Número de OC</label>
+                        <input type="text" class="form-control" id="inputNumeroOC" placeholder="Ej. OC-0001">
+                    </div>
+                    <div class="col-md-3">
+                        <button class="btn-cute-primary" onclick="buscarOC()"><i class="bi bi-upc-scan"></i> Escanear / Buscar</button>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Recibido por</label>
+                        <select class="form-select" id="selectUsuarioRecibe"></select>
+                    </div>
+                    <div class="col-md-2">
+                        <button class="btn-cute-primary" id="btnIniciarRecepcion" onclick="iniciarRecepcion()" disabled>
+                            <i class="bi bi-play-fill"></i> Iniciar
+                        </button>
+                    </div>
+                </div>
+
+                <div id="ocInfo" class="mt-3" style="display:none;">
+                    <div class="alert-cute p-3">
+                        <strong>OC:</strong> <span id="ocNumero"></span> &nbsp;|&nbsp;
+                        <strong>Estado:</strong> <span id="ocEstado"></span> &nbsp;|&nbsp;
+                        <strong>Recepción #:</strong> <span id="ocRecepcionId">—</span>
+                    </div>
+                    <table class="table-cute">
+                        <thead>
+                            <tr><th>Componente</th><th># Pieza</th><th class="text-end">Cant. Esperada</th></tr>
+                        </thead>
+                        <tbody id="bodyOcDetalle"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- PASO 3-5: SCAN MATERIAL + BATCH + QUANTITY -->
+            <div class="content-card section-locked" id="panelLote">
+                <div class="card-header-custom">
+                    <h3><i class="bi bi-upc"></i> Pasos 2-4 · Material, Número de Lote y Cantidad</h3>
+                </div>
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label">Componente</label>
+                        <select class="form-select" id="selectComponenteLote"></select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Número de Lote / Batch</label>
+                        <input type="text" class="form-control" id="inputNumeroLote" placeholder="Ej. LOTE-2026-08-001">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Fecha de Caducidad</label>
+                        <input type="date" class="form-control" id="inputFechaCaducidad">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Cantidad Recibida</label>
+                        <input type="number" min="1" class="form-control" id="inputCantidadRecibida">
+                    </div>
+                    <div class="col-md-1 d-flex align-items-end">
+                        <button class="btn-cute-primary" onclick="agregarLote()"><i class="bi bi-plus-lg"></i></button>
+                    </div>
+                </div>
+
+                <table class="table-cute mt-4">
+                    <thead>
+                        <tr>
+                            <th>Componente</th><th>Lote</th><th>Caducidad</th><th class="text-end">Cantidad</th>
+                            <th>QA</th><th>Etiqueta / Pallet</th><th>Ubicación</th><th class="text-center">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="bodyLotes">
+                        <tr><td colspan="8" class="text-center text-muted py-3"><i class="bi bi-inbox me-2"></i>Aún no hay lotes capturados</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- PASO 9: CONFIRM RECEIPT -->
+            <div class="content-card section-locked" id="panelConfirmar">
+                <div class="card-header-custom">
+                    <h3><i class="bi bi-check-circle-fill"></i> Paso 9 · Confirmar Recepción</h3>
+                </div>
+                <p class="text-muted">
+                    Antes de confirmar, todos los lotes aprobados por QA deben tener pallet y ubicación asignados.
+                </p>
+                <button class="btn-cute-primary" onclick="confirmarRecepcion()">
+                    <i class="bi bi-check2-circle"></i> Confirmar Recepción y Cerrar
+                </button>
+            </div>
+
+            <!-- Consulta de trazabilidad -->
+            <div class="content-card">
+                <div class="card-header-custom">
+                    <h3><i class="bi bi-search"></i> Trazabilidad de una Recepción</h3>
+                </div>
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-3">
+                        <label class="form-label">ID de Recepción</label>
+                        <input type="number" class="form-control" id="inputTrazaId" placeholder="Ej. 1">
+                    </div>
+                    <div class="col-md-2">
+                        <button class="btn-cute-secondary" onclick="consultarTrazabilidad()"><i class="bi bi-eye"></i> Consultar</button>
+                    </div>
+                </div>
+                <div id="trazaResultado" class="mt-3"></div>
+            </div>
+        </main>
+    </div>
+
+    <!-- MODAL: QA INSPECTION -->
+    <div class="modal" id="modalQA" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="bi bi-clipboard2-check-fill"></i> QA Inspection</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="qaRecepcionDetalleId">
+
+                    <div class="qa-check">
+                        <label>Packaging Condition</label>
+                        <div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="qaEmpaque" id="qaEmpaqueGood" value="1" checked>
+                                <label class="form-check-label" for="qaEmpaqueGood">Good</label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="qaEmpaque" id="qaEmpaqueDamaged" value="0">
+                                <label class="form-check-label" for="qaEmpaqueDamaged">Damaged</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="qa-check">
+                        <label>Label Correct</label>
+                        <div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="qaEtiqueta" id="qaEtiquetaSi" value="1" checked>
+                                <label class="form-check-label" for="qaEtiquetaSi">Yes</label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="qaEtiqueta" id="qaEtiquetaNo" value="0">
+                                <label class="form-check-label" for="qaEtiquetaNo">No</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="qa-check">
+                        <label>Material Condition</label>
+                        <div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="qaMaterial" id="qaMaterialAceptable" value="1" checked>
+                                <label class="form-check-label" for="qaMaterialAceptable">Acceptable</label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="qaMaterial" id="qaMaterialRechazado" value="0">
+                                <label class="form-check-label" for="qaMaterialRechazado">Rejected</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="qa-check">
+                        <label>Certificate Available</label>
+                        <div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="qaCertificado" id="qaCertificadoSi" value="1" checked>
+                                <label class="form-check-label" for="qaCertificadoSi">Yes</label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="qaCertificadoNo" id="qaCertificadoNo" value="0">
+                                <label class="form-check-label" for="qaCertificadoNo">No</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mt-2">
+                        <div class="col-md-6">
+                            <label class="form-label">Inspeccionado por</label>
+                            <select class="form-select" id="selectInspector"></select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Comentarios</label>
+                            <input type="text" class="form-control" id="qaComentarios" placeholder="Opcional">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn-cute-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button class="btn-cute-primary" onclick="guardarInspeccion()"><i class="bi bi-check-lg"></i> Registrar Inspección</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: PRINT LABEL / PALLET -->
+    <div class="modal" id="modalPallet" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="bi bi-printer-fill"></i> Generar Etiqueta / Pallet</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="palletRecepcionDetalleId">
+                    <label class="form-label">Código de Pallet</label>
+                    <input type="text" class="form-control" id="inputCodigoPallet" placeholder="Se genera automático, editable">
+                </div>
+                <div class="modal-footer">
+                    <button class="btn-cute-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button class="btn-cute-primary" onclick="guardarPallet()"><i class="bi bi-printer"></i> Generar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: SCAN LOCATION -->
+    <div class="modal" id="modalUbicacion" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="bi bi-geo-alt-fill"></i> Asignar Ubicación</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="ubicacionPalletId">
+                    <div class="row g-3">
+                        <div class="col-md-8">
+                            <label class="form-label">Ubicación</label>
+                            <select class="form-select" id="selectUbicacion"></select>
+                        </div>
+                        <div class="col-md-4 d-flex align-items-end">
+                            <button class="btn-cute-secondary w-100" type="button" onclick="mostrarNuevaUbicacion()">
+                                <i class="bi bi-plus-lg"></i> Nueva
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="nuevaUbicacionForm" class="row g-3 mt-1" style="display:none;">
+                        <div class="col-md-4">
+                            <label class="form-label">Código</label>
+                            <input type="text" class="form-control" id="inputNuevoCodigo" placeholder="Ej. A-01-03">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Zona</label>
+                            <input type="text" class="form-control" id="inputNuevaZona" placeholder="Ej. Almacén A">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Capacidad</label>
+                            <input type="number" class="form-control" id="inputNuevaCapacidad" placeholder="Opcional">
+                        </div>
+                        <div class="col-md-1 d-flex align-items-end">
+                            <button class="btn-cute-primary" type="button" onclick="crearUbicacion()"><i class="bi bi-check-lg"></i></button>
+                        </div>
+                    </div>
+
+                    <div class="mt-3">
+                        <label class="form-label">Realizado por</label>
+                        <select class="form-select" id="selectRealizadoPor"></select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn-cute-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button class="btn-cute-primary" onclick="guardarUbicacion()"><i class="bi bi-geo-alt"></i> Asignar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.js"></script>
+
+    <script>
+        // ── Estado del wizard ────────────────────────────────────────────
+        var recepcionActual = { id: null, ordenCompraId: null, detalleOC: [] };
+        var modalQA, modalPallet, modalUbicacion;
+        var usuarios = [];
+
+        $(function () {
+            modalQA = new bootstrap.Modal(document.getElementById('modalQA'));
+            modalPallet = new bootstrap.Modal(document.getElementById('modalPallet'));
+            modalUbicacion = new bootstrap.Modal(document.getElementById('modalUbicacion'));
+
+            cargarUsuarios();
+            marcarStep(1);
+        });
+
+        function escHtml(t) {
+            return $('<div>').text(t == null ? '' : t).html();
+        }
+
+        function showToast(mensaje, tipo) {
+            tipo = tipo || 'info';
+            let toastContainer = document.getElementById('toast-container');
+            if (!toastContainer) {
+                toastContainer = document.createElement('div');
+                toastContainer.id = 'toast-container';
+                toastContainer.className = 'toast-container position-fixed bottom-0 end-0 p-3';
+                toastContainer.style.zIndex = '9999';
+                document.body.appendChild(toastContainer);
+            }
+            const bgClass = tipo === 'success' ? 'bg-success text-white' :
+                tipo === 'danger' ? 'bg-danger text-white' :
+                tipo === 'warning' ? 'bg-warning text-dark' : 'bg-info text-white';
+            const toastId = 'toast-' + Date.now();
+            toastContainer.insertAdjacentHTML('beforeend',
+                '<div id="' + toastId + '" class="toast align-items-center ' + bgClass + ' border-0 shadow-lg" role="alert" style="border-radius:16px;">' +
+                '<div class="d-flex"><div class="toast-body fw-semibold">' + mensaje + '</div>' +
+                '<button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button></div></div>');
+            const toastEl = document.getElementById(toastId);
+            const toast = new bootstrap.Toast(toastEl, { delay: 3500 });
+            toast.show();
+            toastEl.addEventListener('hidden.bs.toast', () => toastEl.remove());
+        }
+
+        function marcarStep(n) {
+            $('#stepper .step').each(function () {
+                var s = parseInt($(this).data('step'));
+                $(this).removeClass('active done');
+                if (s < n) $(this).addClass('done');
+                if (s === n) $(this).addClass('active');
+            });
+        }
+
+        // ── Carga de catálogos ───────────────────────────────────────────
+        function cargarUsuarios() {
+            $.get('@Url.Action("Consultar", "Usuario")', function (r) {
+                usuarios = (r.success && r.result) ? r.result : [];
+                var options = usuarios.filter(u => u.activo).map(u =>
+                    '<option value="' + u.expUsuarioId + '">' + escHtml(u.nombreCompleto) + '</option>').join('');
+                if (!options) options = '<option value="">Sin usuarios registrados</option>';
+                $('#selectUsuarioRecibe, #selectInspector, #selectRealizadoPor').html(options);
+            }).fail(function () {
+                showToast('No se pudieron cargar los usuarios', 'danger');
+            });
+        }
+
+        function cargarUbicaciones(callback) {
+            $.get('@Url.Action("ListarUbicaciones", "Recepcion")', function (r) {
+                var opciones = (r.success && r.result && r.result.length)
+                    ? r.result.map(u => '<option value="' + u.id + '">' + escHtml(u.codigo) + (u.zona ? ' — ' + escHtml(u.zona) : '') + '</option>').join('')
+                    : '<option value="">Sin ubicaciones registradas — crea una nueva</option>';
+                $('#selectUbicacion').html(opciones);
+                if (callback) callback();
+            }).fail(function () {
+                showToast('No se pudieron cargar las ubicaciones', 'danger');
+            });
+        }
+
+        // ── PASO 1-2: Buscar OC ──────────────────────────────────────────
+        function buscarOC() {
+            var numero = $('#inputNumeroOC').val().trim();
+            if (!numero) { showToast('Escribe o escanea un número de OC', 'warning'); return; }
+
+            $.get('/OrdenCompra/buscar-por-numero/' + encodeURIComponent(numero), function (r) {
+                if (!r.success || !r.result) {
+                    showToast(r.mensaje || 'Orden de compra no encontrada', 'danger');
+                    $('#ocInfo').hide();
+                    return;
+                }
+                var oc = r.result;
+                recepcionActual.ordenCompraId = oc.id;
+                recepcionActual.detalleOC = oc.detalles || [];
+
+                $('#ocNumero').text(oc.numeroOC);
+                $('#ocEstado').text(oc.estado);
+                $('#ocRecepcionId').text('—');
+
+                var filas = recepcionActual.detalleOC.map(d =>
+                    '<tr><td>' + escHtml(d.componenteNombre) + '</td><td>' + escHtml(d.numeroPieza) + '</td><td class="text-end">' + d.cantidadEsperada + '</td></tr>'
+                ).join('') || '<tr><td colspan="3" class="text-center text-muted">Esta OC no tiene componentes cargados</td></tr>';
+                $('#bodyOcDetalle').html(filas);
+                $('#ocInfo').show();
+
+                $('#btnIniciarRecepcion').prop('disabled', false);
+                marcarStep(2);
+            }).fail(function () {
+                showToast('Error al buscar la orden de compra', 'danger');
+            });
+        }
+
+        function iniciarRecepcion() {
+            var usuarioId = $('#selectUsuarioRecibe').val();
+            if (!usuarioId) { showToast('Selecciona quién recibe el material', 'warning'); return; }
+            if (!recepcionActual.ordenCompraId) { showToast('Primero busca una orden de compra válida', 'warning'); return; }
+
+            $.ajax({
+                url: '@Url.Action("Iniciar", "Recepcion")',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({ ordenCompraId: recepcionActual.ordenCompraId, usuarioId: parseInt(usuarioId) }),
+                success: function (r) {
+                    if (!r.success) { showToast(r.mensaje, 'danger'); return; }
+                    recepcionActual.id = r.result.recepcionId;
+                    $('#ocRecepcionId').text(recepcionActual.id);
+                    $('#badgeRecepcionEstado').removeClass('badge-cute-info').addClass('badge-cute-success').text('En proceso');
+
+                    var opciones = recepcionActual.detalleOC.map(d =>
+                        '<option value="' + d.componenteId + '">' + escHtml(d.componenteNombre) + ' (' + escHtml(d.numeroPieza) + ')</option>').join('');
+                    $('#selectComponenteLote').html(opciones || '<option value="">Sin componentes en la OC</option>');
+
+                    $('#panelLote').removeClass('section-locked');
+                    $('#panelConfirmar').removeClass('section-locked');
+                    $('#btnIniciarRecepcion').prop('disabled', true);
+                    marcarStep(3);
+                    showToast('Recepción #' + recepcionActual.id + ' iniciada', 'success');
+                },
+                error: function () { showToast('Error al iniciar la recepción', 'danger'); }
+            });
+        }
+
+        // ── PASO 3-5: Agregar lote ───────────────────────────────────────
+        function agregarLote() {
+            if (!recepcionActual.id) { showToast('Primero inicia la recepción', 'warning'); return; }
+
+            var componenteId = $('#selectComponenteLote').val();
+            var numeroLote = $('#inputNumeroLote').val().trim();
+            var fechaCaducidad = $('#inputFechaCaducidad').val();
+            var cantidad = parseInt($('#inputCantidadRecibida').val());
+
+            if (!componenteId) { showToast('Selecciona un componente', 'warning'); return; }
+            if (!numeroLote) { showToast('El número de lote es obligatorio', 'warning'); return; }
+            if (!cantidad || cantidad <= 0) { showToast('La cantidad debe ser mayor a 0', 'warning'); return; }
+
+            $.ajax({
+                url: '@Url.Action("AgregarLote", "Recepcion")',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({
+                    recepcionId: recepcionActual.id,
+                    componenteId: parseInt(componenteId),
+                    numeroLote: numeroLote,
+                    fechaCaducidad: fechaCaducidad || null,
+                    cantidadRecibida: cantidad
+                }),
+                success: function (r) {
+                    if (!r.success) { showToast(r.mensaje, 'danger'); return; }
+
+                    var nombreComponente = $('#selectComponenteLote option:selected').text();
+                    agregarFilaLote(r.result.recepcionDetalleId, nombreComponente, numeroLote, fechaCaducidad, cantidad);
+
+                    $('#inputNumeroLote, #inputFechaCaducidad, #inputCantidadRecibida').val('');
+                    marcarStep(6);
+                    showToast('Lote registrado correctamente', 'success');
+                },
+                error: function () { showToast('Error al registrar el lote', 'danger'); }
+            });
+        }
+
+        function agregarFilaLote(id, componente, lote, caducidad, cantidad) {
+            if ($('#bodyLotes tr').length === 1 && $('#bodyLotes tr td').attr('colspan')) {
+                $('#bodyLotes').empty();
+            }
+            var fila = $(
+                '<tr id="fila-lote-' + id + '">' +
+                '<td>' + escHtml(componente) + '</td>' +
+                '<td>' + escHtml(lote) + '</td>' +
+                '<td>' + (caducidad || '—') + '</td>' +
+                '<td class="text-end">' + cantidad + '</td>' +
+                '<td id="qaCell-' + id + '"><span class="badge-cute badge-cute-warning">Pendiente</span></td>' +
+                '<td id="palletCell-' + id + '">—</td>' +
+                '<td id="ubicCell-' + id + '">—</td>' +
+                '<td class="text-center" id="accionesCell-' + id + '">' +
+                '<button class="btn-cute-sm btn-cute-primary" onclick="abrirQA(' + id + ')"><i class="bi bi-clipboard2-check"></i> QA</button>' +
+                '</td></tr>'
+            );
+            $('#bodyLotes').append(fila);
+        }
+
+        // ── PASO 5: QA Inspection ────────────────────────────────────────
+        function abrirQA(recepcionDetalleId) {
+            $('#qaRecepcionDetalleId').val(recepcionDetalleId);
+            $('#qaEmpaqueGood, #qaEtiquetaSi, #qaMaterialAceptable, #qaCertificadoSi').prop('checked', true);
+            $('#qaComentarios').val('');
+            marcarStep(6);
+            modalQA.show();
+        }
+
+        function guardarInspeccion() {
+            var id = $('#qaRecepcionDetalleId').val();
+            var inspector = $('#selectInspector').val();
+            if (!inspector) { showToast('Selecciona quién inspecciona', 'warning'); return; }
+
+            $.ajax({
+                url: '@Url.Action("Inspeccionar", "Recepcion")',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({
+                    recepcionDetalleId: parseInt(id),
+                    empaqueOk: $('input[name=qaEmpaque]:checked').val() === '1',
+                    etiquetaOk: $('input[name=qaEtiqueta]:checked').val() === '1',
+                    materialOk: $('input[name=qaMaterial]:checked').val() === '1',
+                    certificadoDisponible: $('input[name=qaCertificado]:checked').val() === '1',
+                    inspeccionadoPor: parseInt(inspector),
+                    comentarios: $('#qaComentarios').val()
+                }),
+                success: function (r) {
+                    if (!r.success) { showToast(r.mensaje, 'danger'); return; }
+
+                    var aprobado = r.result.resultado === 'Aprobado';
+                    var badge = aprobado
+                        ? '<span class="badge-cute badge-cute-success">Aprobado</span>'
+                        : '<span class="badge-cute badge-cute-danger">Rechazado</span>';
+                    $('#qaCell-' + id).html(badge);
+
+                    if (aprobado) {
+                        $('#accionesCell-' + id).html(
+                            '<button class="btn-cute-sm btn-cute-primary" onclick="abrirPallet(' + id + ')"><i class="bi bi-printer"></i> Etiqueta</button>');
+                        marcarStep(7);
+                    } else {
+                        $('#accionesCell-' + id).html('<span class="text-muted small">Lote rechazado</span>');
+                    }
+
+                    modalQA.hide();
+                    showToast('Inspección registrada: ' + r.result.resultado, aprobado ? 'success' : 'warning');
+                },
+                error: function () { showToast('Error al registrar la inspección', 'danger'); }
+            });
+        }
+
+        // ── PASO 6-7: Generar Pallet / Etiqueta ──────────────────────────
+        function abrirPallet(recepcionDetalleId) {
+            $('#palletRecepcionDetalleId').val(recepcionDetalleId);
+            $('#inputCodigoPallet').val('PAL-' + recepcionDetalleId + '-' + Date.now().toString().slice(-5));
+            modalPallet.show();
+        }
+
+        function guardarPallet() {
+            var id = $('#palletRecepcionDetalleId').val();
+            var codigo = $('#inputCodigoPallet').val().trim();
+            if (!codigo) { showToast('El código de pallet es obligatorio', 'warning'); return; }
+
+            $.ajax({
+                url: '@Url.Action("GenerarPallet", "Recepcion")',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({ recepcionDetalleId: parseInt(id), codigoPallet: codigo }),
+                success: function (r) {
+                    if (!r.success) { showToast(r.mensaje, 'danger'); return; }
+
+                    $('#palletCell-' + id).html('<span class="badge-cute badge-cute-info">' + escHtml(r.result.codigoPallet) + '</span>');
+                    $('#accionesCell-' + id).html(
+                        '<button class="btn-cute-sm btn-cute-primary" onclick="abrirUbicacion(' + id + ', ' + r.result.palletId + ')">' +
+                        '<i class="bi bi-geo-alt"></i> Ubicación</button>');
+                    marcarStep(8);
+                    modalPallet.hide();
+                    showToast('Etiqueta de pallet generada', 'success');
+                },
+                error: function () { showToast('Error al generar el pallet', 'danger'); }
+            });
+        }
+
+        // ── PASO 8: Asignar ubicación ─────────────────────────────────────
+        function abrirUbicacion(recepcionDetalleId, palletId) {
+            $('#ubicacionPalletId').val(palletId).data('detalleId', recepcionDetalleId);
+            $('#nuevaUbicacionForm').hide();
+            cargarUbicaciones();
+            modalUbicacion.show();
+        }
+
+        function mostrarNuevaUbicacion() {
+            $('#nuevaUbicacionForm').slideToggle(150);
+        }
+
+        function crearUbicacion() {
+            var codigo = $('#inputNuevoCodigo').val().trim();
+            if (!codigo) { showToast('El código de la nueva ubicación es obligatorio', 'warning'); return; }
+
+            $.ajax({
+                url: '@Url.Action("CrearUbicacion", "Recepcion")',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({
+                    codigo: codigo,
+                    zona: $('#inputNuevaZona').val(),
+                    capacidadMaxima: $('#inputNuevaCapacidad').val() ? parseInt($('#inputNuevaCapacidad').val()) : null
+                }),
+                success: function (r) {
+                    if (!r.success) { showToast(r.mensaje, 'danger'); return; }
+                    showToast('Ubicación creada', 'success');
+                    $('#inputNuevoCodigo, #inputNuevaZona, #inputNuevaCapacidad').val('');
+                    $('#nuevaUbicacionForm').slideUp(150);
+                    cargarUbicaciones(function () { $('#selectUbicacion').val(r.result.id); });
+                },
+                error: function () { showToast('Error al crear la ubicación', 'danger'); }
+            });
+        }
+
+        function guardarUbicacion() {
+            var palletId = $('#ubicacionPalletId').val();
+            var detalleId = $('#ubicacionPalletId').data('detalleId');
+            var ubicacionId = $('#selectUbicacion').val();
+            var realizadoPor = $('#selectRealizadoPor').val();
+
+            if (!ubicacionId) { showToast('Selecciona o crea una ubicación', 'warning'); return; }
+            if (!realizadoPor) { showToast('Selecciona quién realiza el movimiento', 'warning'); return; }
+
+            $.ajax({
+                url: '@Url.Action("AsignarUbicacion", "Recepcion")',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({ palletId: parseInt(palletId), ubicacionId: parseInt(ubicacionId), realizadoPor: parseInt(realizadoPor) }),
+                success: function (r) {
+                    if (!r.success) { showToast(r.mensaje, 'danger'); return; }
+
+                    var codigoUbic = $('#selectUbicacion option:selected').text();
+                    $('#ubicCell-' + detalleId).html('<span class="badge-cute badge-cute-success">' + escHtml(codigoUbic) + '</span>');
+                    $('#accionesCell-' + detalleId).html('<span class="text-muted small"><i class="bi bi-check2-circle"></i> Completo</span>');
+
+                    marcarStep(9);
+                    modalUbicacion.hide();
+                    showToast('Ubicación asignada correctamente', 'success');
+                },
+                error: function () { showToast('Error al asignar la ubicación', 'danger'); }
+            });
+        }
+
+        // ── PASO 9: Confirmar recepción ───────────────────────────────────
+        function confirmarRecepcion() {
+            if (!recepcionActual.id) { showToast('No hay una recepción activa', 'warning'); return; }
+
+            $.ajax({
+                url: '/Recepcion/confirmar/' + recepcionActual.id,
+                method: 'POST',
+                success: function (r) {
+                    if (!r.success) { showToast(r.mensaje, 'danger'); return; }
+                    $('#badgeRecepcionEstado').removeClass('badge-cute-success').addClass('badge-cute-info').text('Completada');
+                    showToast('Recepción confirmada y cerrada', 'success');
+                },
+                error: function () { showToast('Error al confirmar la recepción', 'danger'); }
+            });
+        }
+
+        // ── Trazabilidad ──────────────────────────────────────────────────
+        function consultarTrazabilidad() {
+            var id = $('#inputTrazaId').val();
+            if (!id) { showToast('Escribe un ID de recepción', 'warning'); return; }
+
+            $.get('/Recepcion/obtener/' + id, function (r) {
+                if (!r.success || !r.result) {
+                    $('#trazaResultado').html('<div class="alert-cute p-3">' + (r.mensaje || 'No encontrada') + '</div>');
+                    return;
+                }
+                var d = r.result;
+                var filas = (d.lotes || []).map(l =>
+                    '<tr><td>' + escHtml(l.componente) + '</td><td>' + escHtml(l.numeroLote) + '</td>' +
+                    '<td class="text-end">' + l.cantidadRecibida + '</td><td>' + escHtml(l.estado) + '</td>' +
+                    '<td>' + (l.pallets && l.pallets.length ? l.pallets.map(p => escHtml(p.codigoPallet) + (p.ubicacion ? ' @ ' + escHtml(p.ubicacion) : '')).join('<br>') : '—') + '</td></tr>'
+                ).join('') || '<tr><td colspan="5" class="text-center text-muted">Sin lotes</td></tr>';
+
+                $('#trazaResultado').html(
+                    '<div class="alert-cute p-3 mb-3"><strong>OC:</strong> ' + escHtml(d.numeroOC) +
+                    ' &nbsp;|&nbsp; <strong>Estado:</strong> ' + escHtml(d.estado) + '</div>' +
+                    '<table class="table-cute"><thead><tr><th>Componente</th><th>Lote</th><th class="text-end">Cantidad</th><th>Estado</th><th>Pallet / Ubicación</th></tr></thead>' +
+                    '<tbody>' + filas + '</tbody></table>'
+                );
+            }).fail(function () {
+                showToast('Error al consultar la recepción', 'danger');
+            });
+        }
+
+        // ── Reiniciar wizard ──────────────────────────────────────────────
+        function reiniciarWizard() {
+            recepcionActual = { id: null, ordenCompraId: null, detalleOC: [] };
+            $('#inputNumeroOC').val('');
+            $('#ocInfo').hide();
+            $('#badgeRecepcionEstado').removeClass('badge-cute-success badge-cute-info').addClass('badge-cute-info').text('Sin iniciar');
+            $('#btnIniciarRecepcion').prop('disabled', true);
+            $('#bodyLotes').html('<tr><td colspan="8" class="text-center text-muted py-3"><i class="bi bi-inbox me-2"></i>Aún no hay lotes capturados</td></tr>');
+            $('#panelLote, #panelConfirmar').addClass('section-locked');
+            marcarStep(1);
+        }
+    </script>
+</body>
+</html>

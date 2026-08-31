@@ -1,0 +1,507 @@
+﻿@{
+    Layout = null;
+    ViewBag.Title = "Productos - SIV";
+}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewBag.Title</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
+
+    <style>
+        :root {
+            --color-amarillo: #f3eeb6;
+            --color-verde-claro: #d4db74;
+            --color-verde: #9abf17;
+            --color-aqua: #84bf93;
+            --color-aqua-claro: #aed9c5;
+            --color-azul-claro: #ddecf1;
+            --color-texto: #4a5568;
+            --color-texto-claro: #718096;
+            --color-blanco-glass: rgba(255, 255, 255, 0.85);
+        }
+
+        body {
+            font-family: 'Nunito', sans-serif;
+            background: linear-gradient(135deg, var(--color-azul-claro) 0%, var(--color-amarillo) 50%, var(--color-aqua-claro) 100%);
+            min-height: 100vh; margin: 0; position: relative; overflow-x: hidden; color: var(--color-texto);
+        }
+
+        @@keyframes float { 0%, 100% { transform: translateY(0px) scale(1); } 50% { transform: translateY(-20px) scale(1.05); } }
+        .bg-blob { position: fixed; border-radius: 50%; filter: blur(60px); z-index: 0; opacity: 0.6; animation: float 8s ease-in-out infinite; pointer-events: none; }
+        .blob-1 { width: 400px; height: 400px; background: var(--color-verde-claro); top: -100px; left: -100px; }
+        .blob-2 { width: 350px; height: 350px; background: var(--color-aqua); bottom: -80px; right: -80px; animation-delay: 2s; }
+        .blob-3 { width: 250px; height: 250px; background: var(--color-amarillo); top: 30%; right: 20%; animation-delay: 4s; }
+
+        .dashboard-wrapper { display: flex; min-height: 100vh; padding: 1.5rem; gap: 1.5rem; position: relative; z-index: 1; }
+        .sidebar { width: 260px; background: var(--color-blanco-glass); backdrop-filter: blur(12px); border-radius: 24px; padding: 2rem 1.5rem; display: flex; flex-direction: column; box-shadow: 0 10px 30px rgba(132, 191, 147, 0.15), 0 0 0 2px rgba(255, 255, 255, 0.6); flex-shrink: 0; }
+        .sidebar-logo { color: var(--color-verde); font-size: 1.8rem; font-weight: 800; display: flex; align-items: center; gap: 0.5rem; margin-bottom: 2.5rem; padding-left: 0.5rem; }
+        .sidebar-logo i { color: var(--color-aqua); font-size: 2rem; }
+        .nav-menu { list-style: none; padding: 0; margin: 0; flex-grow: 1; }
+        .nav-item { margin-bottom: 0.75rem; }
+        .nav-link { display: flex; align-items: center; gap: 0.75rem; padding: 0.85rem 1.25rem; border-radius: 16px; color: var(--color-texto); font-weight: 700; font-size: 0.95rem; text-decoration: none; transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1); border: 2px solid transparent; }
+        .nav-link i { font-size: 1.2rem; transition: transform 0.3s ease; }
+        .nav-link:hover { background-color: var(--color-amarillo); color: var(--color-verde); transform: translateX(5px); }
+        .nav-link:hover i { transform: scale(1.1); }
+        .nav-link.active { background: linear-gradient(135deg, var(--color-verde) 0%, var(--color-aqua) 100%); color: white; box-shadow: 0 4px 15px rgba(154, 191, 23, 0.3); }
+        .nav-link.active i { color: white; }
+        .sidebar-footer { margin-top: auto; padding-top: 1.5rem; border-top: 2px solid var(--color-azul-claro); }
+        .btn-logout { display: flex; align-items: center; justify-content: center; gap: 0.5rem; width: 100%; padding: 0.75rem; border-radius: 16px; border: 2px solid #fecaca; background-color: #fef2f2; color: #e11d48; font-weight: 700; text-decoration: none; transition: all 0.3s ease; }
+        .btn-logout:hover { background-color: #e11d48; color: white; border-color: #e11d48; }
+
+        .main-content { flex-grow: 1; display: flex; flex-direction: column; gap: 1.5rem; min-width: 0; }
+        .top-bar { background: var(--color-blanco-glass); backdrop-filter: blur(12px); border-radius: 24px; padding: 1.25rem 2rem; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 10px 30px rgba(132, 191, 147, 0.15), 0 0 0 2px rgba(255, 255, 255, 0.6); flex-wrap: wrap; gap: 1rem; }
+        .welcome-text h2 { margin: 0; font-size: 1.5rem; font-weight: 800; color: var(--color-texto); }
+        .welcome-text p { margin: 0; font-size: 0.9rem; color: var(--color-texto-claro); font-weight: 600; }
+
+        .content-card { background: var(--color-blanco-glass); backdrop-filter: blur(12px); border-radius: 24px; padding: 2rem; box-shadow: 0 10px 30px rgba(132, 191, 147, 0.15), 0 0 0 2px rgba(255, 255, 255, 0.6); animation: slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1); }
+        @@keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .card-header-custom { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem; }
+        .card-header-custom h3 { margin: 0; font-size: 1.3rem; font-weight: 800; color: var(--color-verde); display: flex; align-items: center; gap: 0.5rem; }
+
+        .btn-cute-primary { background: linear-gradient(135deg, var(--color-verde) 0%, var(--color-aqua) 100%); border: none; border-radius: 50px; padding: 0.6rem 1.25rem; color: white; font-weight: 700; font-size: 0.9rem; display: inline-flex; align-items: center; gap: 0.5rem; text-decoration: none; transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(154, 191, 23, 0.3); cursor: pointer; }
+        .btn-cute-primary:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(154, 191, 23, 0.4); color: white; }
+        .btn-cute-secondary { background: var(--color-azul-claro); border: none; border-radius: 50px; padding: 0.6rem 1.25rem; color: var(--color-texto); font-weight: 700; font-size: 0.9rem; display: inline-flex; align-items: center; gap: 0.5rem; text-decoration: none; transition: all 0.3s ease; cursor: pointer; }
+        .btn-cute-secondary:hover { background: #c5e0ea; color: var(--color-texto); }
+        .btn-cute-sm { padding: 0.35rem 0.85rem; font-size: 0.8rem; border-radius: 50px; border: none; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 0.35rem; }
+
+        .table-cute { width: 100%; border-collapse: separate; border-spacing: 0 0.75rem; }
+        .table-cute thead th { background-color: var(--color-azul-claro); color: var(--color-texto); font-weight: 700; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; padding: 0.9rem 1.1rem; border: none; }
+        .table-cute thead th:first-child { border-radius: 12px 0 0 12px; }
+        .table-cute thead th:last-child { border-radius: 0 12px 12px 0; }
+        .table-cute tbody tr { background-color: white; box-shadow: 0 2px 8px rgba(0,0,0,0.03); transition: all 0.2s ease; }
+        .table-cute tbody tr:hover { transform: scale(1.005); box-shadow: 0 4px 12px rgba(132, 191, 147, 0.2); }
+        .table-cute tbody td { padding: 0.9rem 1.1rem; vertical-align: middle; border: none; font-size: 0.9rem; color: var(--color-texto); }
+        .table-cute tbody td:first-child { border-radius: 12px 0 0 12px; }
+        .table-cute tbody td:last-child { border-radius: 0 12px 12px 0; }
+
+        .badge-cute { padding: 0.35rem 0.75rem; border-radius: 50px; font-size: 0.75rem; font-weight: 700; white-space: nowrap; }
+        .badge-cute-success { background-color: var(--color-verde-claro); color: #3f4d12; }
+        .badge-cute-warning { background-color: #fef3c7; color: #92400e; }
+        .badge-cute-danger { background-color: #fee2e2; color: #991b1b; }
+        .badge-cute-info { background-color: var(--color-azul-claro); color: #1e5a73; }
+
+        .action-btn { width: 32px; height: 32px; border-radius: 8px; border: none; display: inline-flex; align-items: center; justify-content: center; margin-right: 0.25rem; transition: all 0.2s ease; text-decoration: none; cursor: pointer; }
+        .btn-edit { background-color: var(--color-azul-claro); color: #2563eb; }
+        .btn-edit:hover { background-color: #2563eb; color: white; }
+        .btn-delete { background-color: #fee2e2; color: #dc2626; }
+        .btn-delete:hover { background-color: #dc2626; color: white; }
+
+        .form-label { font-weight: 700; color: var(--color-texto); font-size: 0.9rem; margin-bottom: 0.4rem; }
+        .form-control, .form-select { border-radius: 12px; border: 2px solid var(--color-azul-claro); padding: 0.6rem 1rem; font-size: 0.95rem; transition: all 0.3s ease; background-color: rgba(255,255,255,0.8); }
+        .form-control:focus, .form-select:focus { border-color: var(--color-aqua); box-shadow: 0 0 0 0.2rem rgba(132, 191, 147, 0.25); background-color: #fff; }
+        .form-check-input:checked { background-color: var(--color-verde); border-color: var(--color-verde); }
+
+        .modal-dialog { margin: 1.75rem auto; max-width: 850px; }
+        .modal-dialog-centered { display: flex; align-items: center; min-height: calc(100% - 3.5rem); }
+        .modal-content { border-radius: 24px; border: 2px solid rgba(255, 255, 255, 0.8); background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(12px); box-shadow: 0 20px 40px rgba(0,0,0,0.1); position: relative; width: 100%; }
+        .modal-header { border-bottom: 2px solid var(--color-azul-claro); padding: 1.5rem 2rem; }
+        .modal-title { font-weight: 800; color: var(--color-verde); display: flex; align-items: center; gap: 0.5rem; }
+        .modal-body { padding: 2rem; }
+        .modal-footer { border-top: 2px solid var(--color-azul-claro); padding: 1.5rem 2rem; }
+
+        .subseccion { border-top: 2px dashed var(--color-azul-claro); padding-top: 1.25rem; margin-top: 1.25rem; }
+        .subseccion h6 { font-weight: 800; color: var(--color-verde); margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.4rem; }
+        .fila-dinamica { display: flex; gap: 0.5rem; align-items: center; margin-bottom: 0.5rem; }
+        .fila-dinamica .form-select, .fila-dinamica .form-control { flex: 1; }
+        .btn-quitar-fila { background: #fee2e2; color: #dc2626; border: none; border-radius: 10px; width: 38px; height: 38px; flex-shrink: 0; cursor: pointer; }
+
+        .alert-cute { background-color: var(--color-azul-claro); color: var(--color-texto); border-radius: 12px; border: none; font-weight: 600; padding: 1rem 1.25rem; }
+        .alert-cute-success { background-color: var(--color-verde-claro); color: #3f4d12; }
+
+        @@media (max-width: 768px) {
+            .dashboard-wrapper { flex-direction: column; padding: 1rem; }
+            .sidebar { width: 100%; padding: 1.5rem; }
+            .modal-dialog { margin: 0.5rem; max-width: 100%; }
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-blob blob-1"></div>
+    <div class="bg-blob blob-2"></div>
+    <div class="bg-blob blob-3"></div>
+
+    <div class="dashboard-wrapper">
+        <!-- Sidebar -->
+        @await Html.PartialAsync("_Sidebar")
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="top-bar">
+                <div class="welcome-text">
+                    <h2><i class="bi bi-fan"></i> Productos</h2>
+                    <p>Producto terminado, receta (BOM) de componentes y descuentos por volumen.</p>
+                </div>
+                <button class="btn-cute-primary" onclick="abrirModalCrear()">
+                    <i class="bi bi-plus-lg"></i> Nuevo Producto
+                </button>
+            </div>
+
+            <!-- Listado de productos -->
+            <div class="content-card">
+                <div class="card-header-custom">
+                    <h3><i class="bi bi-box-seam"></i> Catálogo de Productos</h3>
+                </div>
+                <table class="table-cute">
+                    <thead>
+                        <tr>
+                            <th>Nombre</th><th>Descripción</th><th class="text-end">Precio Base</th>
+                            <th class="text-center">Componentes en Receta</th><th class="text-center">Estado</th><th class="text-center">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="bodyProductos">
+                        <tr><td colspan="6" class="text-center text-muted py-4"><i class="bi bi-hourglass-split me-2"></i>Cargando...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Registrar pedido -->
+            <div class="content-card">
+                <div class="card-header-custom">
+                    <h3><i class="bi bi-cart-check-fill"></i> Registrar Pedido del Producto</h3>
+                </div>
+                <p class="text-muted">Al registrar el pedido se valida el stock, se descuentan los componentes usados según la receta y se calcula el precio con el descuento por volumen aplicable.</p>
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-5">
+                        <label class="form-label">Producto</label>
+                        <select class="form-select" id="selectPedidoProducto" onchange="verDisponibilidad()"></select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Cantidad Pedida</label>
+                        <input type="number" min="1" class="form-control" id="inputPedidoCantidad">
+                    </div>
+                    <div class="col-md-2">
+                        <button class="btn-cute-primary" onclick="registrarPedido()"><i class="bi bi-check2-circle"></i> Registrar</button>
+                    </div>
+                </div>
+                <div id="disponibilidadInfo" class="mt-3"></div>
+                <div id="resultadoPedido" class="mt-3"></div>
+            </div>
+        </main>
+    </div>
+
+    <!-- MODAL: Crear/Editar Producto -->
+    <div class="modal" id="modalProducto" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalTitulo"><i class="bi bi-fan"></i> Nuevo Producto</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="pId">
+                    <div class="row g-3">
+                        <div class="col-md-8">
+                            <label class="form-label">Nombre</label>
+                            <input type="text" class="form-control" id="pNombre" placeholder="Ej. Mini Ventilador Portátil V1">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Precio Base</label>
+                            <input type="number" step="0.01" min="0" class="form-control" id="pPrecioBase">
+                        </div>
+                        <div class="col-md-12">
+                            <label class="form-label">Descripción</label>
+                            <input type="text" class="form-control" id="pDescripcion" placeholder="Opcional">
+                        </div>
+                        <div class="col-md-12">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="pActivo" checked>
+                                <label class="form-check-label" for="pActivo">Producto activo</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="subseccion">
+                        <h6><i class="bi bi-diagram-3-fill"></i> Receta (BOM) — componentes por unidad</h6>
+                        <div id="filasComponentes"></div>
+                        <button type="button" class="btn-cute-sm btn-cute-secondary mt-1" onclick="agregarFilaComponente()">
+                            <i class="bi bi-plus-lg"></i> Agregar componente
+                        </button>
+                    </div>
+
+                    <div class="subseccion">
+                        <h6><i class="bi bi-percent"></i> Descuentos por volumen (opcional)</h6>
+                        <div id="filasDescuentos"></div>
+                        <button type="button" class="btn-cute-sm btn-cute-secondary mt-1" onclick="agregarFilaDescuento()">
+                            <i class="bi bi-plus-lg"></i> Agregar escala de descuento
+                        </button>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn-cute-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button class="btn-cute-primary" onclick="guardarProducto()"><i class="bi bi-check-lg"></i> Guardar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        var modal = null;
+        var editandoId = null;
+        var componentesDisponibles = [];
+
+        $(function () {
+            modal = new bootstrap.Modal(document.getElementById('modalProducto'));
+            cargarComponentesDisponibles(function () {
+                cargarProductos();
+            });
+        });
+
+        function escHtml(t) { return $('<div>').text(t == null ? '' : t).html(); }
+
+        function showToast(mensaje, tipo) {
+            tipo = tipo || 'info';
+            let toastContainer = document.getElementById('toast-container');
+            if (!toastContainer) {
+                toastContainer = document.createElement('div');
+                toastContainer.id = 'toast-container';
+                toastContainer.className = 'toast-container position-fixed bottom-0 end-0 p-3';
+                toastContainer.style.zIndex = '9999';
+                document.body.appendChild(toastContainer);
+            }
+            const bgClass = tipo === 'success' ? 'bg-success text-white' :
+                tipo === 'danger' ? 'bg-danger text-white' :
+                tipo === 'warning' ? 'bg-warning text-dark' : 'bg-info text-white';
+            const toastId = 'toast-' + Date.now();
+            toastContainer.insertAdjacentHTML('beforeend',
+                '<div id="' + toastId + '" class="toast align-items-center ' + bgClass + ' border-0 shadow-lg" role="alert" style="border-radius:16px;">' +
+                '<div class="d-flex"><div class="toast-body fw-semibold">' + mensaje + '</div>' +
+                '<button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button></div></div>');
+            const toastEl = document.getElementById(toastId);
+            new bootstrap.Toast(toastEl, { delay: 3500 }).show();
+            toastEl.addEventListener('hidden.bs.toast', () => toastEl.remove());
+        }
+
+        // ─ Catálogo de componentes (para los selects del BOM) ─────────────
+        function cargarComponentesDisponibles(callback) {
+            $.get('@Url.Action("Consultar", "Componente")', function (r) {
+                componentesDisponibles = (r.success && r.result) ? r.result : [];
+                if (callback) callback();
+            }).fail(function () {
+                showToast('No se pudieron cargar los componentes', 'danger');
+            });
+        }
+
+        function opcionesComponentes(seleccionadoId) {
+            return componentesDisponibles.map(c =>
+                '<option value="' + c.id + '" ' + (c.id == seleccionadoId ? 'selected' : '') + '>' +
+                escHtml(c.nombre) + ' (stock: ' + c.cantidad + ')</option>').join('');
+        }
+
+        // ── Listado principal ────────────────────────────────────────────
+        function cargarProductos() {
+            $.get('@Url.Action("Consultar", "Producto")', function (r) {
+                var tbody = $('#bodyProductos');
+                var selectPedido = $('#selectPedidoProducto');
+                tbody.empty();
+
+                if (!r.success || !r.result || !r.result.length) {
+                    tbody.html('<tr><td colspan="6" class="text-center text-muted py-4"><i class="bi bi-inbox me-2"></i>Sin productos registrados</td></tr>');
+                    selectPedido.html('<option value="">Sin productos disponibles</option>');
+                    return;
+                }
+
+                selectPedido.html(r.result.map(p => '<option value="' + p.id + '">' + escHtml(p.nombre) + '</option>').join(''));
+
+                $.each(r.result, function (i, d) {
+                    var badgeEstado = d.activo ? '<span class="badge-cute badge-cute-success">Activo</span>' : '<span class="badge-cute badge-cute-danger">Inactivo</span>';
+                    tbody.append('<tr>' +
+                        '<td class="fw-bold">' + escHtml(d.nombre) + '</td>' +
+                        '<td>' + escHtml(d.descripcion || '-') + '</td>' +
+                        '<td class="text-end">$' + parseFloat(d.precioBase || 0).toFixed(2) + '</td>' +
+                        '<td class="text-center"><span class="badge-cute badge-cute-info">' + d.totalComponentesReceta + '</span></td>' +
+                        '<td class="text-center">' + badgeEstado + '</td>' +
+                        '<td class="text-center">' +
+                        '<button class="action-btn btn-edit" onclick="editar(' + d.id + ')" title="Editar"><i class="bi bi-pencil-fill"></i></button>' +
+                        '<button class="action-btn btn-delete" onclick="eliminar(' + d.id + ')" title="Eliminar"><i class="bi bi-trash-fill"></i></button>' +
+                        '</td></tr>');
+                });
+                verDisponibilidad();
+            }).fail(function () {
+                showToast('Error al cargar los productos', 'danger');
+            });
+        }
+
+        // ── Filas dinámicas del BOM ──────────────────────────────────────
+        function agregarFilaComponente(componenteId, cantidad) {
+            var fila = $('<div class="fila-dinamica"></div>');
+            fila.append('<select class="form-select select-componente">' + opcionesComponentes(componenteId) + '</select>');
+            fila.append('<input type="number" min="1" class="form-control input-cantidad-req" placeholder="Cantidad por unidad" value="' + (cantidad || 1) + '">');
+            fila.append('<button type="button" class="btn-quitar-fila" onclick="$(this).closest(\'.fila-dinamica\').remove()"><i class="bi bi-x-lg"></i></button>');
+            $('#filasComponentes').append(fila);
+        }
+
+        function agregarFilaDescuento(cantidadMinima, porcentaje) {
+            var fila = $('<div class="fila-dinamica"></div>');
+            fila.append('<input type="number" min="1" class="form-control input-cantidad-min" placeholder="A partir de (unidades)" value="' + (cantidadMinima || '') + '">');
+            fila.append('<input type="number" min="0" max="100" step="0.01" class="form-control input-porcentaje" placeholder="% descuento" value="' + (porcentaje || '') + '">');
+            fila.append('<button type="button" class="btn-quitar-fila" onclick="$(this).closest(\'.fila-dinamica\').remove()"><i class="bi bi-x-lg"></i></button>');
+            $('#filasDescuentos').append(fila);
+        }
+
+        // ── Alta / edición ───────────────────────────────────────────────
+        function abrirModalCrear() {
+            editandoId = null;
+            $('#modalTitulo').html('<i class="bi bi-fan"></i> Nuevo Producto');
+            $('#pId, #pNombre, #pDescripcion').val('');
+            $('#pPrecioBase').val('0');
+            $('#pActivo').prop('checked', true);
+            $('#filasComponentes, #filasDescuentos').empty();
+            agregarFilaComponente();
+            modal.show();
+        }
+
+        function editar(id) {
+            $.get('/Producto/obtener/' + id, function (r) {
+                if (!r.success || !r.result) { showToast('No se pudo cargar el producto', 'danger'); return; }
+
+                var d = r.result;
+                editandoId = id;
+                $('#modalTitulo').html('<i class="bi bi-pencil-fill"></i> Editar Producto');
+                $('#pId').val(d.id);
+                $('#pNombre').val(d.nombre);
+                $('#pDescripcion').val(d.descripcion || '');
+                $('#pPrecioBase').val(d.precioBase);
+                $('#pActivo').prop('checked', d.activo);
+
+                $('#filasComponentes').empty();
+                (d.componentes || []).forEach(c => agregarFilaComponente(c.componenteId, c.cantidadRequerida));
+                if (!d.componentes || !d.componentes.length) agregarFilaComponente();
+
+                $('#filasDescuentos').empty();
+                (d.descuentos || []).forEach(desc => agregarFilaDescuento(desc.cantidadMinima, desc.porcentajeDescuento));
+
+                modal.show();
+            }).fail(function () { showToast('Error al cargar el producto', 'danger'); });
+        }
+
+        function guardarProducto() {
+            var componentes = [];
+            var valido = true;
+            $('#filasComponentes .fila-dinamica').each(function () {
+                var componenteId = $(this).find('.select-componente').val();
+                var cantidad = parseInt($(this).find('.input-cantidad-req').val());
+                if (!componenteId || !cantidad || cantidad <= 0) { valido = false; return; }
+                componentes.push({ componenteId: parseInt(componenteId), cantidadRequerida: cantidad });
+            });
+
+            if (!valido || !componentes.length) {
+                showToast('Revisa la receta: cada componente necesita una cantidad válida mayor a 0', 'warning');
+                return;
+            }
+
+            var descuentos = [];
+            $('#filasDescuentos .fila-dinamica').each(function () {
+                var cantidadMinima = parseInt($(this).find('.input-cantidad-min').val());
+                var porcentaje = parseFloat($(this).find('.input-porcentaje').val());
+                if (cantidadMinima > 0 && porcentaje >= 0) {
+                    descuentos.push({ cantidadMinima: cantidadMinima, porcentajeDescuento: porcentaje });
+                }
+            });
+
+            var payload = {
+                id: editandoId || 0,
+                nombre: $('#pNombre').val().trim(),
+                descripcion: $('#pDescripcion').val(),
+                precioBase: parseFloat($('#pPrecioBase').val()) || 0,
+                activo: $('#pActivo').is(':checked'),
+                componentes: componentes,
+                descuentos: descuentos
+            };
+
+            if (!payload.nombre) { showToast('El nombre del producto es obligatorio', 'warning'); return; }
+
+            $.ajax({
+                url: '@Url.Action("GuardarProducto", "Producto")',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(payload),
+                success: function (r) {
+                    if (!r.success) { showToast(r.mensaje, 'danger'); return; }
+                    showToast(r.mensaje, 'success');
+                    modal.hide();
+                    cargarProductos();
+                },
+                error: function () { showToast('Error al guardar el producto', 'danger'); }
+            });
+        }
+
+        function eliminar(id) {
+            if (!confirm('¿Desactivar este producto?')) return;
+            $.ajax({
+                url: '/Producto/eliminar/' + id,
+                method: 'DELETE',
+                success: function (r) {
+                    if (!r.success) { showToast(r.mensaje, 'danger'); return; }
+                    showToast(r.mensaje, 'success');
+                    cargarProductos();
+                },
+                error: function () { showToast('Error al eliminar el producto', 'danger'); }
+            });
+        }
+
+        // ── Panel de pedido ──────────────────────────────────────────────
+        function verDisponibilidad() {
+            var id = $('#selectPedidoProducto').val();
+            $('#disponibilidadInfo').empty();
+            $('#resultadoPedido').empty();
+            if (!id) return;
+
+            $.get('/Producto/obtener/' + id, function (r) {
+                if (!r.success || !r.result) return;
+                var d = r.result;
+                var texto = d.unidadesProducibles != null
+                    ? 'Con el stock actual se pueden armar hasta <strong>' + d.unidadesProducibles + '</strong> unidades de este producto.'
+                    : 'Este producto aún no tiene receta (BOM) configurada.';
+                $('#disponibilidadInfo').html('<div class="alert-cute">' + texto + '</div>');
+            });
+        }
+
+        function registrarPedido() {
+            var productoId = $('#selectPedidoProducto').val();
+            var cantidad = parseInt($('#inputPedidoCantidad').val());
+
+            if (!productoId) { showToast('Selecciona un producto', 'warning'); return; }
+            if (!cantidad || cantidad <= 0) { showToast('La cantidad debe ser mayor a 0', 'warning'); return; }
+
+            $.ajax({
+                url: '@Url.Action("RegistrarPedido", "Producto")',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({ productoId: parseInt(productoId), cantidad: cantidad }),
+                success: function (r) {
+                    if (!r.success) {
+                        $('#resultadoPedido').html('<div class="alert-cute" style="background-color:#fee2e2;color:#991b1b;">' + escHtml(r.mensaje) + '</div>');
+                        return;
+                    }
+                    var d = r.result;
+                    $('#resultadoPedido').html(
+                        '<div class="alert-cute alert-cute-success">' +
+                        '<strong>' + escHtml(d.productoNombre) + '</strong> × ' + d.cantidad + ' unidades<br>' +
+                        'Subtotal: $' + d.subtotal.toFixed(2) +
+                        (d.porcentajeDescuento > 0 ? ' &nbsp;|&nbsp; Descuento aplicado: ' + d.porcentajeDescuento + '% (−$' + d.montoDescuento.toFixed(2) + ')' : '') +
+                        ' &nbsp;|&nbsp; <strong>Total: $' + d.total.toFixed(2) + '</strong><br>' +
+                        '<small>El inventario de los componentes ya fue descontado según la receta.</small>' +
+                        '</div>'
+                    );
+                    $('#inputPedidoCantidad').val('');
+                    cargarComponentesDisponibles(); // refresca stock en memoria para el BOM
+                    cargarProductos();
+                },
+                error: function () { showToast('Error al registrar el pedido', 'danger'); }
+            });
+        }
+    </script>
+</body>
+</html>

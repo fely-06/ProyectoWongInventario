@@ -7,15 +7,11 @@ using ProyectoWong.Models.Recepcion;
 
 namespace ProyectoWong.Controllers
 {
-    [Route("OrdenCompra")]
-    public class OrdenCompraController : Controller
+    [Route("OrdenesCompra")]
+    public class OrdenesCompraController : Controller
     {
         private readonly ApplicationDbContext _context;
-
-        public OrdenCompraController(ApplicationDbContext context)
-        {
-            _context = context;
-        }
+        public OrdenesCompraController(ApplicationDbContext context) => _context = context;
 
         public IActionResult Index()
         {
@@ -23,22 +19,27 @@ namespace ProyectoWong.Controllers
             return View();
         }
 
+        // ============ CONSULTAR ÓRDENES ============
         [HttpGet("consultar-ordenes")]
         public async Task<IActionResult> Consultar()
         {
             try
             {
                 var ordenes = await _context.OrdenesCompra
-                    .Include(o => o.Proveedor)
+                    .Include(o => o.Detalles)
+                        .ThenInclude(d => d.Componente)
+                    .Include(o => o.ProveedorNavigation)
+                    .OrderByDescending(o => o.FechaCreacion)
                     .Select(o => new
                     {
                         id = o.Id,
                         numeroOC = o.NumeroOC,
-                        proveedorId = o.ProveedorId,
-                        proveedorNombre = o.Proveedor != null ? o.Proveedor : null,
+                        proveedor = o.ProveedorNavigation != null ? o.ProveedorNavigation.Nombre : o.Proveedor,
                         estado = o.Estado,
                         fechaEsperada = o.FechaEsperada,
-                        fechaCreacion = o.FechaCreacion
+                        fechaCreacion = o.FechaCreacion,
+                        totalComponentes = o.Detalles.Sum(d => d.CantidadEsperada),
+                        totalDetalles = o.Detalles.Count
                     })
                     .ToListAsync();
 
@@ -50,36 +51,22 @@ namespace ProyectoWong.Controllers
             }
         }
 
-        [HttpGet("obtener-orden/{id}")]
-        public async Task<IActionResult> ObtenerOrden(int id)
+        // ============ OBTENER PRODUCTOS PARA EL MODAL ============
+        [HttpGet("obtener-productos")]
+        public async Task<IActionResult> ObtenerProductos()
         {
             try
             {
-                var orden = await _context.OrdenesCompra
-                    .Include(o => o.Detalles)
-                    .ThenInclude(d => d.Componente)
-                    .FirstOrDefaultAsync(o => o.Id == id);
-
-                if (orden == null)
-                    return Json(Respuesta.Error("Orden de compra no encontrada"));
-
-                var dto = new
-                {
-                    id = orden.Id,
-                    numeroOC = orden.NumeroOC,
-                    proveedorId = orden.ProveedorId,
-                    estado = orden.Estado,
-                    fechaEsperada = orden.FechaEsperada?.ToString("yyyy-MM-dd"),
-                    detalles = orden.Detalles?.Select(d => new
+                var productos = await _context.Productos
+                    .Where(p => p.Activo)
+                    .Select(p => new
                     {
-                        id = d.Id,
-                        componenteId = d.ComponenteId,
-                        componenteNombre = d.Componente != null ? d.Componente.Nombre : null,
-                        cantidadEsperada = d.CantidadEsperada
+                        id = p.Id,
+                        nombre = p.Nombre,
+                        precioBase = p.PrecioBase
                     })
-                };
-
-                return Json(Respuesta.OK("Orden encontrada", dto));
+                    .ToListAsync();
+                return Json(Respuesta.OK("OK", productos));
             }
             catch (Exception e)
             {
@@ -87,107 +74,140 @@ namespace ProyectoWong.Controllers
             }
         }
 
+        // ============ CALCULAR DESGLOSE (LA MAGIA) ============
+        // Este endpoint se llama vía AJAX cuando el usuario cambia la cantidad
+        [HttpGet("calcular-desglose")]
+        public async Task<IActionResult> CalcularDesglose(int productoId, int cantidad)
+        {
+            try
+            {
+                if (cantidad <= 0)
+                    return Json(Respuesta.Error("La cantidad debe ser mayor a 0"));
+
+                var producto = await _context.Productos
+                    .Include(p => p.Componentes)
+                        .ThenInclude(pc => pc.Componente)
+                    .FirstOrDefaultAsync(p => p.Id == productoId);
+
+                if (producto == null)
+                    return Json(Respuesta.Error("Producto no encontrado"));
+
+                // 1. Calcular descuento según la cantidad
+                var escala = await _context.EscalasDescuento
+                    .Where(e => e.ProductoId == productoId && e.CantidadMinima <= cantidad)
+                    .OrderByDescending(e => e.CantidadMinima)
+                    .FirstOrDefaultAsync();
+
+                decimal porcentajeDescuento = escala?.PorcentajeDescuento ?? 0;
+                decimal precioOriginal = producto.PrecioBase * cantidad;
+                decimal descuento = precioOriginal * (porcentajeDescuento / 100);
+                decimal totalFinal = precioOriginal - descuento;
+
+                // 2. Calcular componentes necesarios
+                var componentesNecesarios = producto.Componentes.Select(pc => new
+                {
+                    componenteId = pc.ComponenteId,
+                    numeroPieza = pc.Componente.NumeroPieza,
+                    nombre = pc.Componente.Nombre,
+                    cantidadPorUnidad = pc.CantidadRequerida,
+                    cantidadTotal = pc.CantidadRequerida * cantidad,
+                    stockDisponible = pc.Componente.Cantidad,
+                    stockSuficiente = pc.Componente.Cantidad >= (pc.CantidadRequerida * cantidad)
+                }).ToList();
+
+                return Json(Respuesta.OK("OK", new
+                {
+                    productoNombre = producto.Nombre,
+                    precioUnitario = producto.PrecioBase,
+                    cantidad,
+                    porcentajeDescuento,
+                    precioOriginal,
+                    descuento,
+                    totalFinal,
+                    componentes = componentesNecesarios
+                }));
+            }
+            catch (Exception e)
+            {
+                return Json(Respuesta.Error(e.Message));
+            }
+        }
+
+        // ============ GUARDAR ORDEN DE COMPRA ============
         [HttpPost("guardar-orden")]
-        public async Task<IActionResult> GuardarOrden([FromBody] OrdenCompraViewModel model)
+        public async Task<IActionResult> GuardarOrden([FromBody] OrdenCompraRequest request)
         {
-            if (!ModelState.IsValid) return Json(Respuesta.FromModelState(ModelState));
-
-            if (model.Detalles == null || !model.Detalles.Any())
-                return Json(Respuesta.Error("Debe agregar al menos un componente a la orden"));
-
+            using var transaction = await _context.Database.BeginTransactionAsync();
             try
             {
-                if (model.Id > 0)
+                if (request == null || request.ProductoId <= 0 || request.Cantidad <= 0)
+                    return Json(Respuesta.Error("Datos inválidos"));
+
+                // 1. Crear la orden de compra
+                var orden = new OrdenCompra
                 {
-                    // EDICIÓN de cabecera
-                    var existente = await _context.OrdenesCompra
-                        .Include(o => o.Detalles)
-                        .FirstOrDefaultAsync(o => o.Id == model.Id);
-
-                    if (existente == null)
-                        return Json(Respuesta.Error("No se encontró la orden de compra"));
-
-                    existente.NumeroOC = model.NumeroOC;
-                    existente.ProveedorId = model.ProveedorId;
-                    existente.Estado = model.Estado;
-                    existente.FechaEsperada = model.FechaEsperada;
-
-                    // Reemplaza el detalle completo (simple, para este avance)
-                    _context.OrdenCompraDetalles.RemoveRange(existente.Detalles ?? new List<OrdenCompraDetalle>());
-                    foreach (var d in model.Detalles)
-                    {
-                        existente.Detalles!.Add(new OrdenCompraDetalle
-                        {
-                            ComponenteId = d.ComponenteId,
-                            CantidadEsperada = d.CantidadEsperada
-                        });
-                    }
-                }
-                else
-                {
-                    // CREACIÓN
-                    var nueva = new OrdenCompra
-                    {
-                        NumeroOC = model.NumeroOC,
-                        ProveedorId = model.ProveedorId,
-                        Estado = model.Estado,
-                        FechaEsperada = model.FechaEsperada,
-                        FechaCreacion = DateTime.Now,
-                        Detalles = model.Detalles.Select(d => new OrdenCompraDetalle
-                        {
-                            ComponenteId = d.ComponenteId,
-                            CantidadEsperada = d.CantidadEsperada
-                        }).ToList()
-                    };
-                    _context.OrdenesCompra.Add(nueva);
-                }
-
-                await _context.SaveChangesAsync();
-                return Json(Respuesta.OK(model.Id > 0 ? "Orden actualizada" : "Orden registrada"));
-            }
-            catch (Exception e)
-            {
-                return Json(Respuesta.Error(e.Message));
-            }
-        }
-
-        [HttpGet("buscar-por-numero/{numeroOC}")]
-        public async Task<IActionResult> BuscarPorNumero(string numeroOC)
-        {
-            // Usado en el flujo de Recepción -> paso "SCAN PO"
-            try
-            {
-                var orden = await _context.OrdenesCompra
-                    .Include(o => o.Detalles)
-                    .ThenInclude(d => d.Componente)
-                    .FirstOrDefaultAsync(o => o.NumeroOC == numeroOC);
-
-                if (orden == null)
-                    return Json(Respuesta.Error("No se encontró una orden de compra con ese número"));
-
-                if (orden.Estado == "Cerrada" || orden.Estado == "Cancelada")
-                    return Json(Respuesta.Error($"La orden de compra está {orden.Estado.ToLower()} y no puede recibirse"));
-
-                var dto = new
-                {
-                    id = orden.Id,
-                    numeroOC = orden.NumeroOC,
-                    estado = orden.Estado,
-                    detalles = orden.Detalles?.Select(d => new
-                    {
-                        componenteId = d.ComponenteId,
-                        componenteNombre = d.Componente != null ? d.Componente.Nombre : null,
-                        numeroPieza = d.Componente != null ? d.Componente.NumeroPieza : null,
-                        cantidadEsperada = d.CantidadEsperada
-                    })
+                    NumeroOC = $"OC-{DateTime.Now:yyyyMMdd}-{Guid.NewGuid().ToString().Substring(0, 6).ToUpper()}",
+                    ProveedorId = request.ProveedorId,
+                    Estado = "Pendiente",
+                    FechaEsperada = request.FechaEsperada,
+                    FechaCreacion = DateTime.Now
                 };
+                _context.OrdenesCompra.Add(orden);
+                await _context.SaveChangesAsync();
 
-                return Json(Respuesta.OK("Orden de compra encontrada", dto));
+                // 2. Obtener los componentes del producto
+                var componentesProducto = await _context.ProductoComponentes
+                    .Where(pc => pc.ProductoId == request.ProductoId)
+                    .ToListAsync();
+
+                // 3. Crear un detalle por cada componente necesario
+                foreach (var pc in componentesProducto)
+                {
+                    var detalle = new OrdenCompraDetalle
+                    {
+                        OrdenCmpraId = orden.Id,
+                        ComponenteId = pc.ComponenteId,
+                        CantidadEsperada = pc.CantidadRequerida * request.Cantidad
+                    };
+                    _context.OrdenCompraDetalles.Add(detalle);
+                }
+                await _context.SaveChangesAsync();
+
+                await transaction.CommitAsync();
+                return Json(Respuesta.OK($"Orden {orden.NumeroOC} creada exitosamente"));
+            }
+            catch (Exception e)
+            {
+                await transaction.RollbackAsync();
+                return Json(Respuesta.Error(e.Message));
+            }
+        }
+
+        // ============ ELIMINAR ORDEN ============
+        [HttpDelete("eliminar-orden/{id}")]
+        public async Task<IActionResult> Eliminar(int id)
+        {
+            try
+            {
+                var orden = await _context.OrdenesCompra.FindAsync(id);
+                if (orden == null) return Json(Respuesta.Error("Orden no encontrada"));
+                _context.OrdenesCompra.Remove(orden);
+                await _context.SaveChangesAsync();
+                return Json(Respuesta.OK("Orden eliminada"));
             }
             catch (Exception e)
             {
                 return Json(Respuesta.Error(e.Message));
             }
         }
+    }
+
+    // DTO para recibir el JSON del frontend
+    public class OrdenCompraRequest
+    {
+        public int ProductoId { get; set; }
+        public int Cantidad { get; set; }
+        public int ProveedorId { get; set; }
+        public DateTime? FechaEsperada { get; set; }
     }
 }
