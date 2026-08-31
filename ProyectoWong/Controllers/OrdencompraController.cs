@@ -35,7 +35,7 @@ namespace ProyectoWong.Controllers
                         id = o.Id,
                         numeroOC = o.NumeroOC,
                         proveedorId = o.ProveedorId,
-                        proveedorNombre = o.Proveedor != null ? o.Proveedor.Nombre : null,
+                        proveedorNombre = o.Proveedor != null ? o.Proveedor : null,
                         estado = o.Estado,
                         fechaEsperada = o.FechaEsperada,
                         fechaCreacion = o.FechaCreacion

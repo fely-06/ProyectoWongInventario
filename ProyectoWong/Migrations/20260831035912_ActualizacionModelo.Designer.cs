@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using ProyectoWong.Data;
 
@@ -11,9 +12,11 @@ using ProyectoWong.Data;
 namespace ProyectoWong.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260831035912_ActualizacionModelo")]
+    partial class ActualizacionModelo
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -196,9 +199,6 @@ namespace ProyectoWong.Migrations
                     b.Property<int>("UbicacionId")
                         .HasColumnType("int");
 
-                    b.Property<int?>("UbicacionId1")
-                        .HasColumnType("int");
-
                     b.HasKey("Id");
 
                     b.HasIndex("PalletId");
@@ -206,8 +206,6 @@ namespace ProyectoWong.Migrations
                     b.HasIndex("RealizadoPor");
 
                     b.HasIndex("UbicacionId");
-
-                    b.HasIndex("UbicacionId1");
 
                     b.ToTable("MovimientosInventario");
                 });
@@ -269,7 +267,7 @@ namespace ProyectoWong.Migrations
 
                     b.HasIndex("OrdenCmpraId");
 
-                    b.ToTable("OrdenCompraDetalles");
+                    b.ToTable("OrdenCompraDetalle");
                 });
 
             modelBuilder.Entity("ProyectoWong.Models.Recepcion.Pallet", b =>
@@ -468,14 +466,10 @@ namespace ProyectoWong.Migrations
                         .IsRequired();
 
                     b.HasOne("ProyectoWong.Models.Recepcion.Ubicacion", "Ubicacion")
-                        .WithMany()
-                        .HasForeignKey("UbicacionId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("ProyectoWong.Models.Recepcion.Ubicacion", null)
                         .WithMany("Movimientos")
-                        .HasForeignKey("UbicacionId1");
+                        .HasForeignKey("UbicacionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.Navigation("Pallet");
 
@@ -489,7 +483,7 @@ namespace ProyectoWong.Migrations
                     b.HasOne("ProyectoWong.Models.Componente", "Componente")
                         .WithMany()
                         .HasForeignKey("ComponenteId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.HasOne("ProyectoWong.Models.Recepcion.OrdenCompra", "OrdenCompra")
@@ -538,7 +532,7 @@ namespace ProyectoWong.Migrations
                     b.HasOne("ProyectoWong.Models.Componente", "Componente")
                         .WithMany()
                         .HasForeignKey("ComponenteId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.HasOne("ProyectoWong.Models.Recepcion.Recepcion", "Recepcion")
