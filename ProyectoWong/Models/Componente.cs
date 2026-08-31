@@ -6,6 +6,9 @@ namespace ProyectoWong.Models
 {
     public class Componente
     {
+
+        // se pueden quitar los campos de componentes que ahora se encuentran en recepcion detalle
+        // se tendria que actualizar el controller y su viewmodel
         [Key]
         [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
         public int Id { get; set; }
