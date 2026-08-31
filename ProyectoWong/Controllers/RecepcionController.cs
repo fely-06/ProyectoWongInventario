@@ -1,0 +1,342 @@
+﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using ProyectoWong.Data;
+using ProyectoWong.Helpers;
+using ProyectoWong.Models;
+using ProyectoWong.Models.Recepcion;
+
+namespace ProyectoWong.Controllers
+{
+    [Route("Recepcion")]
+    public class RecepcionController : Controller
+    {
+        private readonly ApplicationDbContext _context;
+
+        public RecepcionController(ApplicationDbContext context)
+        {
+            _context = context;
+        }
+
+        public IActionResult Index()
+        {
+            ViewBag.ActiveMenu = "Recepcion";
+            return View();
+        }
+
+        // ── PASO 1-2: RECEIVING + SCAN PO ──────────────────────────────
+        // Crea la cabecera de recepción ligada a una orden de compra
+        [HttpPost("iniciar")]
+        public async Task<IActionResult> Iniciar([FromBody] RecepcionViewModel model)
+        {
+            if (!ModelState.IsValid) return Json(Respuesta.FromModelState(ModelState));
+
+            try
+            {
+                var orden = await _context.OrdenesCompra.FindAsync(model.OrdenCompraId);
+                if (orden == null)
+                    return Json(Respuesta.Error("Orden de compra no encontrada"));
+
+                // TODO: reemplazar por el Id del usuario autenticado en sesión
+                var usuarioId = model.UsuarioId;
+
+                var recepcion = new Recepcion
+                {
+                    OrdenCompraId = model.OrdenCompraId,
+                    UsuarioId = usuarioId,
+                    Estado = "EnProceso",
+                    FechaRecepcion = DateTime.Now
+                };
+
+                _context.Recepciones.Add(recepcion);
+                await _context.SaveChangesAsync();
+
+                return Json(Respuesta.OK("Recepción iniciada", new { recepcionId = recepcion.Id }));
+            }
+            catch (Exception e)
+            {
+                return Json(Respuesta.Error(e.Message));
+            }
+        }
+
+        // ── PASO 3-4: SCAN MATERIAL + BATCH NUMBER + QUANTITY ──────────
+        // Captura un lote recibido dentro de la recepción
+        [HttpPost("agregar-lote")]
+        public async Task<IActionResult> AgregarLote([FromBody] RecepcionDetalleInput model)
+        {
+            try
+            {
+                var recepcion = await _context.Recepciones.FindAsync(model.RecepcionId);
+                if (recepcion == null)
+                    return Json(Respuesta.Error("Recepción no encontrada"));
+
+                if (string.IsNullOrWhiteSpace(model.NumeroLote))
+                    return Json(Respuesta.Error("El número de lote es obligatorio"));
+
+                if (model.CantidadRecibida <= 0)
+                    return Json(Respuesta.Error("La cantidad recibida debe ser mayor a 0"));
+
+                var detalle = new RecepcionDetalle
+                {
+                    RecepcionId = model.RecepcionId,
+                    ComponenteId = model.ComponenteId,
+                    NumeroLote = model.NumeroLote,
+                    FechaCaducidad = model.FechaCaducidad,
+                    CantidadRecibida = model.CantidadRecibida,
+                    Estado = "Pendiente"
+                };
+
+                _context.RecepcionDetalles.Add(detalle);
+                await _context.SaveChangesAsync();
+
+                return Json(Respuesta.OK("Lote registrado", new { recepcionDetalleId = detalle.Id }));
+            }
+            catch (Exception e)
+            {
+                return Json(Respuesta.Error(e.Message));
+            }
+        }
+
+        // ── PASO 5: QA INSPECTION ───────────────────────────────────────
+        [HttpPost("inspeccionar")]
+        public async Task<IActionResult> Inspeccionar([FromBody] InspeccionQAInput model)
+        {
+            try
+            {
+                var detalle = await _context.RecepcionDetalles.FindAsync(model.RecepcionDetalleId);
+                if (detalle == null)
+                    return Json(Respuesta.Error("No se encontró el lote a inspeccionar"));
+
+                var resultado = (model.EmpaqueOk && model.EtiquetaOk && model.MaterialOk && model.CertificadoDisponible)
+                    ? "Aprobado"
+                    : "Rechazado";
+
+                var inspeccion = new InspeccionQA
+                {
+                    RecepcionDetalleId = model.RecepcionDetalleId,
+                    EmpaqueOk = model.EmpaqueOk,
+                    EtiquetaOk = model.EtiquetaOk,
+                    MaterialOk = model.MaterialOk,
+                    CertificadoDisponible = model.CertificadoDisponible,
+                    InspeccionadoPor = model.InspeccionadoPor,
+                    Resultado = resultado,
+                    Comentarios = model.Comentarios,
+                    FechaInspeccion = DateTime.Now
+                };
+
+                _context.InspeccionesQA.Add(inspeccion);
+
+                // Actualiza el estado del lote según el resultado de QA
+                detalle.Estado = resultado;
+
+                await _context.SaveChangesAsync();
+
+                return Json(Respuesta.OK($"Inspección registrada: {resultado}", new { resultado }));
+            }
+            catch (Exception e)
+            {
+                return Json(Respuesta.Error(e.Message));
+            }
+        }
+
+        // ── PASO 6-7: PRINT LABEL + SCAN PALLET ────────────────────────
+        // Genera un pallet para un lote ya aprobado por QA
+        [HttpPost("generar-pallet")]
+        public async Task<IActionResult> GenerarPallet([FromBody] PalletInput model)
+        {
+            try
+            {
+                var detalle = await _context.RecepcionDetalles
+                    .Include(d => d.Inspeccion)
+                    .FirstOrDefaultAsync(d => d.Id == model.RecepcionDetalleId);
+
+                if (detalle == null)
+                    return Json(Respuesta.Error("No se encontró el lote"));
+
+                if (detalle.Inspeccion == null || detalle.Inspeccion.Resultado != "Aprobado")
+                    return Json(Respuesta.Error("El lote no ha sido aprobado por QA, no se puede generar etiqueta"));
+
+                if (string.IsNullOrWhiteSpace(model.CodigoPallet))
+                    return Json(Respuesta.Error("El código de pallet es obligatorio"));
+
+                var pallet = new Pallet
+                {
+                    RecepcionDetalleId = model.RecepcionDetalleId,
+                    CodigoPallet = model.CodigoPallet,
+                    FechaImpresionEtiqueta = DateTime.Now
+                };
+
+                _context.Pallets.Add(pallet);
+                await _context.SaveChangesAsync();
+
+                return Json(Respuesta.OK("Etiqueta generada", new { palletId = pallet.Id, codigoPallet = pallet.CodigoPallet }));
+            }
+            catch (Exception e)
+            {
+                return Json(Respuesta.Error(e.Message));
+            }
+        }
+
+        // ── PASO 8: SCAN LOCATION ───────────────────────────────────────
+        [HttpPost("asignar-ubicacion")]
+        public async Task<IActionResult> AsignarUbicacion([FromBody] MovimientoInput model)
+        {
+            try
+            {
+                var pallet = await _context.Pallets.FindAsync(model.PalletId);
+                if (pallet == null)
+                    return Json(Respuesta.Error("Pallet no encontrado"));
+
+                var ubicacion = await _context.Ubicaciones.FindAsync(model.UbicacionId);
+                if (ubicacion == null)
+                    return Json(Respuesta.Error("Ubicación no encontrada"));
+
+                var movimiento = new MovimientoInventario
+                {
+                    PalletId = model.PalletId,
+                    UbicacionId = model.UbicacionId,
+                    TipoMovimiento = "Recepcion",
+                    FechaMovimiento = DateTime.Now,
+                    RealizadoPor = model.RealizadoPor
+                };
+
+                _context.MovimientosInventario.Add(movimiento);
+                await _context.SaveChangesAsync();
+
+                return Json(Respuesta.OK("Ubicación asignada"));
+            }
+            catch (Exception e)
+            {
+                return Json(Respuesta.Error(e.Message));
+            }
+        }
+
+        // ── PASO 9: CONFIRM RECEIPT ─────────────────────────────────────
+        // Cierra la recepción una vez que todos los lotes tienen ubicación
+        [HttpPost("confirmar/{recepcionId}")]
+        public async Task<IActionResult> Confirmar(int recepcionId)
+        {
+            try
+            {
+                var recepcion = await _context.Recepciones
+                    .Include(r => r.Detalles!)
+                        .ThenInclude(d => d.Pallets!)
+                            .ThenInclude(p => p.Movimientos)
+                    .FirstOrDefaultAsync(r => r.Id == recepcionId);
+
+                if (recepcion == null)
+                    return Json(Respuesta.Error("Recepción no encontrada"));
+
+                if (recepcion.Detalles == null || !recepcion.Detalles.Any())
+                    return Json(Respuesta.Error("La recepción no tiene lotes capturados"));
+
+                var lotesSinUbicacion = recepcion.Detalles
+                    .Where(d => d.Estado == "Aprobado")
+                    .Any(d => d.Pallets == null || !d.Pallets.Any(p => p.Movimientos != null && p.Movimientos.Any()));
+
+                if (lotesSinUbicacion)
+                    return Json(Respuesta.Error("Hay lotes aprobados sin ubicación asignada"));
+
+                recepcion.Estado = "Completada";
+                await _context.SaveChangesAsync();
+
+                return Json(Respuesta.OK("Recepción confirmada y cerrada"));
+            }
+            catch (Exception e)
+            {
+                return Json(Respuesta.Error(e.Message));
+            }
+        }
+
+        // ── Consulta general de una recepción con todo su detalle ──────
+        [HttpGet("obtener/{id}")]
+        public async Task<IActionResult> Obtener(int id)
+        {
+            try
+            {
+                var recepcion = await _context.Recepciones
+                    .Include(r => r.OrdenCompra)
+                    .Include(r => r.Detalles!)
+                        .ThenInclude(d => d.Componente)
+                    .Include(r => r.Detalles!)
+                        .ThenInclude(d => d.Inspeccion)
+                    .Include(r => r.Detalles!)
+                        .ThenInclude(d => d.Pallets!)
+                            .ThenInclude(p => p.Movimientos!)
+                                .ThenInclude(m => m.Ubicacion)
+                    .FirstOrDefaultAsync(r => r.Id == id);
+
+                if (recepcion == null)
+                    return Json(Respuesta.Error("Recepción no encontrada"));
+
+                var dto = new
+                {
+                    id = recepcion.Id,
+                    numeroOC = recepcion.OrdenCompra?.NumeroOC,
+                    estado = recepcion.Estado,
+                    fechaRecepcion = recepcion.FechaRecepcion,
+                    lotes = recepcion.Detalles?.Select(d => new
+                    {
+                        id = d.Id,
+                        componente = d.Componente?.Nombre,
+                        numeroLote = d.NumeroLote,
+                        fechaCaducidad = d.FechaCaducidad,
+                        cantidadRecibida = d.CantidadRecibida,
+                        estado = d.Estado,
+                        inspeccion = d.Inspeccion == null ? null : new
+                        {
+                            resultado = d.Inspeccion.Resultado,
+                            comentarios = d.Inspeccion.Comentarios
+                        },
+                        pallets = d.Pallets?.Select(p => new
+                        {
+                            codigoPallet = p.CodigoPallet,
+                            ubicacion = p.Movimientos != null && p.Movimientos.Any()
+                                ? p.Movimientos.OrderByDescending(m => m.FechaMovimiento).First().Ubicacion?.Codigo
+                                : null
+                        })
+                    })
+                };
+
+                return Json(Respuesta.OK("Recepción encontrada", dto));
+            }
+            catch (Exception e)
+            {
+                return Json(Respuesta.Error(e.Message));
+            }
+        }
+    }
+
+    // ── Inputs auxiliares para cada paso del wizard ─────────────────────
+    public class RecepcionDetalleInput
+    {
+        public int RecepcionId { get; set; }
+        public int ComponenteId { get; set; }
+        public string NumeroLote { get; set; } = string.Empty;
+        public DateTime? FechaCaducidad { get; set; }
+        public int CantidadRecibida { get; set; }
+    }
+
+    public class InspeccionQAInput
+    {
+        public int RecepcionDetalleId { get; set; }
+        public bool EmpaqueOk { get; set; }
+        public bool EtiquetaOk { get; set; }
+        public bool MaterialOk { get; set; }
+        public bool CertificadoDisponible { get; set; }
+        public int InspeccionadoPor { get; set; }
+        public string? Comentarios { get; set; }
+    }
+
+    public class PalletInput
+    {
+        public int RecepcionDetalleId { get; set; }
+        public string CodigoPallet { get; set; } = string.Empty;
+    }
+
+    public class MovimientoInput
+    {
+        public int PalletId { get; set; }
+        public int UbicacionId { get; set; }
+        public int RealizadoPor { get; set; }
+    }
+}
