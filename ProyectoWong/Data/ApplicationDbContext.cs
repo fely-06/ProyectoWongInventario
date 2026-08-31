@@ -18,6 +18,7 @@ namespace ProyectoWong.Data
         public DbSet<Pallet> Pallets { get; set; }
         public DbSet<Ubicacion> Ubicaciones {  get; set; }
         public DbSet<MovimientoInventario> MovimientosInventario { get; set; }
+        public DbSet<Proveedor> Proveedores {  get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
