@@ -30,5 +30,11 @@ namespace ProyectoWong.Controllers
             return View(model);
         }
 
+        public IActionResult Logout()
+        {
+            // TODO: cuando exista sesión/cookie de autenticación real, limpiarla aquí.
+            return RedirectToAction("Index", "Login");
+        }
+
     }
 }

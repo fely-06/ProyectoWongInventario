@@ -420,40 +420,7 @@
 
     <div class="dashboard-wrapper">
         <!-- Sidebar -->
-        <aside class="sidebar">
-            <div class="sidebar-logo">
-                <i class="bi bi-patch-check-fill"></i> SIV
-            </div>
-
-            <ul class="nav-menu">
-                <li class="nav-item">
-                    <a class="nav-link" asp-controller="Dashboard" asp-action="Index">
-                        <i class="bi bi-grid-fill"></i> Inicio
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" asp-controller="Usuario" asp-action="Index">
-                        <i class="bi bi-people-fill"></i> Usuarios
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link active" asp-controller="Componente" asp-action="Index">
-                        <i class="bi bi-cpu-fill"></i> Componentes
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" asp-controller="Inventory" asp-action="Index">
-                        <i class="bi bi-box-seam-fill"></i> Inventario
-                    </a>
-                </li>
-            </ul>
-
-            <div class="sidebar-footer">
-                <a asp-controller="Auth" asp-action="Logout" class="btn-logout">
-                    <i class="bi bi-box-arrow-left"></i> Cerrar Sesión
-                </a>
-            </div>
-        </aside>
+        @await Html.PartialAsync("_Sidebar")
 
         <!-- Main Content -->
         <main class="main-content">

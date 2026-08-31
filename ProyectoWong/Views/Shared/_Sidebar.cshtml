@@ -1,0 +1,50 @@
+@{
+    // Se alimenta de ViewBag.ActiveMenu, que cada controlador ya asigna en su Index():
+    //   "Componentes", "Usuarios", "OrdenesCompra", "Proveedores", "Recepcion"
+    // Para el Home no se asigna nada, así que "Inicio" queda como valor por defecto.
+    string activo = ViewBag.ActiveMenu ?? "Inicio";
+}
+<aside class="sidebar">
+    <div class="sidebar-logo">
+        <i class="bi bi-patch-check-fill"></i> SIV
+    </div>
+
+    <ul class="nav-menu">
+        <li class="nav-item">
+            <a class="nav-link @(activo == "Inicio" ? "active" : "")" asp-controller="Home" asp-action="Index">
+                <i class="bi bi-grid-fill"></i> Inicio
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link @(activo == "Usuarios" ? "active" : "")" asp-controller="Usuario" asp-action="Index">
+                <i class="bi bi-people-fill"></i> Usuarios
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link @(activo == "Componentes" ? "active" : "")" asp-controller="Componente" asp-action="Index">
+                <i class="bi bi-cpu-fill"></i> Componentes
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link @(activo == "Proveedores" ? "active" : "")" asp-controller="Proveedor" asp-action="Index">
+                <i class="bi bi-truck"></i> Proveedores
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link @(activo == "OrdenesCompra" ? "active" : "")" asp-controller="OrdenCompra" asp-action="Index">
+                <i class="bi bi-file-earmark-text-fill"></i> Órdenes de Compra
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link @(activo == "Recepcion" ? "active" : "")" asp-controller="Recepcion" asp-action="Index">
+                <i class="bi bi-box-seam-fill"></i> Recepción
+            </a>
+        </li>
+    </ul>
+
+    <div class="sidebar-footer">
+        <a asp-controller="Login" asp-action="Logout" class="btn-logout">
+            <i class="bi bi-box-arrow-left"></i> Cerrar Sesión
+        </a>
+    </div>
+</aside>
