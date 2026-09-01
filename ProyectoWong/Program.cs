@@ -19,7 +19,7 @@ var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-    db.Database.Migrate(); // aplica migraciones pendientes en la BD
+    //db.Database.Migrate(); // aplica migraciones pendientes en la BD
     ProyectoWong.Helpers.DbSeeder.SeedAdminUser(db);
 }
 // 4. CONFIGURAR EL PIPELINE HTTP (Middleware)

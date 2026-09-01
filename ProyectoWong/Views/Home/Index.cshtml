@@ -1,8 +1,7 @@
-﻿@* Declaramos el modelo (puedes cambiarlo por tu ViewModel real, ej: DashboardViewModel) *@
-@model dynamic
+﻿@model ProyectoWong.Models.DashboardViewModel
 
 @{
-    Layout = null; 
+    Layout = null;
     ViewBag.Title = "Dashboard - SIV";
 }
 <!DOCTYPE html>
@@ -11,15 +10,15 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewBag.Title</title>
-    
+
     <!-- Fuente redondeada y amigable -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
-    
+
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
-    
+
     <style>
         :root {
             --color-amarillo: #f3eeb6;
@@ -31,6 +30,8 @@
             --color-texto: #4a5568;
             --color-texto-claro: #718096;
             --color-blanco-glass: rgba(255, 255, 255, 0.85);
+            --color-rojo: #e11d48;
+            --color-rojo-claro: #fee2e2;
         }
 
         body {
@@ -212,12 +213,66 @@
             box-shadow: 0 4px 10px rgba(0,0,0,0.05);
         }
 
+        /* ── KPI cards ─────────────────────────────────────────────── */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+            gap: 1.25rem;
+        }
+        .kpi-card {
+            background: var(--color-blanco-glass);
+            backdrop-filter: blur(12px);
+            border-radius: 20px;
+            padding: 1.4rem 1.5rem;
+            box-shadow: 0 10px 30px rgba(132, 191, 147, 0.15), 0 0 0 2px rgba(255, 255, 255, 0.6);
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            animation: slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .kpi-icon {
+            width: 52px;
+            height: 52px;
+            min-width: 52px;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.4rem;
+            color: white;
+        }
+        .kpi-icon.verde { background: linear-gradient(135deg, var(--color-verde), var(--color-aqua)); }
+        .kpi-icon.rojo { background: linear-gradient(135deg, #f87171, var(--color-rojo)); }
+        .kpi-icon.amarillo { background: linear-gradient(135deg, #f3d774, #e8b830); }
+        .kpi-icon.azul { background: linear-gradient(135deg, #7dd3fc, #38bdf8); }
+
+        .kpi-value {
+            font-size: 1.6rem;
+            font-weight: 800;
+            line-height: 1;
+            color: var(--color-texto);
+        }
+        .kpi-label {
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: var(--color-texto-claro);
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+            margin-top: 0.25rem;
+        }
+
+        .panels-grid {
+            display: grid;
+            grid-template-columns: 1.3fr 1fr;
+            gap: 1.5rem;
+            align-items: start;
+        }
+
         .content-card {
             background: var(--color-blanco-glass);
             backdrop-filter: blur(12px);
             border-radius: 24px;
             padding: 2rem;
-            flex-grow: 1;
             box-shadow: 0 10px 30px rgba(132, 191, 147, 0.15), 0 0 0 2px rgba(255, 255, 255, 0.6);
             animation: slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1);
         }
@@ -235,7 +290,7 @@
         }
         .card-header-custom h3 {
             margin: 0;
-            font-size: 1.3rem;
+            font-size: 1.15rem;
             font-weight: 800;
             color: var(--color-verde);
             display: flex;
@@ -247,13 +302,13 @@
             background: linear-gradient(135deg, var(--color-verde) 0%, var(--color-aqua) 100%);
             border: none;
             border-radius: 50px;
-            padding: 0.6rem 1.25rem;
+            padding: 0.5rem 1.1rem;
             color: white;
             font-weight: 700;
-            font-size: 0.9rem;
+            font-size: 0.85rem;
             display: inline-flex;
             align-items: center;
-            gap: 0.5rem;
+            gap: 0.4rem;
             text-decoration: none;
             transition: all 0.3s ease;
             box-shadow: 0 4px 15px rgba(154, 191, 23, 0.3);
@@ -267,16 +322,16 @@
         .table-cute {
             width: 100%;
             border-collapse: separate;
-            border-spacing: 0 0.75rem;
+            border-spacing: 0 0.6rem;
         }
         .table-cute thead th {
             background-color: var(--color-azul-claro);
             color: var(--color-texto);
             font-weight: 700;
-            font-size: 0.85rem;
+            font-size: 0.78rem;
             text-transform: uppercase;
             letter-spacing: 0.05em;
-            padding: 1rem 1.25rem;
+            padding: 0.75rem 1rem;
             border: none;
         }
         .table-cute thead th:first-child { border-radius: 12px 0 0 12px; }
@@ -292,41 +347,66 @@
             box-shadow: 0 4px 12px rgba(132, 191, 147, 0.2);
         }
         .table-cute tbody td {
-            padding: 1rem 1.25rem;
+            padding: 0.85rem 1rem;
             vertical-align: middle;
             border: none;
-            font-size: 0.95rem;
+            font-size: 0.88rem;
             color: var(--color-texto);
         }
         .table-cute tbody td:first-child { border-radius: 12px 0 0 12px; }
         .table-cute tbody td:last-child { border-radius: 0 12px 12px 0; }
 
         .badge-cute {
-            padding: 0.35rem 0.75rem;
+            padding: 0.3rem 0.7rem;
             border-radius: 50px;
-            font-size: 0.75rem;
+            font-size: 0.72rem;
             font-weight: 700;
+            white-space: nowrap;
         }
-        .badge-active { background-color: var(--color-amarillo); color: #857a10; }
-        .badge-inactive { background-color: #fee2e2; color: #991b1b; }
+        .badge-critico { background-color: var(--color-rojo-claro); color: #991b1b; }
+        .badge-proceso { background-color: var(--color-amarillo); color: #857a10; }
+        .badge-ok { background-color: #dcfce7; color: #15803d; }
 
-        .action-btn {
-            width: 32px;
-            height: 32px;
-            border-radius: 8px;
-            border: none;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            margin-right: 0.25rem;
-            transition: all 0.2s ease;
+        .empty-state {
+            text-align: center;
+            padding: 2rem 1rem;
+            color: var(--color-texto-claro);
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+        .empty-state i { font-size: 1.8rem; display: block; margin-bottom: 0.5rem; color: var(--color-aqua); }
+
+        .quick-links {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+        }
+        .quick-link {
+            flex: 1 1 130px;
+            background: white;
+            border-radius: 16px;
+            padding: 1rem;
             text-decoration: none;
+            color: var(--color-texto);
+            font-weight: 700;
+            font-size: 0.85rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+            transition: all 0.2s ease;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            align-items: flex-start;
         }
-        .btn-edit { background-color: var(--color-azul-claro); color: #2563eb; }
-        .btn-edit:hover { background-color: #2563eb; color: white; }
-        .btn-delete { background-color: #fee2e2; color: #dc2626; }
-        .btn-delete:hover { background-color: #dc2626; color: white; }
+        .quick-link i { font-size: 1.3rem; color: var(--color-verde); }
+        .quick-link:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(132, 191, 147, 0.25);
+            color: var(--color-verde);
+        }
 
+@@media (max-width: 992px) {
+    .panels-grid { grid-template-columns: 1fr; }
+}
 @@media (max-width: 768px) {
     .dashboard-wrapper { flex-direction: column; padding: 1rem; }
     .sidebar { width: 100%; padding: 1.5rem; }
@@ -345,8 +425,8 @@
         <main class="main-content">
             <div class="top-bar">
                 <div class="welcome-text">
-                    <h2>¡Hola, Administrador! 👋</h2>
-                    <p>Aquí tienes un resumen de tu sistema hoy.</p>
+                    <h2>¡Hola! 👋</h2>
+                    <p>Aquí tienes un resumen del sistema hoy, @DateTime.Now.ToString("dddd d 'de' MMMM", new System.Globalization.CultureInfo("es-ES")).</p>
                 </div>
                 <div class="user-profile">
                     <div style="text-align: right;">
@@ -357,49 +437,209 @@
                 </div>
             </div>
 
+            <!-- ── KPIs ────────────────────────────────────────────── -->
+            <div class="kpi-grid">
+                <div class="kpi-card">
+                    <div class="kpi-icon verde"><i class="bi bi-cpu-fill"></i></div>
+                    <div>
+                        <div class="kpi-value">@Model.TotalComponentes</div>
+                        <div class="kpi-label">Componentes activos</div>
+                    </div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-icon rojo"><i class="bi bi-exclamation-triangle-fill"></i></div>
+                    <div>
+                        <div class="kpi-value">@Model.ComponentesBajoMinimo</div>
+                        <div class="kpi-label">Bajo mínimo</div>
+                    </div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-icon amarillo"><i class="bi bi-file-earmark-text-fill"></i></div>
+                    <div>
+                        <div class="kpi-value">@Model.OrdenesCompraAbiertas</div>
+                        <div class="kpi-label">OC abiertas</div>
+                    </div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-icon azul"><i class="bi bi-box-seam-fill"></i></div>
+                    <div>
+                        <div class="kpi-value">@Model.RecepcionesEnProceso</div>
+                        <div class="kpi-label">Recepciones en proceso</div>
+                    </div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-icon rojo"><i class="bi bi-pin-map-fill"></i></div>
+                    <div>
+                        <div class="kpi-value">@Model.PalletsSinUbicacion</div>
+                        <div class="kpi-label">Pallets sin ubicación</div>
+                    </div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-icon verde"><i class="bi bi-geo-alt-fill"></i></div>
+                    <div>
+                        <div class="kpi-value">@Model.UbicacionesActivas</div>
+                        <div class="kpi-label">Ubicaciones activas</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panels-grid">
+                <!-- ── Últimos movimientos ─────────────────────────── -->
+                <div class="content-card">
+                    <div class="card-header-custom">
+                        <h3><i class="bi bi-clock-history"></i> Últimos movimientos de inventario</h3>
+                        <a asp-controller="Inventario" asp-action="Index" class="btn-cute-primary">
+                            Ver inventario <i class="bi bi-arrow-right"></i>
+                        </a>
+                    </div>
+
+                    @if (Model.UltimosMovimientos.Any())
+                    {
+                        <div class="table-responsive">
+                            <table class="table-cute">
+                                <thead>
+                                    <tr>
+                                        <th>Pallet</th>
+                                        <th>Componente</th>
+                                        <th>Ubicación</th>
+                                        <th>Fecha</th>
+                                        <th>Por</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var m in Model.UltimosMovimientos)
+                                    {
+                                        <tr>
+                                            <td><strong>@m.CodigoPallet</strong></td>
+                                            <td>@(m.Componente ?? "-")</td>
+                                            <td>@(m.Ubicacion ?? "-")</td>
+                                            <td>@m.FechaMovimiento.ToString("dd/MM/yyyy HH:mm")</td>
+                                            <td>@(m.RealizadoPor ?? "-")</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="empty-state">
+                            <i class="bi bi-inbox"></i>
+                            Todavía no hay movimientos de inventario registrados.
+                        </div>
+                    }
+                </div>
+
+                <!-- ── Columna lateral ──────────────────────────────── -->
+                <div style="display:flex; flex-direction:column; gap:1.5rem;">
+                    <div class="content-card">
+                        <div class="card-header-custom">
+                            <h3><i class="bi bi-exclamation-triangle-fill"></i> Stock crítico</h3>
+                            <a asp-controller="Componente" asp-action="Index" class="btn-cute-primary">
+                                Ver <i class="bi bi-arrow-right"></i>
+                            </a>
+                        </div>
+
+                        @if (Model.ComponentesCriticos.Any())
+                        {
+                            <div class="table-responsive">
+                                <table class="table-cute">
+                                    <thead>
+                                        <tr>
+                                            <th>Pieza</th>
+                                            <th>Stock</th>
+                                            <th>Estado</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var c in Model.ComponentesCriticos)
+                                        {
+                                            <tr>
+                                                <td>
+                                                    <strong>@c.NumeroPieza</strong><br />
+                                                    <span style="font-size:0.78rem; color: var(--color-texto-claro);">@c.Nombre</span>
+                                                </td>
+                                                <td>@c.Cantidad / @c.MinimoInventario</td>
+                                                <td><span class="badge-cute badge-critico">Crítico</span></td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="empty-state">
+                                <i class="bi bi-check-circle"></i>
+                                Todo el inventario está por encima del mínimo.
+                            </div>
+                        }
+                    </div>
+
+                    <div class="content-card">
+                        <div class="card-header-custom">
+                            <h3><i class="bi bi-truck"></i> Accesos rápidos</h3>
+                        </div>
+                        <div class="quick-links">
+                            <a class="quick-link" asp-controller="Recepcion" asp-action="Index">
+                                <i class="bi bi-box-seam-fill"></i> Recepción
+                            </a>
+                            <a class="quick-link" asp-controller="Ordenescompra" asp-action="Index">
+                                <i class="bi bi-file-earmark-text-fill"></i> Órdenes de compra
+                            </a>
+                            <a class="quick-link" asp-controller="Componente" asp-action="Index">
+                                <i class="bi bi-cpu-fill"></i> Componentes
+                            </a>
+                            <a class="quick-link" asp-controller="Inventario" asp-action="Index">
+                                <i class="bi bi-boxes"></i> Inventario
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ── Recepciones pendientes ───────────────────────────── -->
             <div class="content-card">
                 <div class="card-header-custom">
-                    <h3><i class="bi bi-people-fill"></i> Gestión de Usuarios</h3>
-                    <a asp-action="Create" class="btn-cute-primary">
-                        <i class="bi bi-plus-lg"></i> Nuevo Usuario
+                    <h3><i class="bi bi-hourglass-split"></i> Recepciones en proceso</h3>
+                    <a asp-controller="Recepcion" asp-action="Index" class="btn-cute-primary">
+                        Ir a Recepción <i class="bi bi-arrow-right"></i>
                     </a>
                 </div>
 
-                <div class="table-responsive">
-                    <table class="table-cute">
-                        <thead>
-                            <tr>
-                                <th>ID</th>
-                                <th>Nombre</th>
-                                <th>Correo</th>
-                                <th>Estado</th>
-                                <th>Acciones</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td><strong>#001</strong></td>
-                                <td>Juan Pérez</td>
-                                <td>juan@empresa.com</td>
-                                <td><span class="badge-cute badge-active">Activo</span></td>
-                                <td>
-                                    <a href="#" class="action-btn btn-edit" title="Editar"><i class="bi bi-pencil-fill"></i></a>
-                                    <a href="#" class="action-btn btn-delete" title="Eliminar"><i class="bi bi-trash-fill"></i></a>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td><strong>#002</strong></td>
-                                <td>María García</td>
-                                <td>maria@empresa.com</td>
-                                <td><span class="badge-cute badge-inactive">Inactivo</span></td>
-                                <td>
-                                    <a href="#" class="action-btn btn-edit" title="Editar"><i class="bi bi-pencil-fill"></i></a>
-                                    <a href="#" class="action-btn btn-delete" title="Eliminar"><i class="bi bi-trash-fill"></i></a>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
+                @if (Model.RecepcionesPendientes.Any())
+                {
+                    <div class="table-responsive">
+                        <table class="table-cute">
+                            <thead>
+                                <tr>
+                                    <th>Orden de compra</th>
+                                    <th>Lotes</th>
+                                    <th>Fecha</th>
+                                    <th>Estado</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var r in Model.RecepcionesPendientes)
+                                {
+                                    <tr>
+                                        <td><strong>@r.NumeroOC</strong></td>
+                                        <td>@r.CantidadLotes</td>
+                                        <td>@r.FechaRecepcion.ToString("dd/MM/yyyy")</td>
+                                        <td><span class="badge-cute badge-proceso">@r.Estado</span></td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+                else
+                {
+                    <div class="empty-state">
+                        <i class="bi bi-check-circle"></i>
+                        No hay recepciones pendientes por procesar.
+                    </div>
+                }
             </div>
         </main>
     </div>

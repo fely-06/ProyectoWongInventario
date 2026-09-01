@@ -105,7 +105,7 @@ namespace ProyectoWong.Data
 
             modelBuilder.Entity<MovimientoInventario>()
                 .HasOne(m => m.Ubicacion)
-                .WithMany()
+                .WithMany(u => u.Movimientos)
                 .HasForeignKey(m => m.UbicacionId)
                 .OnDelete(DeleteBehavior.Restrict);
 
