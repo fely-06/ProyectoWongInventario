@@ -177,18 +177,36 @@ namespace ProyectoWong.Controllers
         }
 
         // ── PASO 8: SCAN LOCATION ───────────────────────────────────────
+        // Al asignar la primera ubicación de un pallet, el material entra
+        // formalmente al inventario disponible y se debe sumar su cantidad
+        // al stock del componente. Si el pallet se reubica más adelante
+        // (segundo, tercer movimiento, etc.) NO se debe volver a sumar,
+        // solo se registra el nuevo movimiento.
         [HttpPost("asignar-ubicacion")]
         public async Task<IActionResult> AsignarUbicacion([FromBody] MovimientoInput model)
         {
             try
             {
-                var pallet = await _context.Pallets.FindAsync(model.PalletId);
+                var pallet = await _context.Pallets
+                    .Include(p => p.Movimientos)
+                    .Include(p => p.RecepcionDetalle!)
+                        .ThenInclude(d => d.Componente)
+                    .FirstOrDefaultAsync(p => p.Id == model.PalletId);
+
                 if (pallet == null)
                     return Json(Respuesta.Error("Pallet no encontrado"));
+
+                if (pallet.RecepcionDetalle == null)
+                    return Json(Respuesta.Error("El pallet no tiene un lote de recepción asociado"));
+
+                if (pallet.RecepcionDetalle.Estado != "Aprobado")
+                    return Json(Respuesta.Error("El lote no ha sido aprobado por QA, no se puede almacenar"));
 
                 var ubicacion = await _context.Ubicaciones.FindAsync(model.UbicacionId);
                 if (ubicacion == null)
                     return Json(Respuesta.Error("Ubicación no encontrada"));
+
+                bool esPrimeraUbicacion = pallet.Movimientos == null || !pallet.Movimientos.Any();
 
                 var movimiento = new MovimientoInventario
                 {
@@ -198,11 +216,26 @@ namespace ProyectoWong.Controllers
                     FechaMovimiento = DateTime.Now,
                     RealizadoPor = model.RealizadoPor
                 };
-
                 _context.MovimientosInventario.Add(movimiento);
+
+                // ── Incremento de stock ──────────────────────────────────
+                // Solo se suma la cantidad recibida la primera vez que el
+                // pallet queda ubicado; movimientos posteriores del mismo
+                // pallet son solo cambios de ubicación (traspasos), no
+                // nuevas entradas de material.
+                if (esPrimeraUbicacion && pallet.RecepcionDetalle.Componente != null)
+                {
+                    pallet.RecepcionDetalle.Componente.Cantidad += pallet.RecepcionDetalle.CantidadRecibida;
+
+                    // Mantiene sincronizado el campo de texto libre Ubicacion
+                    // del componente (usado en la pantalla de Componentes)
+                    // con la ubicación real asignada en la recepción.
+                    pallet.RecepcionDetalle.Componente.Ubicacion = ubicacion.Codigo;
+                }
+
                 await _context.SaveChangesAsync();
 
-                return Json(Respuesta.OK("Ubicación asignada"));
+                return Json(Respuesta.OK("Ubicación asignada", new { stockActualizado = esPrimeraUbicacion }));
             }
             catch (Exception e)
             {
@@ -289,6 +322,7 @@ namespace ProyectoWong.Controllers
                         },
                         pallets = d.Pallets?.Select(p => new
                         {
+                            id = p.Id,
                             codigoPallet = p.CodigoPallet,
                             ubicacion = p.Movimientos != null && p.Movimientos.Any()
                                 ? p.Movimientos.OrderByDescending(m => m.FechaMovimiento).First().Ubicacion?.Codigo

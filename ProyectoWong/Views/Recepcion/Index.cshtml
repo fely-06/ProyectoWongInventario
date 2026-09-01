@@ -466,7 +466,19 @@
             modalUbicacion = new bootstrap.Modal(document.getElementById('modalUbicacion'));
 
             cargarUsuarios();
-            marcarStep(1);
+
+            // ── Recuperar recepción en curso tras un refresh ──────────────
+            // Antes, refrescar la página perdía todo el progreso visual
+            // (aunque los datos seguían en la BD) porque nunca se releía el
+            // estado real. Ahora, si la URL trae ?recepcionId=N, se
+            // reconstruye la tabla completa desde el servidor.
+            var params = new URLSearchParams(window.location.search);
+            var recepcionIdUrl = params.get('recepcionId');
+            if (recepcionIdUrl) {
+                cargarRecepcionExistente(parseInt(recepcionIdUrl));
+            } else {
+                marcarStep(1);
+            }
         });
 
         function escHtml(t) {
@@ -579,6 +591,12 @@
                     $('#ocRecepcionId').text(recepcionActual.id);
                     $('#badgeRecepcionEstado').removeClass('badge-cute-info').addClass('badge-cute-success').text('En proceso');
 
+                    // Guarda el id en la URL para poder recuperar el progreso
+                    // si se recarga la página o se vuelve a esta pantalla.
+                    var url = new URL(window.location.href);
+                    url.searchParams.set('recepcionId', recepcionActual.id);
+                    history.replaceState(null, '', url.toString());
+
                     var opciones = recepcionActual.detalleOC.map(d =>
                         '<option value="' + d.componenteId + '">' + escHtml(d.componenteNombre) + ' (' + escHtml(d.numeroPieza) + ')</option>').join('');
                     $('#selectComponenteLote').html(opciones || '<option value="">Sin componentes en la OC</option>');
@@ -649,6 +667,121 @@
                 '</td></tr>'
             );
             $('#bodyLotes').append(fila);
+        }
+
+        function renderFilaDesdeServidor(lote) {
+            var id = lote.id;
+
+            var qaHtml = '<span class="badge-cute badge-cute-warning">Pendiente</span>';
+            if (lote.inspeccion) {
+                qaHtml = lote.inspeccion.resultado === 'Aprobado'
+                    ? '<span class="badge-cute badge-cute-success">Aprobado</span>'
+                    : '<span class="badge-cute badge-cute-danger">Rechazado</span>';
+            }
+
+            var ultimoPallet = (lote.pallets && lote.pallets.length) ? lote.pallets[lote.pallets.length - 1] : null;
+
+            var palletHtml = ultimoPallet
+                ? '<span class="badge-cute badge-cute-info">' + escHtml(ultimoPallet.codigoPallet) + '</span>'
+                : '—';
+
+            var ubicHtml = (ultimoPallet && ultimoPallet.ubicacion)
+                ? '<span class="badge-cute badge-cute-success">' + escHtml(ultimoPallet.ubicacion) + '</span>'
+                : '—';
+
+            var accionesHtml;
+            if (!lote.inspeccion) {
+                // Aún no se ha hecho QA
+                accionesHtml = '<button class="btn-cute-sm btn-cute-primary" onclick="abrirQA(' + id + ')"><i class="bi bi-clipboard2-check"></i> QA</button>';
+            } else if (lote.inspeccion.resultado !== 'Aprobado') {
+                accionesHtml = '<span class="text-muted small">Lote rechazado</span>';
+            } else if (!ultimoPallet) {
+                // Aprobado, falta generar pallet/etiqueta
+                accionesHtml = '<button class="btn-cute-sm btn-cute-primary" onclick="abrirPallet(' + id + ')"><i class="bi bi-printer"></i> Etiqueta</button>';
+            } else if (!ultimoPallet.ubicacion) {
+                // Pallet generado, falta asignar ubicación
+                accionesHtml = '<button class="btn-cute-sm btn-cute-primary" onclick="abrirUbicacion(' + id + ', ' + ultimoPallet.id + ')"><i class="bi bi-geo-alt"></i> Ubicación</button>';
+            } else {
+                accionesHtml = '<span class="text-muted small"><i class="bi bi-check2-circle"></i> Completo</span>';
+            }
+
+            var fila = $(
+                '<tr id="fila-lote-' + id + '">' +
+                '<td>' + escHtml(lote.componente) + '</td>' +
+                '<td>' + escHtml(lote.numeroLote) + '</td>' +
+                '<td>' + (lote.fechaCaducidad ? lote.fechaCaducidad.substring(0, 10) : '—') + '</td>' +
+                '<td class="text-end">' + lote.cantidadRecibida + '</td>' +
+                '<td id="qaCell-' + id + '">' + qaHtml + '</td>' +
+                '<td id="palletCell-' + id + '">' + palletHtml + '</td>' +
+                '<td id="ubicCell-' + id + '">' + ubicHtml + '</td>' +
+                '<td class="text-center" id="accionesCell-' + id + '">' + accionesHtml + '</td></tr>'
+            );
+            $('#bodyLotes').append(fila);
+        }
+
+        // ── Recupera una recepción en curso (tras F5, cerrar pestaña, etc.) ──
+        function cargarRecepcionExistente(recepcionId) {
+            $.get('/Recepcion/obtener/' + recepcionId, function (r) {
+                if (!r.success || !r.result) {
+                    showToast('No se encontró la recepción #' + recepcionId + ', se reinicia el wizard', 'warning');
+                    var urlLimpia = new URL(window.location.href);
+                    urlLimpia.searchParams.delete('recepcionId');
+                    history.replaceState(null, '', urlLimpia.toString());
+                    marcarStep(1);
+                    return;
+                }
+
+                var data = r.result;
+                recepcionActual.id = data.id;
+
+                $('#ocRecepcionId').text(data.id);
+                var completada = data.estado === 'Completada';
+                $('#badgeRecepcionEstado')
+                    .removeClass('badge-cute-info badge-cute-success')
+                    .addClass(completada ? 'badge-cute-info' : 'badge-cute-success')
+                    .text(completada ? 'Completada' : 'En proceso');
+
+                // Recarga la orden de compra asociada para poder seguir
+                // agregando lotes (necesitamos el combo de componentes).
+                $.get('/Ordenescompra/buscar-por-numero/' + encodeURIComponent(data.numeroOC), function (rOc) {
+                    if (rOc.success && rOc.result) {
+                        var oc = rOc.result;
+                        recepcionActual.ordenCompraId = oc.id;
+                        recepcionActual.detalleOC = oc.detalles || [];
+
+                        $('#inputNumeroOC').val(oc.numeroOC);
+                        $('#ocNumero').text(oc.numeroOC);
+                        $('#ocEstado').text(oc.estado);
+                        $('#ocInfo').show();
+
+                        var filasOc = recepcionActual.detalleOC.map(d =>
+                            '<tr><td>' + escHtml(d.componenteNombre) + '</td><td>' + escHtml(d.numeroPieza) + '</td><td class="text-end">' + d.cantidadEsperada + '</td></tr>'
+                        ).join('') || '<tr><td colspan="3" class="text-center text-muted">Esta OC no tiene componentes cargados</td></tr>';
+                        $('#bodyOcDetalle').html(filasOc);
+
+                        var opciones = recepcionActual.detalleOC.map(d =>
+                            '<option value="' + d.componenteId + '">' + escHtml(d.componenteNombre) + ' (' + escHtml(d.numeroPieza) + ')</option>').join('');
+                        $('#selectComponenteLote').html(opciones || '<option value="">Sin componentes en la OC</option>');
+                    }
+
+                    $('#panelLote').removeClass('section-locked');
+                    $('#panelConfirmar').removeClass('section-locked');
+                    $('#btnIniciarRecepcion').prop('disabled', true);
+
+                    $('#bodyLotes').empty();
+                    if (data.lotes && data.lotes.length) {
+                        data.lotes.forEach(renderFilaDesdeServidor);
+                    } else {
+                        $('#bodyLotes').html('<tr><td colspan="8" class="text-center text-muted py-3"><i class="bi bi-inbox me-2"></i>Aún no hay lotes capturados</td></tr>');
+                    }
+
+                    marcarStep(completada ? 9 : 3);
+                    showToast('Recepción #' + data.id + ' recuperada', 'info');
+                });
+            }).fail(function () {
+                showToast('Error al recuperar la recepción anterior', 'danger');
+                marcarStep(1);
+            });
         }
 
         // ── PASO 5: QA Inspection ────────────────────────────────────────
@@ -853,6 +986,11 @@
             $('#btnIniciarRecepcion').prop('disabled', true);
             $('#bodyLotes').html('<tr><td colspan="8" class="text-center text-muted py-3"><i class="bi bi-inbox me-2"></i>Aún no hay lotes capturados</td></tr>');
             $('#panelLote, #panelConfirmar').addClass('section-locked');
+
+            var url = new URL(window.location.href);
+            url.searchParams.delete('recepcionId');
+            history.replaceState(null, '', url.toString());
+
             marcarStep(1);
         }
     </script>

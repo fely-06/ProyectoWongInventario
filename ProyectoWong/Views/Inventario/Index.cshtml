@@ -1,5 +1,449 @@
-﻿@*
-    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
-*@
-@{
+﻿@{
+    Layout = null;
+    ViewBag.Title = "Inventario - SIV";
 }
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewBag.Title</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
+
+    <style>
+            :root {
+                --color-amarillo: #f3eeb6;
+                --color-verde-claro: #d4db74;
+                --color-verde: #9abf17;
+                --color-aqua: #84bf93;
+                --color-aqua-claro: #aed9c5;
+                --color-azul-claro: #ddecf1;
+                --color-texto: #4a5568;
+                --color-texto-claro: #718096;
+                --color-blanco-glass: rgba(255, 255, 255, 0.85);
+            }
+
+            body {
+                font-family: 'Nunito', sans-serif;
+                background: linear-gradient(135deg, var(--color-azul-claro) 0%, var(--color-amarillo) 50%, var(--color-aqua-claro) 100%);
+                min-height: 100vh;
+                margin: 0;
+                position: relative;
+                overflow-x: hidden;
+                color: var(--color-texto);
+            }
+
+            @@keyframes float {
+                0%, 100% { transform: translateY(0px) scale(1); }
+                50% { transform: translateY(-20px) scale(1.05); }
+            }
+
+            .bg-blob {
+                position: fixed;
+                border-radius: 50%;
+                filter: blur(60px);
+                z-index: 0;
+                opacity: 0.6;
+                animation: float 8s ease-in-out infinite;
+                pointer-events: none;
+            }
+            .blob-1 { width: 400px; height: 400px; background: var(--color-verde-claro); top: -100px; left: -100px; }
+            .blob-2 { width: 350px; height: 350px; background: var(--color-aqua); bottom: -80px; right: -80px; animation-delay: 2s; }
+            .blob-3 { width: 250px; height: 250px; background: var(--color-amarillo); top: 30%; right: 20%; animation-delay: 4s; }
+
+            .dashboard-wrapper {
+                display: flex;
+                min-height: 100vh;
+                padding: 1.5rem;
+                gap: 1.5rem;
+                position: relative;
+                z-index: 1;
+            }
+
+            .sidebar {
+                width: 260px;
+                background: var(--color-blanco-glass);
+                backdrop-filter: blur(12px);
+                -webkit-backdrop-filter: blur(12px);
+                border-radius: 24px;
+                padding: 2rem 1.5rem;
+                display: flex;
+                flex-direction: column;
+                box-shadow: 0 10px 30px rgba(132, 191, 147, 0.15), 0 0 0 2px rgba(255, 255, 255, 0.6);
+                flex-shrink: 0;
+            }
+
+            .sidebar-logo {
+                color: var(--color-verde);
+                font-size: 1.8rem;
+                font-weight: 800;
+                display: flex;
+                align-items: center;
+                gap: 0.5rem;
+                margin-bottom: 2.5rem;
+                padding-left: 0.5rem;
+            }
+            .sidebar-logo i { color: var(--color-aqua); font-size: 2rem; }
+
+            .nav-menu { list-style: none; padding: 0; margin: 0; flex-grow: 1; }
+            .nav-item { margin-bottom: 0.75rem; }
+
+            .nav-link {
+                display: flex;
+                align-items: center;
+                gap: 0.75rem;
+                padding: 0.85rem 1.25rem;
+                border-radius: 16px;
+                color: var(--color-texto);
+                font-weight: 700;
+                font-size: 0.95rem;
+                text-decoration: none;
+                transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+                border: 2px solid transparent;
+            }
+            .nav-link i { font-size: 1.2rem; transition: transform 0.3s ease; }
+            .nav-link:hover {
+                background-color: var(--color-amarillo);
+                color: var(--color-verde);
+                transform: translateX(5px);
+            }
+            .nav-link:hover i { transform: scale(1.1); }
+            .nav-link.active {
+                background: linear-gradient(135deg, var(--color-verde) 0%, var(--color-aqua) 100%);
+                color: white;
+                box-shadow: 0 4px 15px rgba(154, 191, 23, 0.3);
+            }
+            .nav-link.active i { color: white; }
+
+            .sidebar-footer {
+                margin-top: auto;
+                padding-top: 1.5rem;
+                border-top: 2px solid var(--color-azul-claro);
+            }
+
+            .btn-logout {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 0.5rem;
+                width: 100%;
+                padding: 0.75rem;
+                border-radius: 16px;
+                border: 2px solid #fecaca;
+                background-color: #fef2f2;
+                color: #e11d48;
+                font-weight: 700;
+                text-decoration: none;
+                transition: all 0.3s ease;
+            }
+            .btn-logout:hover {
+                background-color: #e11d48;
+                color: white;
+                border-color: #e11d48;
+            }
+
+            .main-content { flex-grow: 1; display: flex; flex-direction: column; gap: 1.5rem; }
+
+            .top-bar {
+                background: var(--color-blanco-glass);
+                backdrop-filter: blur(12px);
+                border-radius: 24px;
+                padding: 1.25rem 2rem;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                box-shadow: 0 10px 30px rgba(132, 191, 147, 0.15), 0 0 0 2px rgba(255, 255, 255, 0.6);
+            }
+
+            .welcome-text h2 { margin: 0; font-size: 1.5rem; font-weight: 800; color: var(--color-texto); }
+            .welcome-text p { margin: 0; font-size: 0.9rem; color: var(--color-texto-claro); font-weight: 600; }
+
+            .user-profile { display: flex; align-items: center; gap: 1rem; }
+            .user-avatar {
+                width: 45px; height: 45px; border-radius: 50%;
+                background: linear-gradient(135deg, var(--color-amarillo), var(--color-verde-claro));
+                display: flex; align-items: center; justify-content: center;
+                font-weight: 800; color: var(--color-verde); font-size: 1.2rem;
+                border: 2px solid white; box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+            }
+
+            .content-card {
+                background: var(--color-blanco-glass);
+                backdrop-filter: blur(12px);
+                border-radius: 24px;
+                padding: 2rem;
+                box-shadow: 0 10px 30px rgba(132, 191, 147, 0.15), 0 0 0 2px rgba(255, 255, 255, 0.6);
+                animation: slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+            }
+
+            @@keyframes slideUp {
+                from { opacity: 0; transform: translateY(20px); }
+                to { opacity: 1; transform: translateY(0); }
+            }
+
+            .card-header-custom {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 1.5rem;
+                flex-wrap: wrap;
+                gap: 1rem;
+            }
+            .card-header-custom h3 {
+                margin: 0; font-size: 1.3rem; font-weight: 800; color: var(--color-verde);
+                display: flex; align-items: center; gap: 0.5rem;
+            }
+
+            .kpi-row { display: flex; gap: 1rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
+            .kpi-box {
+                flex: 1; min-width: 160px;
+                background: white; border-radius: 18px; padding: 1rem 1.25rem;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+                border-left: 6px solid var(--color-aqua);
+            }
+            .kpi-box.warn { border-left-color: #f59e0b; }
+            .kpi-box.danger { border-left-color: #dc2626; }
+            .kpi-box .kpi-value { font-size: 1.6rem; font-weight: 800; color: var(--color-texto); }
+            .kpi-box .kpi-label { font-size: 0.8rem; font-weight: 700; color: var(--color-texto-claro); text-transform: uppercase; }
+
+            .btn-cute-secondary {
+                background: var(--color-azul-claro);
+                border: none; border-radius: 50px; padding: 0.6rem 1.25rem;
+                color: var(--color-texto); font-weight: 700; font-size: 0.9rem;
+                display: inline-flex; align-items: center; gap: 0.5rem;
+                text-decoration: none; transition: all 0.3s ease; cursor: pointer;
+            }
+            .btn-cute-secondary:hover { background: #c5e0ea; color: var(--color-texto); }
+
+            .form-select, .form-control {
+                border-radius: 12px;
+                border: 2px solid var(--color-azul-claro);
+                padding: 0.5rem 1rem;
+                font-size: 0.9rem;
+                background-color: rgba(255,255,255,0.8);
+            }
+            .form-select:focus, .form-control:focus {
+                border-color: var(--color-aqua);
+                box-shadow: 0 0 0 0.2rem rgba(132, 191, 147, 0.25);
+                background-color: #fff;
+            }
+
+            .table-cute { width: 100%; border-collapse: separate; border-spacing: 0 0.75rem; }
+            .table-cute thead th {
+                background-color: var(--color-azul-claro); color: var(--color-texto);
+                font-weight: 700; font-size: 0.85rem; text-transform: uppercase;
+                letter-spacing: 0.05em; padding: 1rem 1.25rem; border: none;
+            }
+            .table-cute thead th:first-child { border-radius: 12px 0 0 12px; }
+            .table-cute thead th:last-child { border-radius: 0 12px 12px 0; }
+            .table-cute tbody tr { background-color: white; box-shadow: 0 2px 8px rgba(0,0,0,0.03); transition: all 0.2s ease; }
+            .table-cute tbody tr:hover { transform: scale(1.01); box-shadow: 0 4px 12px rgba(132, 191, 147, 0.2); }
+            .table-cute tbody td { padding: 1rem 1.25rem; vertical-align: middle; border: none; font-size: 0.95rem; color: var(--color-texto); }
+            .table-cute tbody td:first-child { border-radius: 12px 0 0 12px; }
+            .table-cute tbody td:last-child { border-radius: 0 12px 12px 0; }
+
+            .badge-cute { padding: 0.35rem 0.75rem; border-radius: 50px; font-size: 0.75rem; font-weight: 700; }
+            .badge-cute-success { background-color: var(--color-verde-claro); color: #3f4d12; }
+            .badge-cute-warning { background-color: #fef3c7; color: #92400e; }
+            .badge-cute-danger { background-color: #fee2e2; color: #991b1b; }
+            .badge-cute-info { background-color: var(--color-azul-claro); color: #1e5f74; }
+
+            .ubic-chip {
+                display: inline-block; background-color: #eef2ff; color: #3730a3;
+                border-radius: 8px; padding: 0.15rem 0.5rem; font-size: 0.78rem;
+                font-weight: 700; margin: 0.1rem;
+            }
+
+            .alert-cute { background-color: var(--color-azul-claro); color: var(--color-texto); border-radius: 12px; border: none; font-weight: 600; }
+
+            @@media (max-width: 768px) {
+                .dashboard-wrapper { flex-direction: column; padding: 1rem; }
+                .card-header-custom { flex-direction: column; gap: 1rem; align-items: flex-start; }
+            }
+    </style>
+</head>
+<body>
+    <div class="bg-blob blob-1"></div>
+    <div class="bg-blob blob-2"></div>
+    <div class="bg-blob blob-3"></div>
+
+    <div class="dashboard-wrapper">
+        @await Html.PartialAsync("_Sidebar")
+
+        <main class="main-content">
+            <div class="top-bar">
+                <div class="welcome-text">
+                    <p>Stock actual por componente y ubicación física en almacén.</p>
+                </div>
+                <div class="user-profile">
+                    <div style="text-align: right;">
+                        <div style="font-weight: 700; font-size: 0.95rem;">Admin SIV</div>
+                        <div style="font-size: 0.8rem; color: var(--color-texto-claro);">admin@siv.com</div>
+                    </div>
+                    <div class="user-avatar">A</div>
+                </div>
+            </div>
+
+            <div class="content-card">
+                <div class="card-header-custom">
+                    <h3><i class="bi bi-boxes"></i> Inventario Consolidado</h3>
+                    <div class="d-flex gap-2">
+                        <input type="text" id="inputBuscar" class="form-control" placeholder="Buscar por nombre o pieza..." style="min-width:220px;" onkeyup="renderTabla()">
+                        <select id="filtroEstado" class="form-select" onchange="renderTabla()">
+                            <option value="">Todos los estados</option>
+                            <option value="BajoMinimo">Bajo el mínimo</option>
+                            <option value="Normal">Normal</option>
+                            <option value="SobreMaximo">Sobre el máximo</option>
+                        </select>
+                        <button class="btn-cute-secondary" onclick="cargarInventario()"><i class="bi bi-arrow-clockwise"></i></button>
+                    </div>
+                </div>
+
+                <div class="kpi-row">
+                    <div class="kpi-box">
+                        <div class="kpi-value" id="kpiTotal">0</div>
+                        <div class="kpi-label">Componentes activos</div>
+                    </div>
+                    <div class="kpi-box danger">
+                        <div class="kpi-value" id="kpiBajoMinimo">0</div>
+                        <div class="kpi-label">Bajo el mínimo</div>
+                    </div>
+                    <div class="kpi-box warn">
+                        <div class="kpi-value" id="kpiSobreMaximo">0</div>
+                        <div class="kpi-label">Sobre el máximo</div>
+                    </div>
+                    <div class="kpi-box">
+                        <div class="kpi-value" id="kpiSinUbicacion">0</div>
+                        <div class="kpi-label">Sin ubicación asignada</div>
+                    </div>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table-cute">
+                        <thead>
+                            <tr>
+                                <th>N° Pieza</th>
+                                <th>Nombre</th>
+                                <th class="text-center">Cantidad</th>
+                                <th class="text-center">Mínimo</th>
+                                <th class="text-center">Máximo</th>
+                                <th>Ubicación(es) actuales</th>
+                                <th class="text-center">Estado</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tablaBody">
+                            <tr><td colspan="7" class="text-center text-muted py-4">Cargando inventario...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="~/lib/jquery/dist/jquery.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.js"></script>
+
+    <script>
+        var inventarioData = [];
+
+        $(document).ready(function () {
+            cargarInventario();
+        });
+
+        function cargarInventario() {
+            $('#tablaBody').html('<tr><td colspan="7" class="text-center text-muted py-4">Cargando inventario...</td></tr>');
+            $.get('@Url.Action("Obtener", "Inventario")', function (r) {
+                if (!r.success) {
+                    $('#tablaBody').html('<tr><td colspan="7" class="text-center text-muted py-4">' + escHtml(r.mensaje) + '</td></tr>');
+                    return;
+                }
+                inventarioData = r.result || [];
+                renderTabla();
+            }).fail(function () {
+                showToast('Error al cargar el inventario', 'danger');
+                $('#tablaBody').html('<tr><td colspan="7" class="text-center text-muted py-4">Error al conectar con el servidor</td></tr>');
+            });
+        }
+
+        function renderTabla() {
+            var texto = ($('#inputBuscar').val() || '').toLowerCase();
+            var estadoFiltro = $('#filtroEstado').val();
+
+            var filtrado = inventarioData.filter(function (c) {
+                var coincideTexto = !texto || (c.nombre || '').toLowerCase().includes(texto) || (c.numeroPieza || '').toLowerCase().includes(texto);
+                var coincideEstado = !estadoFiltro || c.estadoStock === estadoFiltro;
+                return coincideTexto && coincideEstado;
+            });
+
+            $('#kpiTotal').text(inventarioData.length);
+            $('#kpiBajoMinimo').text(inventarioData.filter(c => c.estadoStock === 'BajoMinimo').length);
+            $('#kpiSobreMaximo').text(inventarioData.filter(c => c.estadoStock === 'SobreMaximo').length);
+            $('#kpiSinUbicacion').text(inventarioData.filter(c => !c.ubicaciones || c.ubicaciones.length === 0).length);
+
+            if (!filtrado.length) {
+                $('#tablaBody').html('<tr><td colspan="7" class="text-center text-muted py-4">No hay componentes que coincidan con el filtro</td></tr>');
+                return;
+            }
+
+            var filas = filtrado.map(function (c) {
+                var badgeEstado = c.estadoStock === 'BajoMinimo' ? '<span class="badge-cute badge-cute-danger">Bajo mínimo</span>'
+                    : c.estadoStock === 'SobreMaximo' ? '<span class="badge-cute badge-cute-warning">Sobre máximo</span>'
+                    : '<span class="badge-cute badge-cute-success">Normal</span>';
+
+                var ubicHtml = (c.ubicaciones && c.ubicaciones.length)
+                    ? c.ubicaciones.map(u => '<span class="ubic-chip">' + escHtml(u) + '</span>').join(' ')
+                    : '<span class="text-muted small">Sin ubicación</span>';
+
+                return '<tr>' +
+                    '<td class="fw-bold">' + escHtml(c.numeroPieza) + '</td>' +
+                    '<td>' + escHtml(c.nombre) + '</td>' +
+                    '<td class="text-center fw-bold">' + c.cantidad + (c.unidadMedida ? ' <span class="text-muted small">' + escHtml(c.unidadMedida) + '</span>' : '') + '</td>' +
+                    '<td class="text-center text-muted">' + c.minimoInventario + '</td>' +
+                    '<td class="text-center text-muted">' + c.maximoInventario + '</td>' +
+                    '<td>' + ubicHtml + '</td>' +
+                    '<td class="text-center">' + badgeEstado + '</td>' +
+                    '</tr>';
+            }).join('');
+
+            $('#tablaBody').html(filas);
+        }
+
+        function escHtml(str) {
+            return $('<div>').text(String(str || '')).html();
+        }
+
+        function showToast(mensaje, tipo = 'info') {
+            let toastContainer = document.getElementById('toast-container');
+            if (!toastContainer) {
+                toastContainer = document.createElement('div');
+                toastContainer.id = 'toast-container';
+                toastContainer.className = 'toast-container position-fixed bottom-0 end-0 p-3';
+                toastContainer.style.zIndex = '9999';
+                document.body.appendChild(toastContainer);
+            }
+            const bgClass = tipo === 'success' ? 'bg-success text-white' :
+                tipo === 'danger' ? 'bg-danger text-white' :
+                tipo === 'warning' ? 'bg-warning text-dark' : 'bg-info text-white';
+            const toastId = 'toast-' + Date.now();
+            const toastHtml = `
+                <div id="${toastId}" class="toast align-items-center ${bgClass} border-0 shadow-lg" role="alert" aria-live="assertive" aria-atomic="true" style="border-radius: 16px;">
+                    <div class="d-flex">
+                        <div class="toast-body fw-semibold">${mensaje}</div>
+                        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                    </div>
+                </div>`;
+            toastContainer.insertAdjacentHTML('beforeend', toastHtml);
+            const toastElement = document.getElementById(toastId);
+            const toast = new bootstrap.Toast(toastElement, { delay: 3000 });
+            toast.show();
+            toastElement.addEventListener('hidden.bs.toast', () => toastElement.remove());
+        }
+    </script>
+</body>
+</html>
