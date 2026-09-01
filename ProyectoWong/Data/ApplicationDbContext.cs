@@ -11,7 +11,7 @@ namespace ProyectoWong.Data
         public DbSet<Usuarios> Usuarios { get; set; }
         public DbSet<Componente> Componentes { get; set; }
         public DbSet<OrdenCompra> OrdenesCompra { get; set; }
-        public DbSet<OrdenCompraDetalle> OrdenCompraDetalles { get; set; }
+        public DbSet<OrdenCompraDetalle> OrdenCompraDetalle { get; set; }
 
         public DbSet<Recepcion> Recepciones { get; set; }
         public DbSet<RecepcionDetalle> RecepcionDetalles { get; set; }
