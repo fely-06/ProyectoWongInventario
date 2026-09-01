@@ -536,7 +536,7 @@
             var numero = $('#inputNumeroOC').val().trim();
             if (!numero) { showToast('Escribe o escanea un número de OC', 'warning'); return; }
 
-            $.get('/OrdenCompra/buscar-por-numero/' + encodeURIComponent(numero), function (r) {
+            $.get('/Ordenescompra/buscar-por-numero/' + encodeURIComponent(numero), function (r) {
                 if (!r.success || !r.result) {
                     showToast(r.mensaje || 'Orden de compra no encontrada', 'danger');
                     $('#ocInfo').hide();

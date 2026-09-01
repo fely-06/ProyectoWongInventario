@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using ProyectoWong.Data;
 using ProyectoWong.Helpers;
@@ -18,7 +19,43 @@ namespace ProyectoWong.Controllers
             ViewBag.ActiveMenu = "OrdenesCompra";
             return View();
         }
+        // Agrega esto a tu OrdenesCompraController
+        [HttpGet("buscar-por-numero/{numero}")]
+        public async Task<IActionResult> BuscarPorNumero(string numero)
+        {
+            try
+            {
+                var oc = await _context.OrdenesCompra
+                    .Include(o => o.Detalles)
+                        .ThenInclude(d => d.Componente)
+                    .Include(o => o.ProveedorNavigation)
+                    .FirstOrDefaultAsync(o => o.NumeroOC == numero);
 
+                if (oc == null)
+                    return Json(Respuesta.Error("Orden de compra no encontrada"));
+
+                // Mapeamos explícitamente para que el frontend reciba lo que espera
+                var resultado = new
+                {
+                    id = oc.Id,
+                    numeroOC = oc.NumeroOC,
+                    estado = oc.Estado,
+                    detalles = oc.Detalles.Select(d => new
+                    {
+                        componenteId = d.ComponenteId,
+                        componenteNombre = d.Componente.Nombre,
+                        numeroPieza = d.Componente.NumeroPieza,
+                        cantidadEsperada = d.CantidadEsperada
+                    }).ToList()
+                };
+
+                return Json(Respuesta.OK("Orden encontrada", resultado));
+            }
+            catch (Exception e)
+            {
+                return Json(Respuesta.Error(e.Message));
+            }
+        }
         // ============ CONSULTAR ÓRDENES ============
         [HttpGet("consultar-ordenes")]
         public async Task<IActionResult> Consultar()
@@ -169,7 +206,7 @@ namespace ProyectoWong.Controllers
                         ComponenteId = pc.ComponenteId,
                         CantidadEsperada = pc.CantidadRequerida * request.Cantidad
                     };
-                    _context.OrdenCompraDetalles.Add(detalle);
+                    _context.OrdenCompraDetalle.Add(detalle);
                 }
                 await _context.SaveChangesAsync();
 
@@ -178,8 +215,26 @@ namespace ProyectoWong.Controllers
             }
             catch (Exception e)
             {
+                //await transaction.RollbackAsync();
+                //return Json(Respuesta.Error(e.Message));
                 await transaction.RollbackAsync();
-                return Json(Respuesta.Error(e.Message));
+
+                var errorMessage = e.Message;
+                if (e.InnerException != null)
+                {
+                    errorMessage += $"\nInner: {e.InnerException.Message}";
+
+                    if (e.InnerException is Microsoft.Data.SqlClient.SqlException sqlEx)
+                    {
+                        errorMessage += $"\nSQL Error: {sqlEx.Number}";
+                        foreach (SqlError err in sqlEx.Errors)
+                        {
+                            errorMessage += $"\n- {err.Message}";
+                        }
+                    }
+                }
+
+                return Json(Respuesta.Error(errorMessage));
             }
         }
 

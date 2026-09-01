@@ -304,6 +304,67 @@ namespace ProyectoWong.Controllers
                 return Json(Respuesta.Error(e.Message));
             }
         }
+        // Agrega esto a tu RecepcionController
+
+        // ── AUXILIAR: Listar ubicaciones para el modal ───────────────────────
+        [HttpGet("listar-ubicaciones")]
+        public async Task<IActionResult> ListarUbicaciones()
+        {
+            try
+            {
+                var ubicaciones = await _context.Ubicaciones
+                    .Where(u => u.Activo) // Asumiendo que tienes un campo Activo, si no, quita el Where
+                    .Select(u => new
+                    {
+                        id = u.Id,
+                        codigo = u.Codigo,
+                        zona = u.Zona
+                    })
+                    .ToListAsync();
+
+                return Json(Respuesta.OK("Ubicaciones cargadas", ubicaciones));
+            }
+            catch (Exception e)
+            {
+                return Json(Respuesta.Error(e.Message));
+            }
+        }
+
+        // ── AUXILIAR: Crear nueva ubicación desde el modal ───────────────────
+        [HttpPost("crear-ubicacion")]
+        public async Task<IActionResult> CrearUbicacion([FromBody] CrearUbicacionInput model)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(model.Codigo))
+                    return Json(Respuesta.Error("El código de ubicación es obligatorio"));
+
+                var nuevaUbicacion = new Ubicacion
+                {
+                    Codigo = model.Codigo,
+                    Zona = model.Zona,
+                    CapacidadMaxima = model.CapacidadMaxima,
+                    Activo = true
+                };
+
+                _context.Ubicaciones.Add(nuevaUbicacion);
+                await _context.SaveChangesAsync();
+
+                return Json(Respuesta.OK("Ubicación creada", new { id = nuevaUbicacion.Id, codigo = nuevaUbicacion.Codigo, zona = nuevaUbicacion.Zona }));
+            }
+            catch (Exception e)
+            {
+                return Json(Respuesta.Error(e.Message));
+            }
+        }
+
+        // Agrega esta clase DTO al final de tu archivo RecepcionController
+        public class CrearUbicacionInput
+        {
+            public string Codigo { get; set; } = string.Empty;
+            public string? Zona { get; set; }
+            public int? CapacidadMaxima { get; set; }
+        }
     }
 
     // ── Inputs auxiliares para cada paso del wizard ─────────────────────

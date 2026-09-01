@@ -31,6 +31,7 @@ namespace ProyectoWong.Controllers
 
                 if (usuario != null && usuario.PasswordHash != null && BCrypt.Net.BCrypt.Verify(model.Password, usuario.PasswordHash))
                 {
+
                     // Redirigir a la página principal si es exitoso
                     return RedirectToAction("Index", "Home");
 

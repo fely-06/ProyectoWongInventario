@@ -3,6 +3,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace ProyectoWong.Models.Recepcion
 {
+    [Table("OrdenCompraDetalle")]
     public class OrdenCompraDetalle
     {
         [Key]
