@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using ProyectoWong.Data;
 
@@ -11,9 +12,11 @@ using ProyectoWong.Data;
 namespace ProyectoWong.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260901023011_PendingChanges")]
+    partial class PendingChanges
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -349,7 +352,7 @@ namespace ProyectoWong.Migrations
 
                     b.HasIndex("OrdenCmpraId");
 
-                    b.ToTable("OrdenCompraDetalle");
+                    b.ToTable("OrdenCompraDetalles");
                 });
 
             modelBuilder.Entity("ProyectoWong.Models.Recepcion.Pallet", b =>
