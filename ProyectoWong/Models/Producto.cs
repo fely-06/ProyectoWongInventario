@@ -24,5 +24,6 @@ namespace ProyectoWong.Models
 
         // Relación: Un producto tiene muchos componentes (la "receta")
         public ICollection<ProductoComponente> Componentes { get; set; } = new List<ProductoComponente>();
+        public ICollection<EscalaDescuento> EscalasDescuento { get; set; } = new List<EscalaDescuento>();
     }
 }

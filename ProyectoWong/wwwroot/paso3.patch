@@ -1,0 +1,145 @@
+diff --git a/ProyectoWong/Controllers/LoginController.cs b/ProyectoWong/Controllers/LoginController.cs
+index d940cdb..5e61488 100644
+--- a/ProyectoWong/Controllers/LoginController.cs
++++ b/ProyectoWong/Controllers/LoginController.cs
+@@ -1,22 +1,34 @@
+ ﻿using Microsoft.AspNetCore.Mvc;
++using ProyectoWong.Data;
+ using ProyectoWong.Models;
+ 
+ namespace ProyectoWong.Controllers
+ {
+     public class LoginController : Controller
+     {
++        private readonly ApplicationDbContext _context;
++
++        public LoginController(ApplicationDbContext context)
++        {
++            _context = context;
++        }
++
+         public IActionResult Index()
+         {
+             return View();
+         }
+ 
+-       
++
+         [HttpPost]
+         public IActionResult Login(Login model)
+         {
+             if (ModelState.IsValid)
+             {
+-                if (model.Username == "admin" && model.Password == "1234")
++                var usuario = _context.Usuarios
++                    .FirstOrDefault(u => u.Email == model.Username && u.Activo);
++
++                if (usuario != null && usuario.PasswordHash != null &&
++                    BCrypt.Net.BCrypt.Verify(model.Password, usuario.PasswordHash))
+                 {
+                     // Redirigir a la página principal si es exitoso
+                     return RedirectToAction("Index", "Home");
+diff --git a/ProyectoWong/Controllers/OrdenescompraController.cs b/ProyectoWong/Controllers/OrdenescompraController.cs
+index 3158bdd..0c957f5 100644
+--- a/ProyectoWong/Controllers/OrdenescompraController.cs
++++ b/ProyectoWong/Controllers/OrdenescompraController.cs
+@@ -34,7 +34,7 @@ namespace ProyectoWong.Controllers
+                     {
+                         id = o.Id,
+                         numeroOC = o.NumeroOC,
+-                        proveedor = o.ProveedorNavigation != null ? o.ProveedorNavigation.Nombre : o.Proveedor,
++                        proveedor = o.ProveedorNavigation != null ? o.ProveedorNavigation.Nombre : "Sin proveedor",
+                         estado = o.Estado,
+                         fechaEsperada = o.FechaEsperada,
+                         fechaCreacion = o.FechaCreacion,
+diff --git a/ProyectoWong/Helpers/DbSeeder.cs b/ProyectoWong/Helpers/DbSeeder.cs
+new file mode 100644
+index 0000000..7dc3870
+--- /dev/null
++++ b/ProyectoWong/Helpers/DbSeeder.cs
+@@ -0,0 +1,27 @@
++﻿using ProyectoWong.Data;
++using ProyectoWong.Models;
++
++namespace ProyectoWong.Helpers
++{
++    public static class DbSeeder
++    {
++        // Si la tabla Usuarios está vacía, crea un admin por defecto.
++        public static void SeedAdminUser(ApplicationDbContext context)
++        {
++            if (context.Usuarios.Any())
++                return; // ya hay usuarios, no hacer nada
++
++            var admin = new Usuarios
++            {
++                NombreCompleto = "Administrador",
++                Email = "admin@wong.com",
++                Activo = true,
++                FechaAlta = DateTime.Now,
++                PasswordHash = BCrypt.Net.BCrypt.HashPassword("12345")
++            };
++
++            context.Usuarios.Add(admin);
++            context.SaveChanges();
++        }
++    }
++}
+diff --git a/ProyectoWong/Models/Producto.cs b/ProyectoWong/Models/Producto.cs
+index 6c5c26b..d9a081e 100644
+--- a/ProyectoWong/Models/Producto.cs
++++ b/ProyectoWong/Models/Producto.cs
+@@ -24,5 +24,8 @@ namespace ProyectoWong.Models
+ 
+         // Relación: Un producto tiene muchos componentes (la "receta")
+         public ICollection<ProductoComponente> Componentes { get; set; } = new List<ProductoComponente>();
++
++        // Relación: Un producto tiene muchas escalas de descuento por volumen
++        public ICollection<EscalaDescuento> EscalasDescuento { get; set; } = new List<EscalaDescuento>();
+     }
+ }
+\ No newline at end of file
+diff --git a/ProyectoWong/Models/Recepcion/OrdenCompra.cs b/ProyectoWong/Models/Recepcion/OrdenCompra.cs
+index dd27cfa..3cb0887 100644
+--- a/ProyectoWong/Models/Recepcion/OrdenCompra.cs
++++ b/ProyectoWong/Models/Recepcion/OrdenCompra.cs
+@@ -1,6 +1,7 @@
+ ﻿using System.ComponentModel.DataAnnotations;
+ using System.ComponentModel.DataAnnotations.Schema;
+ using System.Text.Json.Serialization;
++using ProyectoWong.Models;
+ namespace ProyectoWong.Models.Recepcion
+ {
+     public class OrdenCompra
+@@ -13,9 +14,10 @@ namespace ProyectoWong.Models.Recepcion
+         public string NumeroOC { get; set; } = string.Empty;
+ 
+         [Required]
+-        [ForeignKey(nameof(Proveedor))]
+         public int? ProveedorId { get; set; }
+-        public string? Proveedor { get; set; }
++
++        [ForeignKey(nameof(ProveedorId))]
++        public Proveedor? ProveedorNavigation { get; set; }
+         public string Estado { get; set; } = "Abierta";
+         public DateTime? FechaEsperada { get; set; }
+         public DateTime FechaCreacion { get; set; } = DateTime.Now;
+diff --git a/ProyectoWong/Program.cs b/ProyectoWong/Program.cs
+index c9c441b..1f21e19 100644
+--- a/ProyectoWong/Program.cs
++++ b/ProyectoWong/Program.cs
+@@ -17,6 +17,14 @@ builder.WebHost.ConfigureKestrel(options =>
+ });
+ var app = builder.Build();
+ 
++// 3.1 SEED: si no hay ningún usuario registrado, crear uno admin por defecto
++using (var scope = app.Services.CreateScope())
++{
++    var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
++    db.Database.Migrate(); // aplica migraciones pendientes en la BD
++    ProyectoWong.Helpers.DbSeeder.SeedAdminUser(db);
++}
++
+ // 4. CONFIGURAR EL PIPELINE HTTP (Middleware)
+ if (!app.Environment.IsDevelopment())
+ {

@@ -16,7 +16,12 @@ builder.WebHost.ConfigureKestrel(options =>
     options.Limits.MaxRequestBodySize = 50 * 1024 * 1024; // 50 MB
 });
 var app = builder.Build();
-
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    db.Database.Migrate(); // aplica migraciones pendientes en la BD
+    ProyectoWong.Helpers.DbSeeder.SeedAdminUser(db);
+}
 // 4. CONFIGURAR EL PIPELINE HTTP (Middleware)
 if (!app.Environment.IsDevelopment())
 {
@@ -24,8 +29,8 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
 }
 
-    // Muestra errores detallados en desarrollo
-    app.UseDeveloperExceptionPage();
+// Muestra errores detallados en desarrollo
+app.UseDeveloperExceptionPage();
 
 app.UseHttpsRedirection();
 app.UseRouting();

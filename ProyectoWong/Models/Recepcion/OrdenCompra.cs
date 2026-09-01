@@ -15,7 +15,8 @@ namespace ProyectoWong.Models.Recepcion
         [Required]
         [ForeignKey(nameof(Proveedor))]
         public int? ProveedorId { get; set; }
-        public string? Proveedor { get; set; }
+        [ForeignKey(nameof(ProveedorId))]
+        public Proveedor? ProveedorNavigation { get; set; }
         public string Estado { get; set; } = "Abierta";
         public DateTime? FechaEsperada { get; set; }
         public DateTime FechaCreacion { get; set; } = DateTime.Now;

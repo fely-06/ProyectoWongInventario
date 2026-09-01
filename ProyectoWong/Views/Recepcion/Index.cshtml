@@ -829,7 +829,8 @@
                 var filas = (d.lotes || []).map(l =>
                     '<tr><td>' + escHtml(l.componente) + '</td><td>' + escHtml(l.numeroLote) + '</td>' +
                     '<td class="text-end">' + l.cantidadRecibida + '</td><td>' + escHtml(l.estado) + '</td>' +
-                    '<td>' + (l.pallets && l.pallets.length ? l.pallets.map(p => escHtml(p.codigoPallet) + (p.ubicacion ? ' @ ' + escHtml(p.ubicacion) : '')).join('<br>') : '—') + '</td></tr>'
+                    '<td>' + (l.pallets && l.pallets.length ? l.pallets.map(p => escHtml(p.codigoPallet) + (p.ubicacion ? '@@'
+                    + escHtml(p.ubicacion) : '')).join('<br>') : '—') + '</td></tr>'
                 ).join('') || '<tr><td colspan="5" class="text-center text-muted">Sin lotes</td></tr>';
 
                 $('#trazaResultado').html(
