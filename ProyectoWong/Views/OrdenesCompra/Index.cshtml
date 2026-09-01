@@ -13,124 +13,150 @@
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.css" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
     <style>
-        :root {
-            --color-amarillo: #f3eeb6;
-            --color-verde-claro: #d4db74;
-            --color-verde: #9abf17;
-            --color-aqua: #84bf93;
-            --color-aqua-claro: #aed9c5;
-            --color-azul-claro: #ddecf1;
-            --color-texto: #4a5568;
-            --color-texto-claro: #718096;
-            --color-blanco-glass: rgba(255, 255, 255, 0.85);
-        }
-        body {
-            font-family: 'Nunito', sans-serif;
-            background: linear-gradient(135deg, var(--color-azul-claro) 0%, var(--color-amarillo) 50%, var(--color-aqua-claro) 100%);
-            min-height: 100vh;
-            margin: 0;
-            color: var(--color-texto);
-        }
-        .dashboard-wrapper { display: flex; min-height: 100vh; padding: 1.5rem; gap: 1.5rem; }
-        .main-content { flex-grow: 1; display: flex; flex-direction: column; gap: 1.5rem; }
-        .content-card {
-            background: var(--color-blanco-glass);
-            backdrop-filter: blur(12px);
-            border-radius: 24px;
-            padding: 2rem;
-            box-shadow: 0 10px 30px rgba(132, 191, 147, 0.15);
-        }
-        .card-header-custom { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }
-        .card-header-custom h3 { margin: 0; font-size: 1.3rem; font-weight: 800; color: var(--color-verde); }
-        .btn-cute-primary {
-            background: linear-gradient(135deg, var(--color-verde) 0%, var(--color-aqua) 100%);
-            border: none; border-radius: 50px; padding: 0.6rem 1.25rem;
-            color: white; font-weight: 700; cursor: pointer;
-            display: inline-flex; align-items: center; gap: 0.5rem;
-        }
-        .btn-cute-secondary {
-            background: var(--color-azul-claro); border: none; border-radius: 50px;
-            padding: 0.6rem 1.25rem; color: var(--color-texto); font-weight: 700; cursor: pointer;
-        }
-        .table-cute { width: 100%; border-collapse: separate; border-spacing: 0 0.75rem; }
-        .table-cute thead th {
-            background-color: var(--color-azul-claro); color: var(--color-texto);
-            font-weight: 700; font-size: 0.85rem; text-transform: uppercase;
-            padding: 1rem 1.25rem; border: none;
-        }
-        .table-cute thead th:first-child { border-radius: 12px 0 0 12px; }
-        .table-cute thead th:last-child { border-radius: 0 12px 12px 0; }
-        .table-cute tbody tr { background-color: white; box-shadow: 0 2px 8px rgba(0,0,0,0.03); }
-        .table-cute tbody td { padding: 1rem 1.25rem; vertical-align: middle; border: none; }
-        .table-cute tbody td:first-child { border-radius: 12px 0 0 12px; }
-        .table-cute tbody td:last-child { border-radius: 0 12px 12px 0; }
-        .badge-cute { padding: 0.35rem 0.75rem; border-radius: 50px; font-size: 0.75rem; font-weight: 700; }
-        .badge-cute-success { background-color: var(--color-verde-claro); color: #3f4d12; }
-        .badge-cute-warning { background-color: #fef3c7; color: #92400e; }
-        .badge-cute-danger { background-color: #fee2e2; color: #991b1b; }
-        .badge-cute-info { background-color: var(--color-azul-claro); color: #1e40af; }
-        .modal-content { border-radius: 24px; border: none; background: rgba(255,255,255,0.98); }
-        .modal-header { border-bottom: 2px solid var(--color-azul-claro); padding: 1.5rem 2rem; }
-        .modal-title { font-weight: 800; color: var(--color-verde); }
-        .modal-body { padding: 2rem; }
-        .modal-footer { border-top: 2px solid var(--color-azul-claro); padding: 1.5rem 2rem; }
-        .form-label { font-weight: 700; color: var(--color-texto); font-size: 0.9rem; }
-        .form-control, .form-select {
-            border-radius: 12px; border: 2px solid var(--color-azul-claro);
-            padding: 0.6rem 1rem; font-size: 0.95rem;
-        }
-        .form-control:focus, .form-select:focus {
-            border-color: var(--color-aqua);
-            box-shadow: 0 0 0 0.2rem rgba(132, 191, 147, 0.25);
-        }
-        /* Panel de desglose */
-        .desglose-panel {
-            background: linear-gradient(135deg, #f0fdf4 0%, #ecfeff 100%);
-            border: 2px solid var(--color-aqua-claro);
-            border-radius: 16px;
-            padding: 1.25rem;
-            margin-top: 1rem;
-        }
-        .desglose-panel h6 { color: var(--color-verde); font-weight: 800; margin-bottom: 1rem; }
-        .componente-item {
-            background: white;
-            border-radius: 12px;
-            padding: 0.75rem 1rem;
-            margin-bottom: 0.5rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-left: 4px solid var(--color-aqua);
-        }
-        .componente-item.stock-bajo { border-left-color: #dc2626; background: #fef2f2; }
-        .precio-box {
-            background: white;
-            border-radius: 12px;
-            padding: 1rem;
-            margin-top: 1rem;
-        }
-        .precio-linea {
-            display: flex;
-            justify-content: space-between;
-            padding: 0.4rem 0;
-            font-size: 0.9rem;
-        }
-        .precio-linea.total {
-            border-top: 2px dashed var(--color-aqua-claro);
-            margin-top: 0.5rem;
-            padding-top: 0.75rem;
-            font-size: 1.1rem;
-            font-weight: 800;
-            color: var(--color-verde);
-        }
-        .descuento-tag {
-            background: var(--color-verde);
-            color: white;
-            padding: 0.25rem 0.75rem;
-            border-radius: 50px;
-            font-size: 0.8rem;
-            font-weight: 700;
-        }
+            :root {
+                --color-amarillo: #f3eeb6;
+                --color-verde-claro: #d4db74;
+                --color-verde: #9abf17;
+                --color-aqua: #84bf93;
+                --color-aqua-claro: #aed9c5;
+                --color-azul-claro: #ddecf1;
+                --color-texto: #4a5568;
+                --color-texto-claro: #718096;
+                --color-blanco-glass: rgba(255, 255, 255, 0.85);
+            }
+            body {
+                font-family: 'Nunito', sans-serif;
+                background: linear-gradient(135deg, var(--color-azul-claro) 0%, var(--color-amarillo) 50%, var(--color-aqua-claro) 100%);
+                min-height: 100vh;
+                margin: 0;
+                color: var(--color-texto);
+            }
+            .dashboard-wrapper { display: flex; min-height: 100vh; padding: 1.5rem; gap: 1.5rem; }
+
+            /* ===== Sidebar (faltaba en esta vista) ===== */
+            .sidebar { width: 260px; background: var(--color-blanco-glass); backdrop-filter: blur(12px); border-radius: 24px; padding: 2rem 1.5rem; display: flex; flex-direction: column; box-shadow: 0 10px 30px rgba(132, 191, 147, 0.15), 0 0 0 2px rgba(255, 255, 255, 0.6); flex-shrink: 0; }
+            .sidebar-logo { color: var(--color-verde); font-size: 1.8rem; font-weight: 800; display: flex; align-items: center; gap: 0.5rem; margin-bottom: 2.5rem; padding-left: 0.5rem; }
+            .sidebar-logo i { color: var(--color-aqua); font-size: 2rem; }
+            .nav-menu { list-style: none; padding: 0; margin: 0; flex-grow: 1; }
+            .nav-item { margin-bottom: 0.75rem; }
+            .nav-link { display: flex; align-items: center; gap: 0.75rem; padding: 0.85rem 1.25rem; border-radius: 16px; color: var(--color-texto); font-weight: 700; font-size: 0.95rem; text-decoration: none; transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1); border: 2px solid transparent; }
+            .nav-link i { font-size: 1.2rem; transition: transform 0.3s ease; }
+            .nav-link:hover { background-color: var(--color-amarillo); color: var(--color-verde); transform: translateX(5px); }
+            .nav-link:hover i { transform: scale(1.1); }
+            .nav-link.active { background: linear-gradient(135deg, var(--color-verde) 0%, var(--color-aqua) 100%); color: white; box-shadow: 0 4px 15px rgba(154, 191, 23, 0.3); }
+            .nav-link.active i { color: white; }
+            .sidebar-footer { margin-top: auto; padding-top: 1.5rem; border-top: 2px solid var(--color-azul-claro); }
+            .btn-logout { display: flex; align-items: center; justify-content: center; gap: 0.5rem; width: 100%; padding: 0.75rem; border-radius: 16px; border: 2px solid #fecaca; background-color: #fef2f2; color: #e11d48; font-weight: 700; text-decoration: none; transition: all 0.3s ease; }
+            .btn-logout:hover { background-color: #e11d48; color: white; border-color: #e11d48; }
+            /* ===== fin sidebar ===== */
+
+            .main-content { flex-grow: 1; display: flex; flex-direction: column; gap: 1.5rem; }
+            .action-btn { width: 32px; height: 32px; border-radius: 8px; border: none; display: inline-flex; align-items: center; justify-content: center; margin-right: 0.25rem; transition: all 0.2s ease; text-decoration: none; cursor: pointer; }
+            .btn-delete { background-color: #fee2e2; color: #dc2626; }
+            .btn-delete:hover { background-color: #dc2626; color: white; }
+            .content-card {
+                background: var(--color-blanco-glass);
+                backdrop-filter: blur(12px);
+                border-radius: 24px;
+                padding: 2rem;
+                box-shadow: 0 10px 30px rgba(132, 191, 147, 0.15);
+            }
+            .card-header-custom { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }
+            .card-header-custom h3 { margin: 0; font-size: 1.3rem; font-weight: 800; color: var(--color-verde); }
+            .btn-cute-primary {
+                background: linear-gradient(135deg, var(--color-verde) 0%, var(--color-aqua) 100%);
+                border: none; border-radius: 50px; padding: 0.6rem 1.25rem;
+                color: white; font-weight: 700; cursor: pointer;
+                display: inline-flex; align-items: center; gap: 0.5rem;
+            }
+            .btn-cute-secondary {
+                background: var(--color-azul-claro); border: none; border-radius: 50px;
+                padding: 0.6rem 1.25rem; color: var(--color-texto); font-weight: 700; cursor: pointer;
+            }
+            .table-cute { width: 100%; border-collapse: separate; border-spacing: 0 0.75rem; }
+            .table-cute thead th {
+                background-color: var(--color-azul-claro); color: var(--color-texto);
+                font-weight: 700; font-size: 0.85rem; text-transform: uppercase;
+                padding: 1rem 1.25rem; border: none;
+            }
+            .table-cute thead th:first-child { border-radius: 12px 0 0 12px; }
+            .table-cute thead th:last-child { border-radius: 0 12px 12px 0; }
+            .table-cute tbody tr { background-color: white; box-shadow: 0 2px 8px rgba(0,0,0,0.03); }
+            .table-cute tbody td { padding: 1rem 1.25rem; vertical-align: middle; border: none; }
+            .table-cute tbody td:first-child { border-radius: 12px 0 0 12px; }
+            .table-cute tbody td:last-child { border-radius: 0 12px 12px 0; }
+            .badge-cute { padding: 0.35rem 0.75rem; border-radius: 50px; font-size: 0.75rem; font-weight: 700; }
+            .badge-cute-success { background-color: var(--color-verde-claro); color: #3f4d12; }
+            .badge-cute-warning { background-color: #fef3c7; color: #92400e; }
+            .badge-cute-danger { background-color: #fee2e2; color: #991b1b; }
+            .badge-cute-info { background-color: var(--color-azul-claro); color: #1e40af; }
+            .modal-content { border-radius: 24px; border: none; background: rgba(255,255,255,0.98); }
+            .modal-header { border-bottom: 2px solid var(--color-azul-claro); padding: 1.5rem 2rem; }
+            .modal-title { font-weight: 800; color: var(--color-verde); }
+            .modal-body { padding: 2rem; }
+            .modal-footer { border-top: 2px solid var(--color-azul-claro); padding: 1.5rem 2rem; }
+            .form-label { font-weight: 700; color: var(--color-texto); font-size: 0.9rem; }
+            .form-control, .form-select {
+                border-radius: 12px; border: 2px solid var(--color-azul-claro);
+                padding: 0.6rem 1rem; font-size: 0.95rem;
+            }
+            .form-control:focus, .form-select:focus {
+                border-color: var(--color-aqua);
+                box-shadow: 0 0 0 0.2rem rgba(132, 191, 147, 0.25);
+            }
+            /* Panel de desglose */
+            .desglose-panel {
+                background: linear-gradient(135deg, #f0fdf4 0%, #ecfeff 100%);
+                border: 2px solid var(--color-aqua-claro);
+                border-radius: 16px;
+                padding: 1.25rem;
+                margin-top: 1rem;
+            }
+            .desglose-panel h6 { color: var(--color-verde); font-weight: 800; margin-bottom: 1rem; }
+            .componente-item {
+                background: white;
+                border-radius: 12px;
+                padding: 0.75rem 1rem;
+                margin-bottom: 0.5rem;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                border-left: 4px solid var(--color-aqua);
+            }
+            .componente-item.stock-bajo { border-left-color: #dc2626; background: #fef2f2; }
+            .precio-box {
+                background: white;
+                border-radius: 12px;
+                padding: 1rem;
+                margin-top: 1rem;
+            }
+            .precio-linea {
+                display: flex;
+                justify-content: space-between;
+                padding: 0.4rem 0;
+                font-size: 0.9rem;
+            }
+            .precio-linea.total {
+                border-top: 2px dashed var(--color-aqua-claro);
+                margin-top: 0.5rem;
+                padding-top: 0.75rem;
+                font-size: 1.1rem;
+                font-weight: 800;
+                color: var(--color-verde);
+            }
+            .descuento-tag {
+                background: var(--color-verde);
+                color: white;
+                padding: 0.25rem 0.75rem;
+                border-radius: 50px;
+                font-size: 0.8rem;
+                font-weight: 700;
+            }
+
+            @@media (max-width: 768px) {
+                .dashboard-wrapper { flex-direction: column; padding: 1rem; }
+                .sidebar { width: 100%; padding: 1.5rem; }
+            }
     </style>
 </head>
 <body>
@@ -236,201 +262,201 @@
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.js"></script>
     <script>
-        var modal = null;
-        var productos = [];
-        var proveedores = [];
+            var modal = null;
+            var productos = [];
+            var proveedores = [];
 
-        $(function () {
-            modal = new bootstrap.Modal(document.getElementById('modalOrden'));
-            cargarProductos();
-            cargarProveedores();
-            cargarOrdenes();
+            $(function () {
+                modal = new bootstrap.Modal(document.getElementById('modalOrden'));
+                cargarProductos();
+                cargarProveedores();
+                cargarOrdenes();
 
-            // Recalcular al cambiar producto o cantidad
-            $('#oProductoId, #oCantidad').on('change input', calcularDesglose);
-        });
-
-        function cargarProductos() {
-            $.get('/OrdenesCompra/obtener-productos', function (r) {
-                if (r.success) {
-                    productos = r.result;
-                    var sel = $('#oProductoId');
-                    sel.find('option:not(:first)').remove();
-                    $.each(productos, function (i, p) {
-                        sel.append(`<option value="${p.id}">${p.nombre} - $${parseFloat(p.precioBase).toFixed(2)}</option>`);
-                    });
-                }
+                // Recalcular al cambiar producto o cantidad
+                $('#oProductoId, #oCantidad').on('change input', calcularDesglose);
             });
-        }
 
-        function cargarProveedores() {
-            $.get('/Proveedor/consultar-proveedores', function (r) {
-                if (r.success && r.result) {
-                    proveedores = r.result;
-                    var sel = $('#oProveedorId');
-                    sel.find('option:not(:first)').remove();
-                    $.each(proveedores, function (i, p) {
-                        sel.append(`<option value="${p.id}">${p.nombre}</option>`);
-                    });
-                }
-            });
-        }
-
-        function calcularDesglose() {
-            var productoId = $('#oProductoId').val();
-            var cantidad = parseInt($('#oCantidad').val()) || 0;
-
-            if (!productoId || cantidad <= 0) {
-                $('#desglosePanel').hide();
-                return;
+            function cargarProductos() {
+                $.get('/OrdenesCompra/obtener-productos', function (r) {
+                    if (r.success) {
+                        productos = r.result;
+                        var sel = $('#oProductoId');
+                        sel.find('option:not(:first)').remove();
+                        $.each(productos, function (i, p) {
+                            sel.append(`<option value="${p.id}">${p.nombre} - $${parseFloat(p.precioBase).toFixed(2)}</option>`);
+                        });
+                    }
+                });
             }
 
-            $.get('/OrdenesCompra/calcular-desglose', { productoId: productoId, cantidad: cantidad }, function (r) {
-                if (!r.success) {
-                    showToast(r.mensaje, 'danger');
+            function cargarProveedores() {
+                $.get('/Proveedor/consultar-proveedores', function (r) {
+                    if (r.success && r.result) {
+                        proveedores = r.result;
+                        var sel = $('#oProveedorId');
+                        sel.find('option:not(:first)').remove();
+                        $.each(proveedores, function (i, p) {
+                            sel.append(`<option value="${p.id}">${p.nombre}</option>`);
+                        });
+                    }
+                });
+            }
+
+            function calcularDesglose() {
+                var productoId = $('#oProductoId').val();
+                var cantidad = parseInt($('#oCantidad').val()) || 0;
+
+                if (!productoId || cantidad <= 0) {
+                    $('#desglosePanel').hide();
                     return;
                 }
-                var d = r.result;
-                $('#desglosePanel').show();
 
-                // Lista de componentes
-                var html = '';
-                $.each(d.componentes, function (i, c) {
-                    var clase = c.stockSuficiente ? '' : 'stock-bajo';
-                    var icono = c.stockSuficiente ? '✅' : '⚠️';
-                    html += `
-                        <div class="componente-item ${clase}">
-                            <div>
-                                <div class="fw-bold">${icono} ${c.nombre}</div>
-                                <small class="text-muted">Pieza: ${c.numeroPieza}</small>
-                            </div>
-                            <div class="text-end">
-                                <div class="fw-bold">${c.cantidadTotal} unidades</div>
-                                <small class="text-muted">Stock: ${c.stockDisponible}</small>
-                            </div>
-                        </div>`;
-                });
-                $('#listaComponentes').html(html);
-
-                // Precios
-                $('#precioUnitario').text('$' + parseFloat(d.precioUnitario).toFixed(2));
-                $('#precioOriginal').text('$' + parseFloat(d.precioOriginal).toFixed(2));
-                $('#precioTotal').text('$' + parseFloat(d.totalFinal).toFixed(2));
-
-                if (d.porcentajeDescuento > 0) {
-                    $('#filaDescuento').show();
-                    $('#tagDescuento').text(d.porcentajeDescuento + '%');
-                    $('#precioDescuento').text('-$' + parseFloat(d.descuento).toFixed(2));
-                } else {
-                    $('#filaDescuento').hide();
-                }
-            });
-        }
-
-        function abrirModalCrear() {
-            $('#oProductoId, #oProveedorId').val('');
-            $('#oCantidad').val(1);
-            $('#oFechaEsperada').val('');
-            $('#desglosePanel').hide();
-            modal.show();
-        }
-
-        function guardarOrden() {
-            var data = {
-                ProductoId: parseInt($('#oProductoId').val()),
-                Cantidad: parseInt($('#oCantidad').val()),
-                ProveedorId: parseInt($('#oProveedorId').val()),
-                FechaEsperada: $('#oFechaEsperada').val() || null
-            };
-
-            if (!data.ProductoId || !data.Cantidad || !data.ProveedorId) {
-                showToast('Complete todos los campos obligatorios', 'warning');
-                return;
-            }
-
-            $.ajax({
-                url: '/OrdenesCompra/guardar-orden',
-                type: 'POST',
-                contentType: 'application/json',
-                data: JSON.stringify(data),
-                success: function (r) {
+                $.get('/OrdenesCompra/calcular-desglose', { productoId: productoId, cantidad: cantidad }, function (r) {
                     if (!r.success) {
                         showToast(r.mensaje, 'danger');
                         return;
                     }
-                    showToast(r.mensaje, 'success');
-                    modal.hide();
-                    cargarOrdenes();
-                },
-                error: function () { showToast('Error de conexión', 'danger'); }
-            });
-        }
+                    var d = r.result;
+                    $('#desglosePanel').show();
 
-        function cargarOrdenes() {
-            $.get('/OrdenesCompra/consultar-ordenes', function (r) {
-                var tbody = $('#bodyOrdenes');
-                tbody.empty();
-                if (!r.success || !r.result || !r.result.length) {
-                    tbody.html('<tr><td colspan="7" class="text-center text-muted py-4">Sin órdenes</td></tr>');
+                    // Lista de componentes
+                    var html = '';
+                    $.each(d.componentes, function (i, c) {
+                        var clase = c.stockSuficiente ? '' : 'stock-bajo';
+                        var icono = c.stockSuficiente ? '✅' : '⚠️';
+                        html += `
+                            <div class="componente-item ${clase}">
+                                <div>
+                                    <div class="fw-bold">${icono} ${c.nombre}</div>
+                                    <small class="text-muted">Pieza: ${c.numeroPieza}</small>
+                                </div>
+                                <div class="text-end">
+                                    <div class="fw-bold">${c.cantidadTotal} unidades</div>
+                                    <small class="text-muted">Stock: ${c.stockDisponible}</small>
+                                </div>
+                            </div>`;
+                    });
+                    $('#listaComponentes').html(html);
+
+                    // Precios
+                    $('#precioUnitario').text('$' + parseFloat(d.precioUnitario).toFixed(2));
+                    $('#precioOriginal').text('$' + parseFloat(d.precioOriginal).toFixed(2));
+                    $('#precioTotal').text('$' + parseFloat(d.totalFinal).toFixed(2));
+
+                    if (d.porcentajeDescuento > 0) {
+                        $('#filaDescuento').show();
+                        $('#tagDescuento').text(d.porcentajeDescuento + '%');
+                        $('#precioDescuento').text('-$' + parseFloat(d.descuento).toFixed(2));
+                    } else {
+                        $('#filaDescuento').hide();
+                    }
+                });
+            }
+
+            function abrirModalCrear() {
+                $('#oProductoId, #oProveedorId').val('');
+                $('#oCantidad').val(1);
+                $('#oFechaEsperada').val('');
+                $('#desglosePanel').hide();
+                modal.show();
+            }
+
+            function guardarOrden() {
+                var data = {
+                    ProductoId: parseInt($('#oProductoId').val()),
+                    Cantidad: parseInt($('#oCantidad').val()),
+                    ProveedorId: parseInt($('#oProveedorId').val()),
+                    FechaEsperada: $('#oFechaEsperada').val() || null
+                };
+
+                if (!data.ProductoId || !data.Cantidad || !data.ProveedorId) {
+                    showToast('Complete todos los campos obligatorios', 'warning');
                     return;
                 }
-                $.each(r.result, function (i, o) {
-                    var badgeEstado = o.estado === 'Pendiente' ? 'badge-cute-warning' :
-                                      o.estado === 'Recibida' ? 'badge-cute-success' : 'badge-cute-info';
-                    tbody.append(`
-                        <tr>
-                            <td><strong>${o.numeroOC}</strong></td>
-                            <td>${o.proveedor || '-'}</td>
-                            <td class="text-center"><span class="badge-cute badge-cute-info">${o.totalDetalles} tipos</span></td>
-                            <td class="text-center"><span class="badge-cute badge-cute-success">${o.totalComponentes} uds</span></td>
-                            <td><span class="badge-cute ${badgeEstado}">${o.estado}</span></td>
-                            <td>${o.fechaEsperada ? new Date(o.fechaEsperada).toLocaleDateString() : '-'}</td>
-                            <td class="text-center">
-                                <button class="action-btn btn-delete" onclick="eliminarOrden(${o.id})" title="Eliminar">
-                                    <i class="bi bi-trash-fill"></i>
-                                </button>
-                            </td>
-                        </tr>`);
+
+                $.ajax({
+                    url: '/OrdenesCompra/guardar-orden',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify(data),
+                    success: function (r) {
+                        if (!r.success) {
+                            showToast(r.mensaje, 'danger');
+                            return;
+                        }
+                        showToast(r.mensaje, 'success');
+                        modal.hide();
+                        cargarOrdenes();
+                    },
+                    error: function () { showToast('Error de conexión', 'danger'); }
                 });
-            });
-        }
-
-        function eliminarOrden(id) {
-            if (!confirm('¿Eliminar esta orden?')) return;
-            $.ajax({
-                url: '/OrdenesCompra/eliminar-orden/' + id,
-                type: 'DELETE',
-                success: function (r) {
-                    showToast(r.mensaje, r.success ? 'success' : 'danger');
-                    if (r.success) cargarOrdenes();
-                }
-            });
-        }
-
-        function showToast(mensaje, tipo = 'info') {
-            let toastContainer = document.getElementById('toast-container');
-            if (!toastContainer) {
-                toastContainer = document.createElement('div');
-                toastContainer.id = 'toast-container';
-                toastContainer.className = 'toast-container position-fixed bottom-0 end-0 p-3';
-                toastContainer.style.zIndex = '9999';
-                document.body.appendChild(toastContainer);
             }
-            const bgClass = tipo === 'success' ? 'bg-success text-white' :
-                            tipo === 'danger' ? 'bg-danger text-white' :
-                            tipo === 'warning' ? 'bg-warning text-dark' : 'bg-info text-white';
-            const toastId = 'toast-' + Date.now();
-            toastContainer.insertAdjacentHTML('beforeend', `
-                <div id="${toastId}" class="toast align-items-center ${bgClass} border-0 shadow-lg" role="alert" style="border-radius: 16px;">
-                    <div class="d-flex">
-                        <div class="toast-body fw-semibold">${mensaje}</div>
-                        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
-                    </div>
-                </div>`);
-            const toast = new bootstrap.Toast(document.getElementById(toastId), { delay: 3000 });
-            toast.show();
-            document.getElementById(toastId).addEventListener('hidden.bs.toast', (e) => e.target.remove());
-        }
+
+            function cargarOrdenes() {
+                $.get('/OrdenesCompra/consultar-ordenes', function (r) {
+                    var tbody = $('#bodyOrdenes');
+                    tbody.empty();
+                    if (!r.success || !r.result || !r.result.length) {
+                        tbody.html('<tr><td colspan="7" class="text-center text-muted py-4">Sin órdenes</td></tr>');
+                        return;
+                    }
+                    $.each(r.result, function (i, o) {
+                        var badgeEstado = o.estado === 'Pendiente' ? 'badge-cute-warning' :
+                                          o.estado === 'Recibida' ? 'badge-cute-success' : 'badge-cute-info';
+                        tbody.append(`
+                            <tr>
+                                <td><strong>${o.numeroOC}</strong></td>
+                                <td>${o.proveedor || '-'}</td>
+                                <td class="text-center"><span class="badge-cute badge-cute-info">${o.totalDetalles} tipos</span></td>
+                                <td class="text-center"><span class="badge-cute badge-cute-success">${o.totalComponentes} uds</span></td>
+                                <td><span class="badge-cute ${badgeEstado}">${o.estado}</span></td>
+                                <td>${o.fechaEsperada ? new Date(o.fechaEsperada).toLocaleDateString() : '-'}</td>
+                                <td class="text-center">
+                                    <button class="action-btn btn-delete" onclick="eliminarOrden(${o.id})" title="Eliminar">
+                                        <i class="bi bi-trash-fill"></i>
+                                    </button>
+                                </td>
+                            </tr>`);
+                    });
+                });
+            }
+
+            function eliminarOrden(id) {
+                if (!confirm('¿Eliminar esta orden?')) return;
+                $.ajax({
+                    url: '/OrdenesCompra/eliminar-orden/' + id,
+                    type: 'DELETE',
+                    success: function (r) {
+                        showToast(r.mensaje, r.success ? 'success' : 'danger');
+                        if (r.success) cargarOrdenes();
+                    }
+                });
+            }
+
+            function showToast(mensaje, tipo = 'info') {
+                let toastContainer = document.getElementById('toast-container');
+                if (!toastContainer) {
+                    toastContainer = document.createElement('div');
+                    toastContainer.id = 'toast-container';
+                    toastContainer.className = 'toast-container position-fixed bottom-0 end-0 p-3';
+                    toastContainer.style.zIndex = '9999';
+                    document.body.appendChild(toastContainer);
+                }
+                const bgClass = tipo === 'success' ? 'bg-success text-white' :
+                                tipo === 'danger' ? 'bg-danger text-white' :
+                                tipo === 'warning' ? 'bg-warning text-dark' : 'bg-info text-white';
+                const toastId = 'toast-' + Date.now();
+                toastContainer.insertAdjacentHTML('beforeend', `
+                    <div id="${toastId}" class="toast align-items-center ${bgClass} border-0 shadow-lg" role="alert" style="border-radius: 16px;">
+                        <div class="d-flex">
+                            <div class="toast-body fw-semibold">${mensaje}</div>
+                            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+                        </div>
+                    </div>`);
+                const toast = new bootstrap.Toast(document.getElementById(toastId), { delay: 3000 });
+                toast.show();
+                document.getElementById(toastId).addEventListener('hidden.bs.toast', (e) => e.target.remove());
+            }
     </script>
 </body>
 </html>
