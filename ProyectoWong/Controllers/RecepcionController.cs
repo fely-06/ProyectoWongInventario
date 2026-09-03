@@ -23,6 +23,7 @@ namespace ProyectoWong.Controllers
             return View();
         }
 
+
         // ── PASO 1-2: RECEIVING + SCAN PO ──────────────────────────────
         // Crea la cabecera de recepción ligada a una orden de compra
         [HttpPost("iniciar")]
@@ -36,7 +37,10 @@ namespace ProyectoWong.Controllers
                 if (orden == null)
                     return Json(Respuesta.Error("Orden de compra no encontrada"));
 
-                // TODO: reemplazar por el Id del usuario autenticado en sesión
+                // VALIDACIÓN: Solo permitir recepción si está Pendiente o En Proceso
+                if (orden.Estado == "Recibida" || orden.Estado == "Completada")
+                    return Json(Respuesta.Error("Esta Orden de Compra ya fue recibida anteriormente. No se puede iniciar una nueva recepción."));
+
                 var usuarioId = model.UsuarioId;
 
                 var recepcion = new Recepcion
@@ -57,20 +61,79 @@ namespace ProyectoWong.Controllers
                 return Json(Respuesta.Error(e.Message));
             }
         }
-
         // ── PASO 3-4: SCAN MATERIAL + BATCH NUMBER + QUANTITY ──────────
         // Captura un lote recibido dentro de la recepción
+        //[HttpPost("agregar-lote")]
+        //public async Task<IActionResult> AgregarLote([FromBody] RecepcionDetalleInput model)
+        //{
+        //    try
+        //    {
+        //        var recepcion = await _context.Recepciones.FindAsync(model.RecepcionId);
+        //        if (recepcion == null)
+        //            return Json(Respuesta.Error("Recepción no encontrada"));
+
+        //        if (string.IsNullOrWhiteSpace(model.NumeroLote))
+        //            return Json(Respuesta.Error("El número de lote es obligatorio"));
+
+        //        if (model.CantidadRecibida <= 0)
+        //            return Json(Respuesta.Error("La cantidad recibida debe ser mayor a 0"));
+
+        //        var detalle = new RecepcionDetalle
+        //        {
+        //            RecepcionId = model.RecepcionId,
+        //            ComponenteId = model.ComponenteId,
+        //            NumeroLote = model.NumeroLote,
+        //            FechaCaducidad = model.FechaCaducidad,
+        //            CantidadRecibida = model.CantidadRecibida,
+        //            Estado = "Pendiente"
+        //        };
+
+        //        _context.RecepcionDetalles.Add(detalle);
+        //        await _context.SaveChangesAsync();
+
+        //        return Json(Respuesta.OK("Lote registrado", new { recepcionDetalleId = detalle.Id }));
+        //    }
+        //    catch (Exception e)
+        //    {
+        //        return Json(Respuesta.Error(e.Message));
+        //    }
+        //}
         [HttpPost("agregar-lote")]
         public async Task<IActionResult> AgregarLote([FromBody] RecepcionDetalleInput model)
         {
             try
             {
                 var recepcion = await _context.Recepciones.FindAsync(model.RecepcionId);
-                if (recepcion == null)
-                    return Json(Respuesta.Error("Recepción no encontrada"));
+                if (recepcion == null) return Json(Respuesta.Error("Recepción no encontrada"));
 
+                var componente = await _context.Componentes.FindAsync(model.ComponenteId);
+                if (componente == null) return Json(Respuesta.Error("Componente no encontrado"));
+
+                // 1. VALIDACIÓN: No recibir más de lo esperado en la OC
+                var detalleOC = await _context.OrdenCompraDetalle
+                    .FirstOrDefaultAsync(d => d.OrdenCmpraId == recepcion.OrdenCompraId && d.ComponenteId == model.ComponenteId);
+
+                if (detalleOC != null)
+                {
+                    var yaRecibidoEnEstaRecepcion = await _context.RecepcionDetalles
+                        .Where(rd => rd.RecepcionId == model.RecepcionId && rd.ComponenteId == model.ComponenteId)
+                        .SumAsync(rd => rd.CantidadRecibida);
+
+                    if (yaRecibidoEnEstaRecepcion + model.CantidadRecibida > detalleOC.CantidadEsperada)
+                    {
+                        return Json(Respuesta.Error($"Excede la cantidad esperada. Pedido: {detalleOC.CantidadEsperada}, Ya recibido: {yaRecibidoEnEstaRecepcion}, Intentas recibir: {model.CantidadRecibida}"));
+                    }
+                }
+
+                // 2. GENERACIÓN AUTOMÁTICA DE LOTE (Si viene vacío)
                 if (string.IsNullOrWhiteSpace(model.NumeroLote))
-                    return Json(Respuesta.Error("El número de lote es obligatorio"));
+                {
+                    string fecha = DateTime.Now.ToString("yyyyMMdd");
+                    string random = new Random().Next(1000, 9999).ToString();
+                    // Usa el Número de Pieza para hacerlo legible, o el Id si prefieres
+                    string piezaLimpia = new string(componente.NumeroPieza.Where(char.IsLetterOrDigit).ToArray()).Substring(0, Math.Min(6, componente.NumeroPieza.Length));
+                    model.NumeroLote = $"LOT-{piezaLimpia}-{fecha}-{random}";
+                }
 
                 if (model.CantidadRecibida <= 0)
                     return Json(Respuesta.Error("La cantidad recibida debe ser mayor a 0"));
@@ -79,7 +142,7 @@ namespace ProyectoWong.Controllers
                 {
                     RecepcionId = model.RecepcionId,
                     ComponenteId = model.ComponenteId,
-                    NumeroLote = model.NumeroLote,
+                    NumeroLote = model.NumeroLote, // Aquí va el generado o el escaneado
                     FechaCaducidad = model.FechaCaducidad,
                     CantidadRecibida = model.CantidadRecibida,
                     Estado = "Pendiente"
@@ -88,7 +151,12 @@ namespace ProyectoWong.Controllers
                 _context.RecepcionDetalles.Add(detalle);
                 await _context.SaveChangesAsync();
 
-                return Json(Respuesta.OK("Lote registrado", new { recepcionDetalleId = detalle.Id }));
+                // Devolvemos el número de lote generado por si el frontend necesita mostrarlo
+                return Json(Respuesta.OK("Lote registrado", new
+                {
+                    recepcionDetalleId = detalle.Id,
+                    numeroLoteGenerado = detalle.NumeroLote
+                }));
             }
             catch (Exception e)
             {
@@ -248,11 +316,13 @@ namespace ProyectoWong.Controllers
         [HttpPost("confirmar/{recepcionId}")]
         public async Task<IActionResult> Confirmar(int recepcionId)
         {
+            using var transaction = await _context.Database.BeginTransactionAsync();
             try
             {
                 var recepcion = await _context.Recepciones
-                    .Include(r => r.Detalles!)
-                        .ThenInclude(d => d.Pallets!)
+                    .Include(r => r.OrdenCompra) // <-- Importante incluir la OC
+                    .Include(r => r.Detalles)
+                        .ThenInclude(d => d.Pallets)
                             .ThenInclude(p => p.Movimientos)
                     .FirstOrDefaultAsync(r => r.Id == recepcionId);
 
@@ -262,20 +332,47 @@ namespace ProyectoWong.Controllers
                 if (recepcion.Detalles == null || !recepcion.Detalles.Any())
                     return Json(Respuesta.Error("La recepción no tiene lotes capturados"));
 
-                var lotesSinUbicacion = recepcion.Detalles
+                // Validar que los lotes APROBADOS tengan ubicación
+                var lotesAprobadosSinUbicacion = recepcion.Detalles
                     .Where(d => d.Estado == "Aprobado")
                     .Any(d => d.Pallets == null || !d.Pallets.Any(p => p.Movimientos != null && p.Movimientos.Any()));
 
-                if (lotesSinUbicacion)
-                    return Json(Respuesta.Error("Hay lotes aprobados sin ubicación asignada"));
+                if (lotesAprobadosSinUbicacion)
+                    return Json(Respuesta.Error("Hay lotes APROBADOS sin ubicación asignada. No se puede completar."));
 
+                // 1. Cerrar la recepción
                 recepcion.Estado = "Completada";
-                await _context.SaveChangesAsync();
 
-                return Json(Respuesta.OK("Recepción confirmada y cerrada"));
+                // 2. Actualizar el estado de la Orden de Compra
+                if (recepcion.OrdenCompra != null)
+                {
+                    bool hayLotesRechazados = recepcion.Detalles.Any(d => d.Estado == "Rechazado");
+
+                    if (hayLotesRechazados)
+                    {
+                        // Si hubo rechazos, la OC no se recibió al 100%. 
+                        // Queda disponible para una futura recepción de reemplazo.
+                        recepcion.OrdenCompra.Estado = "Parcialmente Recibida";
+                    }
+                    else
+                    {
+                        // Todo lo recibido fue aprobado
+                        recepcion.OrdenCompra.Estado = "Recibida";
+                    }
+                }
+
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
+
+                string mensaje = recepcion.OrdenCompra?.Estado == "Parcialmente Recibida"
+                    ? "Recepción completada. La OC queda como 'Parcialmente Recibida' debido a lotes rechazados."
+                    : "Recepción confirmada. La Orden de Compra ha sido marcada como 'Recibida'.";
+
+                return Json(Respuesta.OK(mensaje));
             }
             catch (Exception e)
             {
+                await transaction.RollbackAsync();
                 return Json(Respuesta.Error(e.Message));
             }
         }

@@ -544,17 +544,26 @@
         }
 
         // ── PASO 1-2: Buscar OC ──────────────────────────────────────────
-        function buscarOC() {
+       function buscarOC() {
             var numero = $('#inputNumeroOC').val().trim();
             if (!numero) { showToast('Escribe o escanea un número de OC', 'warning'); return; }
 
-            $.get('/Ordenescompra/buscar-por-numero/' + encodeURIComponent(numero), function (r) {
+            $.get('/OrdenesCompra/buscar-por-numero/' + encodeURIComponent(numero), function (r) {
                 if (!r.success || !r.result) {
                     showToast(r.mensaje || 'Orden de compra no encontrada', 'danger');
                     $('#ocInfo').hide();
                     return;
                 }
                 var oc = r.result;
+
+                // VALIDACIÓN: Bloquear si ya fue recibida
+                if (oc.estado === 'Recibida' || oc.estado === 'Completada' || oc.estado === 'Parcialmente Recibida') {
+                    showToast(`Esta OC está en estado: "${oc.estado}". No se puede iniciar una nueva recepción.`, 'warning');
+                    $('#ocInfo').hide();
+                    $('#btnIniciarRecepcion').prop('disabled', true);
+                    return;
+                }
+
                 recepcionActual.ordenCompraId = oc.id;
                 recepcionActual.detalleOC = oc.detalles || [];
 
@@ -562,17 +571,48 @@
                 $('#ocEstado').text(oc.estado);
                 $('#ocRecepcionId').text('—');
 
-                var filas = recepcionActual.detalleOC.map(d =>
-                    '<tr><td>' + escHtml(d.componenteNombre) + '</td><td>' + escHtml(d.numeroPieza) + '</td><td class="text-end">' + d.cantidadEsperada + '</td></tr>'
-                ).join('') || '<tr><td colspan="3" class="text-center text-muted">Esta OC no tiene componentes cargados</td></tr>';
+                var filas = recepcionActual.detalleOC.map(d => {
+                    return `<tr id="row-oc-comp-${d.componenteId}">
+                        <td>${escHtml(d.componenteNombre)}</td>
+                        <td>${escHtml(d.numeroPieza)}</td>
+                        <td class="text-end">
+                            <span class="fw-bold" id="prog-text-${d.componenteId}">0 / ${d.cantidadEsperada}</span>
+                            <div class="progress mt-1" style="height: 6px;">
+                                <div class="progress-bar bg-success" id="prog-bar-${d.componenteId}" role="progressbar" style="width: 0%"></div>
+                            </div>
+                        </td>
+                    </tr>`;
+                }).join('') || '<tr><td colspan="3" class="text-center text-muted">Esta OC no tiene componentes cargados</td></tr>';
+
                 $('#bodyOcDetalle').html(filas);
-                $('#ocInfo').show();
+                $('#ocInfo').show(); 
 
                 $('#btnIniciarRecepcion').prop('disabled', false);
                 marcarStep(2);
             }).fail(function () {
                 showToast('Error al buscar la orden de compra', 'danger');
             });
+        }
+
+        function actualizarProgresoOC(componenteId, cantidadAgregada) {
+            var detalle = recepcionActual.detalleOC.find(d => d.componenteId == componenteId);
+            if (!detalle) return;
+
+            // Obtener lo que ya se había recibido en esta sesión (puedes mejorarlo consultando al servidor)
+            // Por simplicidad, sumamos al texto actual
+            var textoActual = $(`#prog-text-${componenteId}`).text();
+            var partes = textoActual.split('/');
+            var recibido = parseInt(partes[0].trim()) + cantidadAgregada;
+            var esperado = parseInt(partes[1].trim());
+
+            var porcentaje = Math.min(100, Math.round((recibido / esperado) * 100));
+    
+            $(`#prog-text-${componenteId}`).text(`${recibido} / ${esperado}`);
+            $(`#prog-bar-${componenteId}`).css('width', porcentaje + '%');
+    
+            if (porcentaje >= 100) {
+                $(`#prog-bar-${componenteId}`).removeClass('bg-success').addClass('bg-info');
+            }
         }
 
         function iniciarRecepcion() {
@@ -621,8 +661,11 @@
             var cantidad = parseInt($('#inputCantidadRecibida').val());
 
             if (!componenteId) { showToast('Selecciona un componente', 'warning'); return; }
-            if (!numeroLote) { showToast('El número de lote es obligatorio', 'warning'); return; }
             if (!cantidad || cantidad <= 0) { showToast('La cantidad debe ser mayor a 0', 'warning'); return; }
+
+            // Deshabilitar botón para evitar doble clic
+            var btn = $('button[onclick="agregarLote()"]');
+            btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm"></span>');
 
             $.ajax({
                 url: '@Url.Action("AgregarLote", "Recepcion")',
@@ -631,21 +674,50 @@
                 data: JSON.stringify({
                     recepcionId: recepcionActual.id,
                     componenteId: parseInt(componenteId),
-                    numeroLote: numeroLote,
+                    numeroLote: numeroLote, // Puede ir vacío, el backend lo genera
                     fechaCaducidad: fechaCaducidad || null,
                     cantidadRecibida: cantidad
                 }),
                 success: function (r) {
-                    if (!r.success) { showToast(r.mensaje, 'danger'); return; }
+                    if (!r.success) { 
+                        showToast(r.mensaje, 'danger'); 
+                        btn.prop('disabled', false).html('<i class="bi bi-plus-lg"></i>');
+                        return; 
+                    }
 
+                    var loteFinal = r.result.numeroLoteGenerado || numeroLote;
                     var nombreComponente = $('#selectComponenteLote option:selected').text();
-                    agregarFilaLote(r.result.recepcionDetalleId, nombreComponente, numeroLote, fechaCaducidad, cantidad);
 
-                    $('#inputNumeroLote, #inputFechaCaducidad, #inputCantidadRecibida').val('');
+                    agregarFilaLote(r.result.recepcionDetalleId, nombreComponente, loteFinal, fechaCaducidad, cantidad);
+                    actualizarProgresoOC(componenteId, cantidad);
+
+                    // MOSTRAR el lote (generado o escrito) en el input para que el usuario lo vea
+                    $('#inputNumeroLote').val(loteFinal);
+    
+                    // Efecto visual verde por 1.5 segundos para confirmar que se guardó ese lote
+                    $('#inputNumeroLote').addClass('bg-success text-white');
+                    setTimeout(() => {
+                        $('#inputNumeroLote').removeClass('bg-success text-white');
+                        // NO lo borramos automáticamente. Si el siguiente componente 
+                        // viene del mismo lote, el usuario solo cambia el componente y da Enter.
+                        // Si es diferente, él mismo lo borra o escanea el nuevo.
+                    }, 1500);
+
+                    $('#inputFechaCaducidad').val('');
+                    $('#inputCantidadRecibida').val('');
+    
+                    // El foco vuelve a la cantidad para un flujo rápido de escáner: 
+                    // (Escanear componente -> Escribir cantidad -> Enter -> Repetir)
+                    $('#inputCantidadRecibida').focus(); 
+
+                    btn.prop('disabled', false).html('<i class="bi bi-plus-lg"></i>');
                     marcarStep(6);
                     showToast('Lote registrado correctamente', 'success');
                 },
-                error: function () { showToast('Error al registrar el lote', 'danger'); }
+                error: function () { 
+                    showToast('Error al registrar el lote', 'danger'); 
+                    btn.prop('disabled', false).html('<i class="bi bi-plus-lg"></i>');
+                }
             });
         }
 
@@ -758,6 +830,23 @@
                             '<tr><td>' + escHtml(d.componenteNombre) + '</td><td>' + escHtml(d.numeroPieza) + '</td><td class="text-end">' + d.cantidadEsperada + '</td></tr>'
                         ).join('') || '<tr><td colspan="3" class="text-center text-muted">Esta OC no tiene componentes cargados</td></tr>';
                         $('#bodyOcDetalle').html(filasOc);
+
+                                                // Reemplaza la generación de filasOc por esta versión que incluye las barras:
+                        var filasOc = recepcionActual.detalleOC.map(d => {
+                            return `<tr id="row-oc-comp-${d.componenteId}">
+                                <td>${escHtml(d.componenteNombre)}</td>
+                                <td>${escHtml(d.numeroPieza)}</td>
+                                <td class="text-end">
+                                    <span class="fw-bold" id="prog-text-${d.componenteId}">0 / ${d.cantidadEsperada}</span>
+                                    <div class="progress mt-1" style="height: 6px;">
+                                        <div class="progress-bar bg-success" id="prog-bar-${d.componenteId}" role="progressbar" style="width: 0%"></div>
+                                    </div>
+                                </td>
+                            </tr>`;
+                        }).join('') || '<tr><td colspan="3" class="text-center text-muted">Esta OC no tiene componentes cargados</td></tr>';
+
+                        $('#bodyOcDetalle').html(filasOc);
+                        $('#ocInfo').show(); // También asegúrate de mostrarlo aquí
 
                         var opciones = recepcionActual.detalleOC.map(d =>
                             '<option value="' + d.componenteId + '">' + escHtml(d.componenteNombre) + ' (' + escHtml(d.numeroPieza) + ')</option>').join('');
