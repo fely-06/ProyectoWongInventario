@@ -136,33 +136,60 @@ namespace ProyectoWong.Controllers
                     .FirstOrDefaultAsync();
 
                 decimal porcentajeDescuento = escala?.PorcentajeDescuento ?? 0;
-                decimal precioOriginal = producto.PrecioBase * cantidad;
-                decimal descuento = precioOriginal * (porcentajeDescuento / 100);
-                decimal totalFinal = precioOriginal - descuento;
+                decimal precioVentaOriginal = producto.PrecioBase * cantidad;
+                decimal descuento = precioVentaOriginal * (porcentajeDescuento / 100);
+                decimal totalFinal = precioVentaOriginal - descuento;
 
-                // 2. Calcular componentes necesarios
-                var componentesNecesarios = producto.Componentes.Select(pc => new
+                // 2. Calcular componentes: Requerido vs Inventario vs Faltante
+                var componentesNecesarios = producto.Componentes.Select(pc =>
                 {
-                    componenteId = pc.ComponenteId,
-                    numeroPieza = pc.Componente.NumeroPieza,
-                    nombre = pc.Componente.Nombre,
-                    cantidadPorUnidad = pc.CantidadRequerida,
-                    cantidadTotal = pc.CantidadRequerida * cantidad,
-                    stockDisponible = pc.Componente.Cantidad,
-                    stockSuficiente = pc.Componente.Cantidad >= (pc.CantidadRequerida * cantidad)
+                    int cantidadRequerida = pc.CantidadRequerida * cantidad;
+                    int stockDisponible = pc.Componente?.Cantidad ?? 0;
+                    int cantidadFaltante = Math.Max(0, cantidadRequerida - stockDisponible);
+
+                    return new
+                    {
+                        componenteId = pc.ComponenteId,
+                        numeroPieza = pc.Componente.NumeroPieza,
+                        nombre = pc.Componente.Nombre,
+                        cantidadPorUnidad = pc.CantidadRequerida,
+                        cantidadRequerida = cantidadRequerida,   // Total que pide la receta
+                        stockDisponible = stockDisponible,       // Lo que hay en almacén
+                        cantidadFaltante = cantidadFaltante,     // Lo que realmente hay que comprar
+                        stockSuficiente = cantidadFaltante == 0,  // True si no hay que comprar nada
+                        precio = pc.Componente.Precio
+
+                    };
                 }).ToList();
+                // Dentro de CalcularDesglose, después del foreach de componentes:
+
+                var totalComponentesFaltantes = componentesNecesarios
+                    .Where(c => c.cantidadFaltante > 0)
+                    .Sum(c => c.cantidadFaltante * c.precio); // <-- Necesitarás incluir el precio
 
                 return Json(Respuesta.OK("OK", new
                 {
                     productoNombre = producto.Nombre,
-                    precioUnitario = producto.PrecioBase,
-                    cantidad,
-                    porcentajeDescuento,
-                    precioOriginal,
-                    descuento,
-                    totalFinal,
-                    componentes = componentesNecesarios
+                    cantidadProduccion = cantidad,
+                    componentes = componentesNecesarios,
+                    // NUEVO: Costo real de lo que se va a comprar
+                    costoTotalCompra = totalComponentesFaltantes,
+                    // Opcional: mantener el precio del producto final como referencia
+                    precioVentaUnitario = producto.PrecioBase,
+                    totalVenta = totalFinal, 
+                    precioVentaOriginal
                 }));
+                //return Json(Respuesta.OK("OK", new
+                //{
+                //    productoNombre = producto.Nombre,
+                //    precioUnitario = producto.PrecioBase,
+                //    cantidad,
+                //    porcentajeDescuento,
+                //    precioOriginal,
+                //    descuento,
+                //    totalFinal,
+                //    componentes = componentesNecesarios
+                //}));
             }
             catch (Exception e)
             {
@@ -192,38 +219,52 @@ namespace ProyectoWong.Controllers
                 _context.OrdenesCompra.Add(orden);
                 await _context.SaveChangesAsync();
 
-                // 2. Obtener los componentes del producto
+                // 2. Obtener los componentes del producto INCLUYENDO los datos del componente para leer el stock
                 var componentesProducto = await _context.ProductoComponentes
+                    .Include(pc => pc.Componente) // <-- ESTO ES NUEVO Y NECESARIO
                     .Where(pc => pc.ProductoId == request.ProductoId)
                     .ToListAsync();
 
-                // 3. Crear un detalle por cada componente necesario
+                bool hayAlMenosUnFaltante = false;
+
+                // 3. Crear un detalle SOLO por los componentes que faltan
                 foreach (var pc in componentesProducto)
                 {
-                    var detalle = new OrdenCompraDetalle
-                    {
-                        OrdenCmpraId = orden.Id,
-                        ComponenteId = pc.ComponenteId,
-                        CantidadEsperada = pc.CantidadRequerida * request.Cantidad
-                    };
-                    _context.OrdenCompraDetalle.Add(detalle);
-                }
-                await _context.SaveChangesAsync();
+                    int cantidadRequerida = pc.CantidadRequerida * request.Cantidad;
+                    int stockDisponible = pc.Componente?.Cantidad ?? 0;
+                    int cantidadFaltante = Math.Max(0, cantidadRequerida - stockDisponible);
 
+                    if (cantidadFaltante > 0)
+                    {
+                        hayAlMenosUnFaltante = true;
+                        var detalle = new OrdenCompraDetalle
+                        {
+                            OrdenCmpraId = orden.Id,
+                            ComponenteId = pc.ComponenteId,
+                            CantidadEsperada = cantidadFaltante // <-- GUARDAMOS SOLO LO QUE FALTA
+                        };
+                        _context.OrdenCompraDetalle.Add(detalle);
+                    }
+                }
+
+                if (!hayAlMenosUnFaltante)
+                {
+                    await transaction.RollbackAsync();
+                    return Json(Respuesta.Error("No se requiere compra: el inventario es suficiente para esta producción."));
+                }
+
+                await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
-                return Json(Respuesta.OK($"Orden {orden.NumeroOC} creada exitosamente"));
+
+                return Json(Respuesta.OK($"Orden {orden.NumeroOC} creada exitosamente solo con componentes faltantes."));
             }
             catch (Exception e)
             {
-                //await transaction.RollbackAsync();
-                //return Json(Respuesta.Error(e.Message));
                 await transaction.RollbackAsync();
-
                 var errorMessage = e.Message;
                 if (e.InnerException != null)
                 {
                     errorMessage += $"\nInner: {e.InnerException.Message}";
-
                     if (e.InnerException is Microsoft.Data.SqlClient.SqlException sqlEx)
                     {
                         errorMessage += $"\nSQL Error: {sqlEx.Number}";
@@ -233,7 +274,6 @@ namespace ProyectoWong.Controllers
                         }
                     }
                 }
-
                 return Json(Respuesta.Error(errorMessage));
             }
         }

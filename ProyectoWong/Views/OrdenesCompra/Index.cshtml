@@ -24,6 +24,7 @@
                 --color-texto-claro: #718096;
                 --color-blanco-glass: rgba(255, 255, 255, 0.85);
             }
+
             body {
                 font-family: 'Nunito', sans-serif;
                 background: linear-gradient(135deg, var(--color-azul-claro) 0%, var(--color-amarillo) 50%, var(--color-aqua-claro) 100%);
@@ -31,29 +32,153 @@
                 margin: 0;
                 color: var(--color-texto);
             }
-            .dashboard-wrapper { display: flex; min-height: 100vh; padding: 1.5rem; gap: 1.5rem; }
+
+            .dashboard-wrapper {
+                display: flex;
+                min-height: 100vh;
+                padding: 1.5rem;
+                gap: 1.5rem;
+            }
 
             /* ===== Sidebar (faltaba en esta vista) ===== */
-            .sidebar { width: 260px; background: var(--color-blanco-glass); backdrop-filter: blur(12px); border-radius: 24px; padding: 2rem 1.5rem; display: flex; flex-direction: column; box-shadow: 0 10px 30px rgba(132, 191, 147, 0.15), 0 0 0 2px rgba(255, 255, 255, 0.6); flex-shrink: 0; }
-            .sidebar-logo { color: var(--color-verde); font-size: 1.8rem; font-weight: 800; display: flex; align-items: center; gap: 0.5rem; margin-bottom: 2.5rem; padding-left: 0.5rem; }
-            .sidebar-logo i { color: var(--color-aqua); font-size: 2rem; }
-            .nav-menu { list-style: none; padding: 0; margin: 0; flex-grow: 1; }
-            .nav-item { margin-bottom: 0.75rem; }
-            .nav-link { display: flex; align-items: center; gap: 0.75rem; padding: 0.85rem 1.25rem; border-radius: 16px; color: var(--color-texto); font-weight: 700; font-size: 0.95rem; text-decoration: none; transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1); border: 2px solid transparent; }
-            .nav-link i { font-size: 1.2rem; transition: transform 0.3s ease; }
-            .nav-link:hover { background-color: var(--color-amarillo); color: var(--color-verde); transform: translateX(5px); }
-            .nav-link:hover i { transform: scale(1.1); }
-            .nav-link.active { background: linear-gradient(135deg, var(--color-verde) 0%, var(--color-aqua) 100%); color: white; box-shadow: 0 4px 15px rgba(154, 191, 23, 0.3); }
-            .nav-link.active i { color: white; }
-            .sidebar-footer { margin-top: auto; padding-top: 1.5rem; border-top: 2px solid var(--color-azul-claro); }
-            .btn-logout { display: flex; align-items: center; justify-content: center; gap: 0.5rem; width: 100%; padding: 0.75rem; border-radius: 16px; border: 2px solid #fecaca; background-color: #fef2f2; color: #e11d48; font-weight: 700; text-decoration: none; transition: all 0.3s ease; }
-            .btn-logout:hover { background-color: #e11d48; color: white; border-color: #e11d48; }
+            .sidebar {
+                width: 260px;
+                background: var(--color-blanco-glass);
+                backdrop-filter: blur(12px);
+                border-radius: 24px;
+                padding: 2rem 1.5rem;
+                display: flex;
+                flex-direction: column;
+                box-shadow: 0 10px 30px rgba(132, 191, 147, 0.15), 0 0 0 2px rgba(255, 255, 255, 0.6);
+                flex-shrink: 0;
+            }
+
+            .sidebar-logo {
+                color: var(--color-verde);
+                font-size: 1.8rem;
+                font-weight: 800;
+                display: flex;
+                align-items: center;
+                gap: 0.5rem;
+                margin-bottom: 2.5rem;
+                padding-left: 0.5rem;
+            }
+
+                .sidebar-logo i {
+                    color: var(--color-aqua);
+                    font-size: 2rem;
+                }
+
+            .nav-menu {
+                list-style: none;
+                padding: 0;
+                margin: 0;
+                flex-grow: 1;
+            }
+
+            .nav-item {
+                margin-bottom: 0.75rem;
+            }
+
+            .nav-link {
+                display: flex;
+                align-items: center;
+                gap: 0.75rem;
+                padding: 0.85rem 1.25rem;
+                border-radius: 16px;
+                color: var(--color-texto);
+                font-weight: 700;
+                font-size: 0.95rem;
+                text-decoration: none;
+                transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+                border: 2px solid transparent;
+            }
+
+                .nav-link i {
+                    font-size: 1.2rem;
+                    transition: transform 0.3s ease;
+                }
+
+                .nav-link:hover {
+                    background-color: var(--color-amarillo);
+                    color: var(--color-verde);
+                    transform: translateX(5px);
+                }
+
+                    .nav-link:hover i {
+                        transform: scale(1.1);
+                    }
+
+                .nav-link.active {
+                    background: linear-gradient(135deg, var(--color-verde) 0%, var(--color-aqua) 100%);
+                    color: white;
+                    box-shadow: 0 4px 15px rgba(154, 191, 23, 0.3);
+                }
+
+                    .nav-link.active i {
+                        color: white;
+                    }
+
+            .sidebar-footer {
+                margin-top: auto;
+                padding-top: 1.5rem;
+                border-top: 2px solid var(--color-azul-claro);
+            }
+
+            .btn-logout {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 0.5rem;
+                width: 100%;
+                padding: 0.75rem;
+                border-radius: 16px;
+                border: 2px solid #fecaca;
+                background-color: #fef2f2;
+                color: #e11d48;
+                font-weight: 700;
+                text-decoration: none;
+                transition: all 0.3s ease;
+            }
+
+                .btn-logout:hover {
+                    background-color: #e11d48;
+                    color: white;
+                    border-color: #e11d48;
+                }
             /* ===== fin sidebar ===== */
 
-            .main-content { flex-grow: 1; display: flex; flex-direction: column; gap: 1.5rem; }
-            .action-btn { width: 32px; height: 32px; border-radius: 8px; border: none; display: inline-flex; align-items: center; justify-content: center; margin-right: 0.25rem; transition: all 0.2s ease; text-decoration: none; cursor: pointer; }
-            .btn-delete { background-color: #fee2e2; color: #dc2626; }
-            .btn-delete:hover { background-color: #dc2626; color: white; }
+            .main-content {
+                flex-grow: 1;
+                display: flex;
+                flex-direction: column;
+                gap: 1.5rem;
+            }
+
+            .action-btn {
+                width: 32px;
+                height: 32px;
+                border-radius: 8px;
+                border: none;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                margin-right: 0.25rem;
+                transition: all 0.2s ease;
+                text-decoration: none;
+                cursor: pointer;
+            }
+
+            .btn-delete {
+                background-color: #fee2e2;
+                color: #dc2626;
+            }
+
+                .btn-delete:hover {
+                    background-color: #dc2626;
+                    color: white;
+                }
+
             .content-card {
                 background: var(--color-blanco-glass);
                 backdrop-filter: blur(12px);
@@ -61,49 +186,156 @@
                 padding: 2rem;
                 box-shadow: 0 10px 30px rgba(132, 191, 147, 0.15);
             }
-            .card-header-custom { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }
-            .card-header-custom h3 { margin: 0; font-size: 1.3rem; font-weight: 800; color: var(--color-verde); }
+
+            .card-header-custom {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 1.5rem;
+            }
+
+                .card-header-custom h3 {
+                    margin: 0;
+                    font-size: 1.3rem;
+                    font-weight: 800;
+                    color: var(--color-verde);
+                }
+
             .btn-cute-primary {
                 background: linear-gradient(135deg, var(--color-verde) 0%, var(--color-aqua) 100%);
-                border: none; border-radius: 50px; padding: 0.6rem 1.25rem;
-                color: white; font-weight: 700; cursor: pointer;
-                display: inline-flex; align-items: center; gap: 0.5rem;
+                border: none;
+                border-radius: 50px;
+                padding: 0.6rem 1.25rem;
+                color: white;
+                font-weight: 700;
+                cursor: pointer;
+                display: inline-flex;
+                align-items: center;
+                gap: 0.5rem;
             }
+
             .btn-cute-secondary {
-                background: var(--color-azul-claro); border: none; border-radius: 50px;
-                padding: 0.6rem 1.25rem; color: var(--color-texto); font-weight: 700; cursor: pointer;
+                background: var(--color-azul-claro);
+                border: none;
+                border-radius: 50px;
+                padding: 0.6rem 1.25rem;
+                color: var(--color-texto);
+                font-weight: 700;
+                cursor: pointer;
             }
-            .table-cute { width: 100%; border-collapse: separate; border-spacing: 0 0.75rem; }
-            .table-cute thead th {
-                background-color: var(--color-azul-claro); color: var(--color-texto);
-                font-weight: 700; font-size: 0.85rem; text-transform: uppercase;
-                padding: 1rem 1.25rem; border: none;
+
+            .table-cute {
+                width: 100%;
+                border-collapse: separate;
+                border-spacing: 0 0.75rem;
             }
-            .table-cute thead th:first-child { border-radius: 12px 0 0 12px; }
-            .table-cute thead th:last-child { border-radius: 0 12px 12px 0; }
-            .table-cute tbody tr { background-color: white; box-shadow: 0 2px 8px rgba(0,0,0,0.03); }
-            .table-cute tbody td { padding: 1rem 1.25rem; vertical-align: middle; border: none; }
-            .table-cute tbody td:first-child { border-radius: 12px 0 0 12px; }
-            .table-cute tbody td:last-child { border-radius: 0 12px 12px 0; }
-            .badge-cute { padding: 0.35rem 0.75rem; border-radius: 50px; font-size: 0.75rem; font-weight: 700; }
-            .badge-cute-success { background-color: var(--color-verde-claro); color: #3f4d12; }
-            .badge-cute-warning { background-color: #fef3c7; color: #92400e; }
-            .badge-cute-danger { background-color: #fee2e2; color: #991b1b; }
-            .badge-cute-info { background-color: var(--color-azul-claro); color: #1e40af; }
-            .modal-content { border-radius: 24px; border: none; background: rgba(255,255,255,0.98); }
-            .modal-header { border-bottom: 2px solid var(--color-azul-claro); padding: 1.5rem 2rem; }
-            .modal-title { font-weight: 800; color: var(--color-verde); }
-            .modal-body { padding: 2rem; }
-            .modal-footer { border-top: 2px solid var(--color-azul-claro); padding: 1.5rem 2rem; }
-            .form-label { font-weight: 700; color: var(--color-texto); font-size: 0.9rem; }
+
+                .table-cute thead th {
+                    background-color: var(--color-azul-claro);
+                    color: var(--color-texto);
+                    font-weight: 700;
+                    font-size: 0.85rem;
+                    text-transform: uppercase;
+                    padding: 1rem 1.25rem;
+                    border: none;
+                }
+
+                    .table-cute thead th:first-child {
+                        border-radius: 12px 0 0 12px;
+                    }
+
+                    .table-cute thead th:last-child {
+                        border-radius: 0 12px 12px 0;
+                    }
+
+                .table-cute tbody tr {
+                    background-color: white;
+                    box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+                }
+
+                .table-cute tbody td {
+                    padding: 1rem 1.25rem;
+                    vertical-align: middle;
+                    border: none;
+                }
+
+                    .table-cute tbody td:first-child {
+                        border-radius: 12px 0 0 12px;
+                    }
+
+                    .table-cute tbody td:last-child {
+                        border-radius: 0 12px 12px 0;
+                    }
+
+            .badge-cute {
+                padding: 0.35rem 0.75rem;
+                border-radius: 50px;
+                font-size: 0.75rem;
+                font-weight: 700;
+            }
+
+            .badge-cute-success {
+                background-color: var(--color-verde-claro);
+                color: #3f4d12;
+            }
+
+            .badge-cute-warning {
+                background-color: #fef3c7;
+                color: #92400e;
+            }
+
+            .badge-cute-danger {
+                background-color: #fee2e2;
+                color: #991b1b;
+            }
+
+            .badge-cute-info {
+                background-color: var(--color-azul-claro);
+                color: #1e40af;
+            }
+
+            .modal-content {
+                border-radius: 24px;
+                border: none;
+                background: rgba(255,255,255,0.98);
+            }
+
+            .modal-header {
+                border-bottom: 2px solid var(--color-azul-claro);
+                padding: 1.5rem 2rem;
+            }
+
+            .modal-title {
+                font-weight: 800;
+                color: var(--color-verde);
+            }
+
+            .modal-body {
+                padding: 2rem;
+            }
+
+            .modal-footer {
+                border-top: 2px solid var(--color-azul-claro);
+                padding: 1.5rem 2rem;
+            }
+
+            .form-label {
+                font-weight: 700;
+                color: var(--color-texto);
+                font-size: 0.9rem;
+            }
+
             .form-control, .form-select {
-                border-radius: 12px; border: 2px solid var(--color-azul-claro);
-                padding: 0.6rem 1rem; font-size: 0.95rem;
+                border-radius: 12px;
+                border: 2px solid var(--color-azul-claro);
+                padding: 0.6rem 1rem;
+                font-size: 0.95rem;
             }
-            .form-control:focus, .form-select:focus {
-                border-color: var(--color-aqua);
-                box-shadow: 0 0 0 0.2rem rgba(132, 191, 147, 0.25);
-            }
+
+                .form-control:focus, .form-select:focus {
+                    border-color: var(--color-aqua);
+                    box-shadow: 0 0 0 0.2rem rgba(132, 191, 147, 0.25);
+                }
             /* Panel de desglose */
             .desglose-panel {
                 background: linear-gradient(135deg, #f0fdf4 0%, #ecfeff 100%);
@@ -112,7 +344,13 @@
                 padding: 1.25rem;
                 margin-top: 1rem;
             }
-            .desglose-panel h6 { color: var(--color-verde); font-weight: 800; margin-bottom: 1rem; }
+
+                .desglose-panel h6 {
+                    color: var(--color-verde);
+                    font-weight: 800;
+                    margin-bottom: 1rem;
+                }
+
             .componente-item {
                 background: white;
                 border-radius: 12px;
@@ -123,27 +361,35 @@
                 align-items: center;
                 border-left: 4px solid var(--color-aqua);
             }
-            .componente-item.stock-bajo { border-left-color: #dc2626; background: #fef2f2; }
+
+                .componente-item.stock-bajo {
+                    border-left-color: #dc2626;
+                    background: #fef2f2;
+                }
+
             .precio-box {
                 background: white;
                 border-radius: 12px;
                 padding: 1rem;
                 margin-top: 1rem;
             }
+
             .precio-linea {
                 display: flex;
                 justify-content: space-between;
                 padding: 0.4rem 0;
                 font-size: 0.9rem;
             }
-            .precio-linea.total {
-                border-top: 2px dashed var(--color-aqua-claro);
-                margin-top: 0.5rem;
-                padding-top: 0.75rem;
-                font-size: 1.1rem;
-                font-weight: 800;
-                color: var(--color-verde);
-            }
+
+                .precio-linea.total {
+                    border-top: 2px dashed var(--color-aqua-claro);
+                    margin-top: 0.5rem;
+                    padding-top: 0.75rem;
+                    font-size: 1.1rem;
+                    font-weight: 800;
+                    color: var(--color-verde);
+                }
+
             .descuento-tag {
                 background: var(--color-verde);
                 color: white;
@@ -153,9 +399,21 @@
                 font-weight: 700;
             }
 
+            .componente-item.stock-ok {
+                border-left-color: var(--color-verde);
+                background: #f0fdf4;
+            }
+
             @@media (max-width: 768px) {
-                .dashboard-wrapper { flex-direction: column; padding: 1rem; }
-                .sidebar { width: 100%; padding: 1.5rem; }
+                .dashboard-wrapper {
+                    flex-direction: column;
+                    padding: 1rem;
+                }
+
+                .sidebar {
+                    width: 100%;
+                    padding: 1.5rem;
+                }
             }
     </style>
 </head>
@@ -229,22 +487,32 @@
                         <h6><i class="bi bi-diagram-3-fill"></i> Desglose Automático de Componentes</h6>
                         <div id="listaComponentes"></div>
 
+                        <!-- Reemplaza el div "precio-box" actual por este -->
                         <div class="precio-box">
+                            <h6 class="text-muted mb-2"><i class="bi bi-cash-coin"></i> Valor de la producción (venta)</h6>
                             <div class="precio-linea">
-                                <span>Precio unitario:</span>
+                                <span>Precio unitario producto:</span>
                                 <span id="precioUnitario">$0.00</span>
                             </div>
                             <div class="precio-linea">
-                                <span>Subtotal:</span>
+                                <span>Subtotal venta:</span>
                                 <span id="precioOriginal">$0.00</span>
                             </div>
                             <div class="precio-linea" id="filaDescuento" style="display:none;">
                                 <span>Descuento <span class="descuento-tag" id="tagDescuento">0%</span></span>
                                 <span class="text-danger" id="precioDescuento">-$0.00</span>
                             </div>
-                            <div class="precio-linea total">
-                                <span>TOTAL:</span>
+                            <div class="precio-linea total" style="color: var(--color-verde);">
+                                <span>TOTAL VENTA:</span>
                                 <span id="precioTotal">$0.00</span>
+                            </div>
+
+                            <hr class="my-3" style="border-color: var(--color-aqua-claro);">
+
+                            <h6 class="text-success mb-2"><i class="bi bi-cart-fill"></i> Costo de compra (componentes faltantes)</h6>
+                            <div class="precio-linea total" style="color: #dc2626; font-size: 1.2rem;">
+                                <span>TOTAL A COMPRAR:</span>
+                                <span id="costoTotalCompra">$0.00</span>
                             </div>
                         </div>
                     </div>
@@ -266,7 +534,7 @@
             var productos = [];
             var proveedores = [];
 
-            $(function () {
+            $(function() {
                 modal = new bootstrap.Modal(document.getElementById('modalOrden'));
                 cargarProductos();
                 cargarProveedores();
@@ -277,12 +545,12 @@
             });
 
             function cargarProductos() {
-                $.get('/OrdenesCompra/obtener-productos', function (r) {
+                $.get('/OrdenesCompra/obtener-productos', function(r) {
                     if (r.success) {
                         productos = r.result;
                         var sel = $('#oProductoId');
                         sel.find('option:not(:first)').remove();
-                        $.each(productos, function (i, p) {
+                        $.each(productos, function(i, p) {
                             sel.append(`<option value="${p.id}">${p.nombre} - $${parseFloat(p.precioBase).toFixed(2)}</option>`);
                         });
                     }
@@ -290,18 +558,17 @@
             }
 
             function cargarProveedores() {
-                $.get('/Proveedor/consultar-proveedores', function (r) {
+                $.get('/Proveedor/consultar-proveedores', function(r) {
                     if (r.success && r.result) {
                         proveedores = r.result;
                         var sel = $('#oProveedorId');
                         sel.find('option:not(:first)').remove();
-                        $.each(proveedores, function (i, p) {
+                        $.each(proveedores, function(i, p) {
                             sel.append(`<option value="${p.id}">${p.nombre}</option>`);
                         });
                     }
                 });
             }
-
             function calcularDesglose() {
                 var productoId = $('#oProductoId').val();
                 var cantidad = parseInt($('#oCantidad').val()) || 0;
@@ -311,7 +578,7 @@
                     return;
                 }
 
-                $.get('/OrdenesCompra/calcular-desglose', { productoId: productoId, cantidad: cantidad }, function (r) {
+                $.get('/OrdenesCompra/calcular-desglose', { productoId: productoId, cantidad: cantidad }, function(r) {
                     if (!r.success) {
                         showToast(r.mensaje, 'danger');
                         return;
@@ -321,9 +588,18 @@
 
                     // Lista de componentes
                     var html = '';
-                    $.each(d.componentes, function (i, c) {
-                        var clase = c.stockSuficiente ? '' : 'stock-bajo';
-                        var icono = c.stockSuficiente ? '✅' : '⚠️';
+                    var todoSuficiente = true;
+
+                    $.each(d.componentes, function(i, c) {
+                        var esFaltante = c.cantidadFaltante > 0;
+                        if (esFaltante) todoSuficiente = false;
+
+                        var clase = esFaltante ? 'stock-bajo' : 'stock-ok';
+                        var icono = esFaltante ? '⚠️' : '✅';
+                        var textoFaltante = esFaltante
+                            ? `<div class="text-danger fw-bold mt-1">Faltan: ${c.cantidadFaltante} uds </strong></div>`
+                            : `<div class="text-success fw-bold mt-1">¡Inventario completo!</div>`;
+
                         html += `
                             <div class="componente-item ${clase}">
                                 <div>
@@ -331,17 +607,29 @@
                                     <small class="text-muted">Pieza: ${c.numeroPieza}</small>
                                 </div>
                                 <div class="text-end">
-                                    <div class="fw-bold">${c.cantidadTotal} unidades</div>
-                                    <small class="text-muted">Stock: ${c.stockDisponible}</small>
+                                    <div class="small">Requerido: <strong>${c.cantidadRequerida}</strong></div>
+                                    <div class="small">Inventario: <strong>${c.stockDisponible}</strong></div>
+                                    ${textoFaltante}
                                 </div>
                             </div>`;
                     });
+
                     $('#listaComponentes').html(html);
 
-                    // Precios
-                    $('#precioUnitario').text('$' + parseFloat(d.precioUnitario).toFixed(2));
-                    $('#precioOriginal').text('$' + parseFloat(d.precioOriginal).toFixed(2));
-                    $('#precioTotal').text('$' + parseFloat(d.totalFinal).toFixed(2));
+                    // Validación si no falta nada
+                    if (todoSuficiente) {
+                        $('#listaComponentes').prepend(`
+                            <div class="alert alert-success d-flex align-items-center" role="alert">
+                                <i class="bi bi-check-circle-fill me-2"></i>
+                                <div>¡Excelente! Tienes suficiente inventario para producir ${cantidad} unidad(es). No se generará compra.</div>
+                            </div>
+                        `);
+                    }
+
+                    // Precios de VENTA (referencia)
+                    $('#precioUnitario').text('$' + parseFloat(d.precioVentaUnitario).toFixed(2));
+                    $('#precioOriginal').text('$' + parseFloat(d.precioVentaOriginal).toFixed(2));
+                    $('#precioTotal').text('$' + parseFloat(d.totalVenta).toFixed(2));
 
                     if (d.porcentajeDescuento > 0) {
                         $('#filaDescuento').show();
@@ -350,6 +638,9 @@
                     } else {
                         $('#filaDescuento').hide();
                     }
+
+                    // COSTO DE COMPRA (lo importante)
+                    $('#costoTotalCompra').text('$' + parseFloat(d.costoTotalCompra).toFixed(2));
                 });
             }
 
@@ -379,7 +670,7 @@
                     type: 'POST',
                     contentType: 'application/json',
                     data: JSON.stringify(data),
-                    success: function (r) {
+                    success: function(r) {
                         if (!r.success) {
                             showToast(r.mensaje, 'danger');
                             return;
@@ -388,35 +679,35 @@
                         modal.hide();
                         cargarOrdenes();
                     },
-                    error: function () { showToast('Error de conexión', 'danger'); }
+                    error: function() { showToast('Error de conexión', 'danger'); }
                 });
             }
 
             function cargarOrdenes() {
-                $.get('/OrdenesCompra/consultar-ordenes', function (r) {
+                $.get('/OrdenesCompra/consultar-ordenes', function(r) {
                     var tbody = $('#bodyOrdenes');
                     tbody.empty();
                     if (!r.success || !r.result || !r.result.length) {
                         tbody.html('<tr><td colspan="7" class="text-center text-muted py-4">Sin órdenes</td></tr>');
                         return;
                     }
-                    $.each(r.result, function (i, o) {
+                    $.each(r.result, function(i, o) {
                         var badgeEstado = o.estado === 'Pendiente' ? 'badge-cute-warning' :
-                                          o.estado === 'Recibida' ? 'badge-cute-success' : 'badge-cute-info';
+                            o.estado === 'Recibida' ? 'badge-cute-success' : 'badge-cute-info';
                         tbody.append(`
-                            <tr>
-                                <td><strong>${o.numeroOC}</strong></td>
-                                <td>${o.proveedor || '-'}</td>
-                                <td class="text-center"><span class="badge-cute badge-cute-info">${o.totalDetalles} tipos</span></td>
-                                <td class="text-center"><span class="badge-cute badge-cute-success">${o.totalComponentes} uds</span></td>
-                                <td><span class="badge-cute ${badgeEstado}">${o.estado}</span></td>
-                                <td>${o.fechaEsperada ? new Date(o.fechaEsperada).toLocaleDateString() : '-'}</td>
-                                <td class="text-center">
-                                    <button class="action-btn btn-delete" onclick="eliminarOrden(${o.id})" title="Eliminar">
-                                        <i class="bi bi-trash-fill"></i>
-                                    </button>
-                                </td>
-                            </tr>`);
+                                        <tr>
+                                            <td><strong>${o.numeroOC}</strong></td>
+                                            <td>${o.proveedor || '-'}</td>
+                                            <td class="text-center"><span class="badge-cute badge-cute-info">${o.totalDetalles} tipos</span></td>
+                                            <td class="text-center"><span class="badge-cute badge-cute-success">${o.totalComponentes} uds</span></td>
+                                            <td><span class="badge-cute ${badgeEstado}">${o.estado}</span></td>
+                                            <td>${o.fechaEsperada ? new Date(o.fechaEsperada).toLocaleDateString() : '-'}</td>
+                                            <td class="text-center">
+                                                <button class="action-btn btn-delete" onclick="eliminarOrden(${o.id})" title="Eliminar">
+                                                    <i class="bi bi-trash-fill"></i>
+                                                </button>
+                                            </td>
+                                        </tr>`);
                     });
                 });
             }
@@ -426,7 +717,7 @@
                 $.ajax({
                     url: '/OrdenesCompra/eliminar-orden/' + id,
                     type: 'DELETE',
-                    success: function (r) {
+                    success: function(r) {
                         showToast(r.mensaje, r.success ? 'success' : 'danger');
                         if (r.success) cargarOrdenes();
                     }
@@ -443,16 +734,16 @@
                     document.body.appendChild(toastContainer);
                 }
                 const bgClass = tipo === 'success' ? 'bg-success text-white' :
-                                tipo === 'danger' ? 'bg-danger text-white' :
-                                tipo === 'warning' ? 'bg-warning text-dark' : 'bg-info text-white';
+                    tipo === 'danger' ? 'bg-danger text-white' :
+                        tipo === 'warning' ? 'bg-warning text-dark' : 'bg-info text-white';
                 const toastId = 'toast-' + Date.now();
                 toastContainer.insertAdjacentHTML('beforeend', `
-                    <div id="${toastId}" class="toast align-items-center ${bgClass} border-0 shadow-lg" role="alert" style="border-radius: 16px;">
-                        <div class="d-flex">
-                            <div class="toast-body fw-semibold">${mensaje}</div>
-                            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
-                        </div>
-                    </div>`);
+                                <div id="${toastId}" class="toast align-items-center ${bgClass} border-0 shadow-lg" role="alert" style="border-radius: 16px;">
+                                    <div class="d-flex">
+                                        <div class="toast-body fw-semibold">${mensaje}</div>
+                                        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+                                    </div>
+                                </div>`);
                 const toast = new bootstrap.Toast(document.getElementById(toastId), { delay: 3000 });
                 toast.show();
                 document.getElementById(toastId).addEventListener('hidden.bs.toast', (e) => e.target.remove());
