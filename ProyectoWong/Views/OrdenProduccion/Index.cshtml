@@ -1,0 +1,95 @@
+@model IEnumerable<ProyectoWong.Models.Produccion.OrdenProduccion>
+
+@{
+    ViewData["Title"] = "Index";
+}
+
+<h1>Index</h1>
+
+<p>
+    <a asp-action="Create">Create New</a>
+</p>
+<table class="table">
+    <thead>
+        <tr>
+            <th>
+                @Html.DisplayNameFor(model => model.NumeroOP)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.ProductoId)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.Producto)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.CantidadAProducir)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.Estado)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.OrdenCompraId)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.OrdenCompra)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.FechaCreacion)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.FechaInicio)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.FechaFin)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.Detalles)
+            </th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+@foreach (var item in Model) {
+        <tr>
+            <td>
+                @Html.DisplayFor(model => item.NumeroOP)
+            </td>
+            <td>
+                @Html.DisplayFor(model => item.ProductoId)
+            </td>
+            <td>
+                @Html.DisplayFor(model => item.Producto)
+            </td>
+            <td>
+                @Html.DisplayFor(model => item.CantidadAProducir)
+            </td>
+            <td>
+                @Html.DisplayFor(model => item.Estado)
+            </td>
+            <td>
+                @Html.DisplayFor(model => item.OrdenCompraId)
+            </td>
+            <td>
+                @Html.DisplayFor(model => item.OrdenCompra)
+            </td>
+            <td>
+                @Html.DisplayFor(model => item.FechaCreacion)
+            </td>
+            <td>
+                @Html.DisplayFor(model => item.FechaInicio)
+            </td>
+            <td>
+                @Html.DisplayFor(model => item.FechaFin)
+            </td>
+            <td>
+                @Html.DisplayFor(model => item.Detalles)
+            </td>
+            <td>
+                <a asp-action="Edit" asp-route-id="@item.Id">Edit</a> |
+                <a asp-action="Details" asp-route-id="@item.Id">Details</a> |
+                <a asp-action="Delete" asp-route-id="@item.Id">Delete</a>
+            </td>
+        </tr>
+}
+    </tbody>
+</table>

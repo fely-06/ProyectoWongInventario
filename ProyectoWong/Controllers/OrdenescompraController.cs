@@ -19,22 +19,27 @@ namespace ProyectoWong.Controllers
             ViewBag.ActiveMenu = "OrdenesCompra";
             return View();
         }
-        // Agrega esto a tu OrdenesCompraController
+        
         [HttpGet("buscar-por-numero/{numero}")]
         public async Task<IActionResult> BuscarPorNumero(string numero)
         {
             try
             {
                 var oc = await _context.OrdenesCompra
-                    .Include(o => o.Detalles)
-                        .ThenInclude(d => d.Componente)
+                    .Include(o => o.Detalles).ThenInclude(d => d.Componente)
                     .Include(o => o.ProveedorNavigation)
                     .FirstOrDefaultAsync(o => o.NumeroOC == numero);
 
                 if (oc == null)
                     return Json(Respuesta.Error("Orden de compra no encontrada"));
 
-                // Mapeamos explícitamente para que el frontend reciba lo que espera
+                // Obtener cantidades ya recibidas y APROBADAS históricamente para esta OC
+                var recibidosAprobados = await _context.RecepcionDetalles
+                    .Where(rd => rd.Recepcion.OrdenCompraId == oc.Id && rd.Estado == "Aprobado")
+                    .GroupBy(rd => rd.ComponenteId)
+                    .Select(g => new { ComponenteId = g.Key, Total = g.Sum(x => x.CantidadRecibida) })
+                    .ToListAsync();
+
                 var resultado = new
                 {
                     id = oc.Id,
@@ -45,7 +50,9 @@ namespace ProyectoWong.Controllers
                         componenteId = d.ComponenteId,
                         componenteNombre = d.Componente.Nombre,
                         numeroPieza = d.Componente.NumeroPieza,
-                        cantidadEsperada = d.CantidadEsperada
+                        cantidadEsperada = d.CantidadEsperada,
+                        // NUEVO: Enviamos el histórico real al frontend
+                        cantidadYaRecibida = recibidosAprobados.FirstOrDefault(r => r.ComponenteId == d.ComponenteId)?.Total ?? 0
                     }).ToList()
                 };
 

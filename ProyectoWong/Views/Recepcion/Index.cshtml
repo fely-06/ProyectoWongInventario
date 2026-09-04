@@ -544,55 +544,62 @@
         }
 
         // ── PASO 1-2: Buscar OC ──────────────────────────────────────────
-       function buscarOC() {
-            var numero = $('#inputNumeroOC').val().trim();
-            if (!numero) { showToast('Escribe o escanea un número de OC', 'warning'); return; }
+            function buscarOC() {
+                var numero = $('#inputNumeroOC').val().trim();
+                if (!numero) { showToast('Escribe o escanea un número de OC', 'warning'); return; }
 
-            $.get('/OrdenesCompra/buscar-por-numero/' + encodeURIComponent(numero), function (r) {
-                if (!r.success || !r.result) {
-                    showToast(r.mensaje || 'Orden de compra no encontrada', 'danger');
-                    $('#ocInfo').hide();
-                    return;
-                }
-                var oc = r.result;
+                $.get('/OrdenesCompra/buscar-por-numero/' + encodeURIComponent(numero), function(r) {
+                    if (!r.success || !r.result) {
+                        showToast(r.mensaje || 'Orden de compra no encontrada', 'danger');
+                        $('#ocInfo').hide();
+                        return;
+                    }
+                    var oc = r.result;
 
-                // VALIDACIÓN: Bloquear si ya fue recibida
-                if (oc.estado === 'Recibida' || oc.estado === 'Completada' || oc.estado === 'Parcialmente Recibida') {
-                    showToast(`Esta OC está en estado: "${oc.estado}". No se puede iniciar una nueva recepción.`, 'warning');
-                    $('#ocInfo').hide();
-                    $('#btnIniciarRecepcion').prop('disabled', true);
-                    return;
-                }
+                    if (oc.estado === 'Recibida' || oc.estado === 'Completada' || oc.estado === 'Cancelada') {
+                        showToast(`Esta OC está en estado: "${oc.estado}". Ya fue cerrada.`, 'warning');
+                        $('#ocInfo').hide();
+                        $('#btnIniciarRecepcion').prop('disabled', true);
+                        return;
+                    }
 
-                recepcionActual.ordenCompraId = oc.id;
-                recepcionActual.detalleOC = oc.detalles || [];
+                    recepcionActual.ordenCompraId = oc.id;
+                    recepcionActual.detalleOC = oc.detalles || [];
 
-                $('#ocNumero').text(oc.numeroOC);
-                $('#ocEstado').text(oc.estado);
-                $('#ocRecepcionId').text('—');
+                    $('#ocNumero').text(oc.numeroOC);
+                    $('#ocEstado').text(oc.estado);
+                    $('#ocRecepcionId').text('—');
 
-                var filas = recepcionActual.detalleOC.map(d => {
-                    return `<tr id="row-oc-comp-${d.componenteId}">
-                        <td>${escHtml(d.componenteNombre)}</td>
-                        <td>${escHtml(d.numeroPieza)}</td>
-                        <td class="text-end">
-                            <span class="fw-bold" id="prog-text-${d.componenteId}">0 / ${d.cantidadEsperada}</span>
-                            <div class="progress mt-1" style="height: 6px;">
-                                <div class="progress-bar bg-success" id="prog-bar-${d.componenteId}" role="progressbar" style="width: 0%"></div>
-                            </div>
-                        </td>
-                    </tr>`;
-                }).join('') || '<tr><td colspan="3" class="text-center text-muted">Esta OC no tiene componentes cargados</td></tr>';
+                    // CORRECCIÓN: Usar el histórico real para inicializar la barra de progreso
+                    var filas = recepcionActual.detalleOC.map(d => {
+                        var recibida = d.cantidadYaRecibida || 0;
+                        var esperada = d.cantidadEsperada;
+                        var porcentaje = Math.min(100, Math.round((recibida / esperada) * 100));
+                        var colorBarra = porcentaje >= 100 ? 'bg-info' : 'bg-success';
 
-                $('#bodyOcDetalle').html(filas);
-                $('#ocInfo').show(); 
+                        return `<tr id="row-oc-comp-${d.componenteId}">
+                            <td>${escHtml(d.componenteNombre)}</td>
+                            <td>${escHtml(d.numeroPieza)}</td>
+                            <td class="text-end">
+                                <span class="fw-bold" id="prog-text-${d.componenteId}">${recibida} / ${esperada}</span>
+                                <div class="progress mt-1" style="height: 6px;">
+                                    <div class="progress-bar ${colorBarra}" id="prog-bar-${d.componenteId}" role="progressbar" style="width: ${porcentaje}%"></div>
+                                </div>
+                            </td>
+                        </tr>`;
+                    }).join('') || '<tr><td colspan="3" class="text-center text-muted">Esta OC no tiene componentes cargados</td></tr>';
 
-                $('#btnIniciarRecepcion').prop('disabled', false);
-                marcarStep(2);
-            }).fail(function () {
-                showToast('Error al buscar la orden de compra', 'danger');
-            });
-        }
+                    $('#bodyOcDetalle').html(filas);
+                    $('#ocInfo').show();
+
+                    $('#btnIniciarRecepcion').prop('disabled', false);
+                    marcarStep(2);
+                }).fail(function() {
+                    showToast('Error al buscar la orden de compra', 'danger');
+                });
+            }
+
+        
 
         function actualizarProgresoOC(componenteId, cantidadAgregada) {
             var detalle = recepcionActual.detalleOC.find(d => d.componenteId == componenteId);

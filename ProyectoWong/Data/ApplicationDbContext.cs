@@ -6,6 +6,7 @@ namespace ProyectoWong.Data
 {
     public class ApplicationDbContext : DbContext
     {
+        public DbSet<ProyectoWong.Models.Produccion.OrdenProduccion> OrdenProduccion { get; set; } = default!;
         public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : base(options) { }
 
         public DbSet<Usuarios> Usuarios { get; set; }
