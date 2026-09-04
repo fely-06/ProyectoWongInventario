@@ -1,0 +1,431 @@
+@{
+    Layout = null;
+    ViewBag.Title = "Producción - SIV";
+}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewBag.Title</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
+    <style>
+            :root {
+                --color-amarillo: #f3eeb6;
+                --color-verde-claro: #d4db74;
+                --color-verde: #9abf17;
+                --color-aqua: #84bf93;
+                --color-aqua-claro: #aed9c5;
+                --color-azul-claro: #ddecf1;
+                --color-texto: #4a5568;
+                --color-texto-claro: #718096;
+                --color-blanco-glass: rgba(255, 255, 255, 0.85);
+            }
+
+            body {
+                font-family: 'Nunito', sans-serif;
+                background: linear-gradient(135deg, var(--color-azul-claro) 0%, var(--color-amarillo) 50%, var(--color-aqua-claro) 100%);
+                min-height: 100vh;
+                margin: 0;
+                color: var(--color-texto);
+            }
+
+            .dashboard-wrapper {
+                display: flex;
+                min-height: 100vh;
+                padding: 1.5rem;
+                gap: 1.5rem;
+            }
+
+            .sidebar {
+                width: 260px;
+                background: var(--color-blanco-glass);
+                backdrop-filter: blur(12px);
+                border-radius: 24px;
+                padding: 2rem 1.5rem;
+                display: flex;
+                flex-direction: column;
+                box-shadow: 0 10px 30px rgba(132, 191, 147, 0.15);
+                flex-shrink: 0;
+            }
+
+            .sidebar-logo {
+                color: var(--color-verde);
+                font-size: 1.8rem;
+                font-weight: 800;
+                display: flex;
+                align-items: center;
+                gap: 0.5rem;
+                margin-bottom: 2.5rem;
+            }
+
+            .nav-menu {
+                list-style: none;
+                padding: 0;
+                margin: 0;
+                flex-grow: 1;
+            }
+
+            .nav-link {
+                display: flex;
+                align-items: center;
+                gap: 0.75rem;
+                padding: 0.85rem 1.25rem;
+                border-radius: 16px;
+                color: var(--color-texto);
+                font-weight: 700;
+                text-decoration: none;
+                transition: all 0.3s;
+                border: 2px solid transparent;
+                margin-bottom: 0.75rem;
+            }
+
+                .nav-link:hover {
+                    background-color: var(--color-amarillo);
+                    color: var(--color-verde);
+                }
+
+                .nav-link.active {
+                    background: linear-gradient(135deg, var(--color-verde) 0%, var(--color-aqua) 100%);
+                    color: white;
+                }
+
+            .main-content {
+                flex-grow: 1;
+                display: flex;
+                flex-direction: column;
+                gap: 1.5rem;
+            }
+
+            .content-card {
+                background: var(--color-blanco-glass);
+                backdrop-filter: blur(12px);
+                border-radius: 24px;
+                padding: 2rem;
+                box-shadow: 0 10px 30px rgba(132, 191, 147, 0.15);
+            }
+
+            .card-header-custom {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 1.5rem;
+            }
+
+                .card-header-custom h3 {
+                    margin: 0;
+                    font-size: 1.3rem;
+                    font-weight: 800;
+                    color: var(--color-verde);
+                    display: flex;
+                    align-items: center;
+                    gap: 0.5rem;
+                }
+
+            .btn-cute-primary {
+                background: linear-gradient(135deg, var(--color-verde) 0%, var(--color-aqua) 100%);
+                border: none;
+                border-radius: 50px;
+                padding: 0.6rem 1.25rem;
+                color: white;
+                font-weight: 700;
+                cursor: pointer;
+                display: inline-flex;
+                align-items: center;
+                gap: 0.5rem;
+            }
+
+                .btn-cute-primary:hover {
+                    transform: translateY(-2px);
+                    box-shadow: 0 6px 20px rgba(154, 191, 23, 0.4);
+                    color: white;
+                }
+
+            .btn-cute-secondary {
+                background: var(--color-azul-claro);
+                border: none;
+                border-radius: 50px;
+                padding: 0.6rem 1.25rem;
+                color: var(--color-texto);
+                font-weight: 700;
+                cursor: pointer;
+            }
+
+            .table-cute {
+                width: 100%;
+                border-collapse: separate;
+                border-spacing: 0 0.75rem;
+            }
+
+                .table-cute thead th {
+                    background-color: var(--color-azul-claro);
+                    color: var(--color-texto);
+                    font-weight: 700;
+                    font-size: 0.8rem;
+                    text-transform: uppercase;
+                    padding: 0.85rem 1rem;
+                    border: none;
+                    border-radius: 12px;
+                }
+
+                .table-cute tbody tr {
+                    background-color: white;
+                    box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+                }
+
+                .table-cute tbody td {
+                    padding: 0.85rem 1rem;
+                    vertical-align: middle;
+                    border: none;
+                    font-size: 0.9rem;
+                }
+
+                    .table-cute tbody td:first-child {
+                        border-radius: 12px 0 0 12px;
+                    }
+
+                    .table-cute tbody td:last-child {
+                        border-radius: 0 12px 12px 0;
+                    }
+
+            .badge-cute {
+                padding: 0.35rem 0.75rem;
+                border-radius: 50px;
+                font-size: 0.75rem;
+                font-weight: 700;
+            }
+
+            .badge-cute-warning {
+                background-color: #fef3c7;
+                color: #92400e;
+            }
+
+            .badge-cute-info {
+                background-color: var(--color-azul-claro);
+                color: #1e5a73;
+            }
+
+            .badge-cute-success {
+                background-color: var(--color-verde-claro);
+                color: #3f4d12;
+            }
+
+            .form-control, .form-select {
+                border-radius: 12px;
+                border: 2px solid var(--color-azul-claro);
+                padding: 0.6rem 1rem;
+            }
+
+                .form-control:focus, .form-select:focus {
+                    border-color: var(--color-aqua);
+                    box-shadow: 0 0 0 0.2rem rgba(132, 191, 147, 0.25);
+                }
+
+            .modal-content {
+                border-radius: 24px;
+                border: none;
+                background: rgba(255,255,255,0.98);
+            }
+
+            .modal-header {
+                border-bottom: 2px solid var(--color-azul-claro);
+                padding: 1.5rem 2rem;
+            }
+
+            .modal-title {
+                font-weight: 800;
+                color: var(--color-verde);
+            }
+
+            .modal-body {
+                padding: 2rem;
+            }
+
+            .modal-footer {
+                border-top: 2px solid var(--color-azul-claro);
+                padding: 1.5rem 2rem;
+            }
+    </style>
+</head>
+<body>
+    <div class="dashboard-wrapper">
+        @await Html.PartialAsync("_Sidebar")
+        <main class="main-content">
+            <div class="content-card">
+                <div class="card-header-custom">
+                    <h3><i class="bi bi-gear-wide-connected"></i> Órdenes de Producción</h3>
+                    <button class="btn-cute-primary" onclick="abrirModalNueva()">
+                        <i class="bi bi-plus-lg"></i> Nueva Orden
+                    </button>
+                </div>
+                <div class="table-responsive">
+                    <table class="table-cute">
+                        <thead>
+                            <tr>
+                                <th>N° OP</th>
+                                <th>Producto</th>
+                                <th class="text-center">Cantidad</th>
+                                <th>OC Vinculada</th>
+                                <th>Estado</th>
+                                <th>Fecha</th>
+                                <th class="text-center">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="bodyOrdenes">
+                            <tr><td colspan="7" class="text-center text-muted py-4">Cargando...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- MODAL NUEVA ORDEN -->
+    <div class="modal fade" id="modalNueva" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="bi bi-plus-circle-fill"></i> Nueva Orden de Producción</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Producto a Fabricar</label>
+                        <select class="form-select" id="nProductoId"></select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Cantidad a Producir</label>
+                        <input type="number" class="form-control" id="nCantidad" min="1" value="1">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Vincular a OC (Opcional, para trazabilidad)</label>
+                        <input type="text" class="form-control" id="nNumeroOC" placeholder="Ej. OC-20260903-ABC123">
+                        <small class="text-muted">Si la dejas vacía, se marcará como "Manual".</small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn-cute-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button class="btn-cute-primary" onclick="guardarOrden()"><i class="bi bi-save-fill"></i> Crear</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.js"></script>
+    <script>
+            var modalNueva;
+            $(function() {
+                modalNueva = new bootstrap.Modal(document.getElementById('modalNueva'));
+                cargarProductos();
+                cargarOrdenes();
+            });
+
+            function cargarProductos() {
+                $.get('/Produccion/obtener-productos', function(r) {
+                    if (r.success) {
+                        var sel = $('#nProductoId');
+                        sel.empty();
+                        $.each(r.result, function(i, p) {
+                            sel.append(`<option value="${p.id}">${p.nombre}</option>`);
+                        });
+                    }
+                });
+            }
+
+            function cargarOrdenes() {
+                $.get('/Produccion/consultar-ordenes', function(r) {
+                    var tbody = $('#bodyOrdenes');
+                    tbody.empty();
+                    if (!r.success || !r.result || !r.result.length) {
+                        tbody.html('<tr><td colspan="7" class="text-center text-muted py-4">Sin órdenes de producción</td></tr>');
+                        return;
+                    }
+                    $.each(r.result, function(i, o) {
+                        var badge = o.estado === 'Pendiente' ? 'badge-cute-warning' :
+                            o.estado === 'EnProceso' ? 'badge-cute-info' : 'badge-cute-success';
+                        var btnCompletar = (o.estado === 'Pendiente' || o.estado === 'EnProceso')
+                            ? `<button class="btn-cute-primary btn-cute-sm" onclick="completarProduccion(${o.id})"><i class="bi bi-check-lg"></i> Completar</button>`
+                            : '<span class="text-muted small">Finalizada</span>';
+
+                        tbody.append(`
+                                    <tr>
+                                        <td><strong>${o.numeroOP}</strong></td>
+                                        <td>${o.producto}</td>
+                                        <td class="text-center">${o.cantidad} uds</td>
+                                        <td>${o.numeroOC}</td>
+                                        <td><span class="badge-cute ${badge}">${o.estado}</span></td>
+                                        <td>${new Date(o.fechaCreacion).toLocaleDateString()}</td>
+                                        <td class="text-center">${btnCompletar}</td>
+                                    </tr>`);
+                    });
+                });
+            }
+
+            function abrirModalNueva() {
+                $('#nCantidad').val(1);
+                $('#nNumeroOC').val('');
+                modalNueva.show();
+            }
+
+            function guardarOrden() {
+                var data = {
+                    ProductoId: parseInt($('#nProductoId').val()),
+                    Cantidad: parseInt($('#nCantidad').val()),
+                    OrdenCompraId: null // Si quieres vincularla por ID, habría que buscar el ID de la OC primero. Por ahora lo dejamos null y se muestra el texto.
+                };
+
+                if (!data.ProductoId || !data.Cantidad) {
+                    showToast('Completa los campos obligatorios', 'warning');
+                    return;
+                }
+
+                $.ajax({
+                    url: '/Produccion/generar-orden',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify(data),
+                    success: function(r) {
+                        if (!r.success) { showToast(r.mensaje, 'danger'); return; }
+                        showToast(r.mensaje, 'success');
+                        modalNueva.hide();
+                        cargarOrdenes();
+                    }
+                });
+            }
+
+            function completarProduccion(id) {
+                if (!confirm('¿Confirmar que la producción terminó? Esto descontará los componentes del inventario y sumará el producto final.')) return;
+
+                $.ajax({
+                    url: '/Produccion/completar/' + id,
+                    type: 'POST',
+                    success: function(r) {
+                        if (!r.success) { showToast(r.mensaje, 'danger'); return; }
+                        showToast(r.mensaje, 'success');
+                        cargarOrdenes();
+                    }
+                });
+            }
+
+            function showToast(mensaje, tipo) {
+                let toastContainer = document.getElementById('toast-container');
+                if (!toastContainer) {
+                    toastContainer = document.createElement('div');
+                    toastContainer.id = 'toast-container';
+                    toastContainer.className = 'toast-container position-fixed bottom-0 end-0 p-3';
+                    toastContainer.style.zIndex = '9999';
+                    document.body.appendChild(toastContainer);
+                }
+                const bgClass = tipo === 'success' ? 'bg-success text-white' : tipo === 'danger' ? 'bg-danger text-white' : 'bg-warning text-dark';
+                const toastId = 'toast-' + Date.now();
+                toastContainer.insertAdjacentHTML('beforeend', `<div id="${toastId}" class="toast align-items-center ${bgClass} border-0 shadow-lg" role="alert" style="border-radius:16px;"><div class="d-flex"><div class="toast-body fw-semibold">${mensaje}</div><button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button></div></div>`);
+                const toast = new bootstrap.Toast(document.getElementById(toastId), { delay: 3000 });
+                toast.show();
+                document.getElementById(toastId).addEventListener('hidden.bs.toast', (e) => e.target.remove());
+            }
+    </script>
+</body>
+</html>

@@ -45,6 +45,11 @@
                 <i class="bi bi-boxes"></i> Inventario
             </a>
         </li>
+        <li class="nav-item">
+            <a class="nav-link @(activo == "Produccion" ? "active" : "")" asp-controller="Produccion" asp-action="Index">
+                <i class="bi bi-boxes"></i> Produccion
+            </a>
+        </li>
     </ul>
 
     <div class="sidebar-footer">

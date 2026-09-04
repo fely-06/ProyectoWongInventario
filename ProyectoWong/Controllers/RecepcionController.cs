@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using ProyectoWong.Data;
 using ProyectoWong.Helpers;
 using ProyectoWong.Models;
+using ProyectoWong.Models.Produccion;
 using ProyectoWong.Models.Recepcion;
 
 namespace ProyectoWong.Controllers
@@ -334,8 +335,9 @@ namespace ProyectoWong.Controllers
             using var transaction = await _context.Database.BeginTransactionAsync();
             try
             {
+                // 1. Traer la recepción, la OC y los detalles con sus pallets y movimientos
                 var recepcion = await _context.Recepciones
-                    .Include(r => r.OrdenCompra) // <-- Importante incluir la OC
+                    .Include(r => r.OrdenCompra)
                     .Include(r => r.Detalles)
                         .ThenInclude(d => d.Pallets)
                             .ThenInclude(p => p.Movimientos)
@@ -347,7 +349,7 @@ namespace ProyectoWong.Controllers
                 if (recepcion.Detalles == null || !recepcion.Detalles.Any())
                     return Json(Respuesta.Error("La recepción no tiene lotes capturados"));
 
-                // Validar que los lotes APROBADOS tengan ubicación
+                // 2. Validar que los lotes APROBADOS tengan ubicación
                 var lotesAprobadosSinUbicacion = recepcion.Detalles
                     .Where(d => d.Estado == "Aprobado")
                     .Any(d => d.Pallets == null || !d.Pallets.Any(p => p.Movimientos != null && p.Movimientos.Any()));
@@ -355,35 +357,105 @@ namespace ProyectoWong.Controllers
                 if (lotesAprobadosSinUbicacion)
                     return Json(Respuesta.Error("Hay lotes APROBADOS sin ubicación asignada. No se puede completar."));
 
-                // 1. Cerrar la recepción
+                // 3. Cerrar la recepción
                 recepcion.Estado = "Completada";
+                string mensajeConfirmacion = "Recepción confirmada exitosamente.";
 
-                // 2. Actualizar el estado de la Orden de Compra
+                // 4. Actualizar el estado de la Orden de Compra y generar OP si aplica
                 if (recepcion.OrdenCompra != null)
                 {
-                    bool hayLotesRechazados = recepcion.Detalles.Any(d => d.Estado == "Rechazado");
+                    var detallesOC = await _context.OrdenCompraDetalle
+                        .Where(d => d.OrdenCmpraId == recepcion.OrdenCompra.Id)
+                        .ToListAsync();
 
-                    if (hayLotesRechazados)
+                    bool ordenCompleta = true;
+
+                    foreach (var detalleOC in detallesOC)
                     {
-                        // Si hubo rechazos, la OC no se recibió al 100%. 
-                        // Queda disponible para una futura recepción de reemplazo.
-                        recepcion.OrdenCompra.Estado = "Parcialmente Recibida";
+                        int totalAprobado = await _context.RecepcionDetalles
+                            .Where(rd => rd.Recepcion.OrdenCompraId == recepcion.OrdenCompra.Id
+                                      && rd.ComponenteId == detalleOC.ComponenteId
+                                      && rd.Estado == "Aprobado")
+                            .SumAsync(rd => rd.CantidadRecibida);
+
+                        if (totalAprobado < detalleOC.CantidadEsperada)
+                        {
+                            ordenCompleta = false;
+                            break;
+                        }
+                    }
+
+                    if (ordenCompleta)
+                    {
+                        recepcion.OrdenCompra.Estado = "Recibida";
+                        mensajeConfirmacion += " La OC está 100% recibida.";
+
+                        var producto = await _context.Productos
+                            .Include(p => p.Componentes).ThenInclude(pc => pc.Componente)
+                            .FirstOrDefaultAsync(p => p.Activo);
+
+                        if (producto != null)
+                        {
+                            int cantidadAProducir = int.MaxValue;
+
+                            foreach (var pc in producto.Componentes)
+                            {
+                                int totalAprobado = await _context.RecepcionDetalles
+                                    .Where(rd => rd.Recepcion.OrdenCompraId == recepcion.OrdenCompra.Id
+                                              && rd.ComponenteId == pc.ComponenteId
+                                              && rd.Estado == "Aprobado")
+                                    .SumAsync(rd => rd.CantidadRecibida);
+
+                                if (pc.CantidadRequerida > 0)
+                                {
+                                    int unidadesPosibles = totalAprobado / pc.CantidadRequerida;
+                                    cantidadAProducir = Math.Min(cantidadAProducir, unidadesPosibles);
+                                }
+                            }
+
+                            if (cantidadAProducir > 0 && cantidadAProducir != int.MaxValue)
+                            {
+                                var ordenProduccion = new OrdenProduccion
+                                {
+                                    NumeroOP = $"OP-{DateTime.Now:yyyyMMdd}-{Guid.NewGuid().ToString().Substring(0, 6).ToUpper()}",
+                                    ProductoId = producto.Id,
+                                    CantidadAProducir = cantidadAProducir,
+                                    Estado = "Pendiente",
+                                    FechaCreacion = DateTime.Now,
+                                    OrdenCompraId = recepcion.OrdenCompra.Id
+                                };
+
+                                _context.OrdenProduccion.Add(ordenProduccion);
+
+                                // ✅ CORRECCIÓN CLAVE: Guardamos AHORA para que la base de datos genere el Id real
+                                await _context.SaveChangesAsync();
+
+                                // ✅ Ahora ordenProduccion.Id ya tiene un valor real (ej. 1, 2, 3...)
+                                foreach (var pc in producto.Componentes)
+                                {
+                                    _context.OrdenProduccionDetalle.Add(new OrdenProduccionDetalle
+                                    {
+                                        OrdenProduccionId = ordenProduccion.Id, // ¡Ahora sí funciona!
+                                        ComponenteId = pc.ComponenteId,
+                                        CantidadRequerida = pc.CantidadRequerida * cantidadAProducir
+                                    });
+                                }
+                                mensajeConfirmacion += $" Se generó automáticamente la Orden de Producción {ordenProduccion.NumeroOP} para {cantidadAProducir} unidades.";
+                            }
+                        }
                     }
                     else
                     {
-                        // Todo lo recibido fue aprobado
-                        recepcion.OrdenCompra.Estado = "Recibida";
+                        recepcion.OrdenCompra.Estado = "Parcialmente Recibida";
+                        mensajeConfirmacion += " Aún falta material por recibir. La OC queda en estado 'Parcialmente Recibida'.";
                     }
                 }
 
+                // Guardado final de todos los cambios (incluyendo los detalles de producción)
                 await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
 
-                string mensaje = recepcion.OrdenCompra?.Estado == "Parcialmente Recibida"
-                    ? "Recepción completada. La OC queda como 'Parcialmente Recibida' debido a lotes rechazados."
-                    : "Recepción confirmada. La Orden de Compra ha sido marcada como 'Recibida'.";
-
-                return Json(Respuesta.OK(mensaje));
+                return Json(Respuesta.OK(mensajeConfirmacion));
             }
             catch (Exception e)
             {
