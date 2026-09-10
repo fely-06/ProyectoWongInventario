@@ -247,6 +247,108 @@
                 border-top: 2px solid var(--color-azul-claro);
                 padding: 1.5rem 2rem;
             }
+
+            /* --- Simulación de producción --- */
+            .sim-icon-wrap {
+                width: 90px;
+                height: 90px;
+                margin: 0 auto 1.25rem;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                background: linear-gradient(135deg, var(--color-verde) 0%, var(--color-aqua) 100%);
+                box-shadow: 0 8px 20px rgba(154, 191, 23, 0.35);
+            }
+
+                .sim-icon-wrap i {
+                    font-size: 2.5rem;
+                    color: white;
+                }
+
+                .sim-icon-wrap.spin i {
+                    animation: sim-spin 0.9s linear infinite;
+                }
+
+            @@keyframes sim-spin {
+                from {
+                    transform: rotate(0deg);
+                }
+
+                to {
+                    transform: rotate(360deg);
+                }
+            }
+
+            .sim-progress {
+                height: 14px;
+                border-radius: 50px;
+                background-color: var(--color-azul-claro);
+                overflow: hidden;
+                margin-bottom: 1rem;
+            }
+
+                .sim-progress .sim-progress-bar {
+                    height: 100%;
+                    width: 0%;
+                    border-radius: 50px;
+                    background: linear-gradient(135deg, var(--color-verde) 0%, var(--color-aqua) 100%);
+                    transition: width 0.35s ease;
+                }
+
+            .sim-step-list {
+                list-style: none;
+                padding: 0;
+                margin: 0;
+            }
+
+                .sim-step-list li {
+                    display: flex;
+                    align-items: center;
+                    gap: 0.6rem;
+                    padding: 0.4rem 0;
+                    font-size: 0.9rem;
+                    color: var(--color-texto-claro);
+                }
+
+                    .sim-step-list li .sim-step-icon {
+                        width: 22px;
+                        text-align: center;
+                        flex-shrink: 0;
+                    }
+
+                    .sim-step-list li.sim-step-active {
+                        color: var(--color-texto);
+                        font-weight: 700;
+                    }
+
+                    .sim-step-list li.sim-step-done {
+                        color: var(--color-verde);
+                    }
+
+            /* --- Alerta de stock insuficiente / compra automática --- */
+            .alert-faltantes {
+                margin-top: 0.5rem;
+                background-color: #fef3c7;
+                border-radius: 16px;
+                padding: 1rem 1.25rem;
+            }
+
+            .lista-faltantes {
+                margin: 0 0 1rem;
+                padding-left: 1.2rem;
+                font-size: 0.85rem;
+                color: #92400e;
+            }
+
+                .lista-faltantes li {
+                    margin-bottom: 0.2rem;
+                }
+
+            .btn-cute-sm {
+                padding: 0.45rem 1rem;
+                font-size: 0.85rem;
+            }
     </style>
 </head>
 <body>
@@ -256,14 +358,9 @@
             <div class="content-card">
                 <div class="card-header-custom">
                     <h3><i class="bi bi-gear-wide-connected"></i> Órdenes de Producción</h3>
-                    <div class="d-flex gap-2">
-                        <button class="btn-cute-secondary" onclick="abrirModalSimular()">
-                            <i class="bi bi-lightning-charge-fill"></i> Simular Producción
-                        </button>
-                        <button class="btn-cute-primary" onclick="abrirModalNueva()">
-                            <i class="bi bi-plus-lg"></i> Nueva Orden
-                        </button>
-                    </div>
+                    <button class="btn-cute-primary" onclick="abrirModalNueva()">
+                        <i class="bi bi-plus-lg"></i> Nueva Orden
+                    </button>
                 </div>
                 <div class="table-responsive">
                     <table class="table-cute">
@@ -309,46 +406,48 @@
                         <input type="text" class="form-control" id="nNumeroOC" placeholder="Ej. OC-20260903-ABC123">
                         <small class="text-muted">Si la dejas vacía, se marcará como "Manual".</small>
                     </div>
+
+                    <!-- Se muestra solo cuando el inventario no alcanza para fabricar -->
+                    <div id="alertFaltantes" class="d-none">
+                        <div class="alert-faltantes">
+                            <p class="mb-2 fw-bold text-warning-emphasis">
+                                <i class="bi bi-exclamation-triangle-fill"></i> Stock insuficiente para producir
+                            </p>
+                            <ul id="listaFaltantes" class="lista-faltantes"></ul>
+                            <div class="mb-2">
+                                <label class="form-label small mb-1">Proveedor para la orden de compra</label>
+                                <select class="form-select form-select-sm" id="faltanteProveedorId"></select>
+                            </div>
+                            <button type="button" class="btn-cute-primary btn-cute-sm w-100" onclick="crearOCAutomatica()">
+                                <i class="bi bi-cart-plus-fill"></i> Generar Orden de Compra automática
+                            </button>
+                        </div>
+                    </div>
                 </div>
                 <div class="modal-footer">
                     <button class="btn-cute-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button class="btn-cute-primary" onclick="guardarOrden()"><i class="bi bi-save-fill"></i> Crear</button>
+                    <button class="btn-cute-primary" id="btnCrearOrden" onclick="guardarOrden()"><i class="bi bi-save-fill"></i> Crear</button>
                 </div>
             </div>
         </div>
     </div>
 
     <!-- MODAL SIMULACIÓN DE PRODUCCIÓN -->
-    <div class="modal fade" id="modalSimular" tabindex="-1">
-        <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal fade" id="modalSimulacion" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+        <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title"><i class="bi bi-lightning-charge-fill"></i> Simular Producción</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    <h5 class="modal-title"><i class="bi bi-fan"></i> Fabricando <span id="simProductoNombre"></span></h5>
                 </div>
                 <div class="modal-body">
-                    <div id="simularForm">
-                        <p class="text-muted">
-                            Crea y completa una orden de producción en un solo paso: descuenta los componentes
-                            necesarios del inventario y suma el producto terminado. Útil para probar rápido, por
-                            ejemplo, una corrida del <strong>Mini Ventilador Portátil V1</strong> (motor, aspas, case y batería).
-                        </p>
-                        <div class="mb-3">
-                            <label class="form-label">Producto a Fabricar</label>
-                            <select class="form-select" id="sProductoId"></select>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Cantidad a Producir</label>
-                            <input type="number" class="form-control" id="sCantidad" min="1" value="10">
-                        </div>
+                    <div class="sim-icon-wrap spin">
+                        <i class="bi bi-fan"></i>
                     </div>
-                    <div id="simularResultado" style="display:none;"></div>
-                </div>
-                <div class="modal-footer">
-                    <button class="btn-cute-secondary" data-bs-dismiss="modal">Cerrar</button>
-                    <button class="btn-cute-primary" id="btnEjecutarSimulacion" onclick="ejecutarSimulacion()">
-                        <i class="bi bi-play-fill"></i> Ejecutar Simulación
-                    </button>
+                    <div class="sim-progress">
+                        <div class="sim-progress-bar" id="simProgressBar"></div>
+                    </div>
+                    <div class="text-center text-muted small mb-3" id="simPorcentaje">0%</div>
+                    <ul class="sim-step-list" id="simStepList"></ul>
                 </div>
             </div>
         </div>
@@ -357,24 +456,47 @@
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.js"></script>
     <script>
-            var modalNueva, modalSimular;
+            var modalNueva, modalSimulacion;
+
+            // Pasos genéricos del ensamblaje de un ventilador portátil.
+            // Se muestran uno a uno mientras la barra de progreso avanza.
+            var PASOS_SIMULACION = [
+                { texto: 'Verificando componentes en inventario', icono: 'bi-clipboard-check' },
+                { texto: 'Ubicando motor', icono: 'bi-gear-fill' },
+                { texto: 'Colocando aspas', icono: 'bi-fan' },
+                { texto: 'Ensamblando carcasa', icono: 'bi-box-seam' },
+                { texto: 'Conectando cableado y batería', icono: 'bi-plug-fill' },
+                { texto: 'Control de calidad', icono: 'bi-patch-check-fill' },
+                { texto: 'Actualizando inventario', icono: 'bi-arrow-repeat' }
+            ];
+
             $(function() {
                 modalNueva = new bootstrap.Modal(document.getElementById('modalNueva'));
-                modalSimular = new bootstrap.Modal(document.getElementById('modalSimular'));
+                modalSimulacion = new bootstrap.Modal(document.getElementById('modalSimulacion'));
                 cargarProductos();
                 cargarOrdenes();
+                cargarProveedoresFaltantes();
             });
+
+            function cargarProveedoresFaltantes() {
+                $.get('/Proveedor/consultar-proveedores', function(r) {
+                    if (r.success) {
+                        var sel = $('#faltanteProveedorId');
+                        sel.empty();
+                        $.each(r.result, function(i, p) {
+                            sel.append(`<option value="${p.id}">${p.nombre}</option>`);
+                        });
+                    }
+                });
+            }
 
             function cargarProductos() {
                 $.get('/Produccion/obtener-productos', function(r) {
                     if (r.success) {
                         var sel = $('#nProductoId');
-                        var selSimular = $('#sProductoId');
                         sel.empty();
-                        selSimular.empty();
                         $.each(r.result, function(i, p) {
                             sel.append(`<option value="${p.id}">${p.nombre}</option>`);
-                            selSimular.append(`<option value="${p.id}">${p.nombre}</option>`);
                         });
                     }
                 });
@@ -396,7 +518,7 @@
                             : '<span class="text-muted small">Finalizada</span>';
 
                         tbody.append(`
-                                    <tr>
+                                    <tr id="fila-op-${o.id}" data-producto="${o.producto}">
                                         <td><strong>${o.numeroOP}</strong></td>
                                         <td>${o.producto}</td>
                                         <td class="text-center">${o.cantidad} uds</td>
@@ -412,6 +534,7 @@
             function abrirModalNueva() {
                 $('#nCantidad').val(1);
                 $('#nNumeroOC').val('');
+                ocultarFaltantes();
                 modalNueva.show();
             }
 
@@ -427,13 +550,22 @@
                     return;
                 }
 
+                ocultarFaltantes();
+
                 $.ajax({
                     url: '/Produccion/generar-orden',
                     type: 'POST',
                     contentType: 'application/json',
                     data: JSON.stringify(data),
                     success: function(r) {
-                        if (!r.success) { showToast(r.mensaje, 'danger'); return; }
+                        if (!r.success) {
+                            if (r.stockInsuficiente) {
+                                mostrarFaltantes(r);
+                            } else {
+                                showToast(r.mensaje, 'danger');
+                            }
+                            return;
+                        }
                         showToast(r.mensaje, 'success');
                         modalNueva.hide();
                         cargarOrdenes();
@@ -441,98 +573,141 @@
                 });
             }
 
-            function completarProduccion(id) {
-                if (!confirm('¿Confirmar que la producción terminó? Esto descontará los componentes del inventario y sumará el producto final.')) return;
-
-                $.ajax({
-                    url: '/Produccion/completar/' + id,
-                    type: 'POST',
-                    success: function(r) {
-                        if (!r.success) { showToast(r.mensaje, 'danger'); return; }
-                        showToast(r.mensaje, 'success');
-                        cargarOrdenes();
-                    }
+            // Muestra, dentro del mismo modal de "Nueva Orden", el detalle de los
+            // componentes que faltan y habilita la opción de generar la OC automáticamente.
+            function mostrarFaltantes(r) {
+                var lista = $('#listaFaltantes');
+                lista.empty();
+                $.each(r.componentesFaltantes, function(i, c) {
+                    lista.append(`<li>${c.nombre}: faltan <strong>${c.faltante}</strong> (disponible ${c.disponible} / requerido ${c.requerido})</li>`);
                 });
+
+                $('#alertFaltantes')
+                    .data('producto-id', r.productoId)
+                    .data('cantidad', r.cantidad)
+                    .removeClass('d-none');
             }
 
-            function abrirModalSimular() {
-                $('#sCantidad').val(10);
-                $('#simularForm').show();
-                $('#simularResultado').hide().empty();
-                $('#btnEjecutarSimulacion').show();
-                modalSimular.show();
+            function ocultarFaltantes() {
+                $('#alertFaltantes').addClass('d-none');
+                $('#listaFaltantes').empty();
             }
 
-            function ejecutarSimulacion() {
-                var data = {
-                    ProductoId: parseInt($('#sProductoId').val()),
-                    Cantidad: parseInt($('#sCantidad').val())
-                };
+            function crearOCAutomatica() {
+                var productoId = $('#alertFaltantes').data('producto-id');
+                var cantidad = $('#alertFaltantes').data('cantidad');
+                var proveedorId = parseInt($('#faltanteProveedorId').val());
 
-                if (!data.ProductoId || !data.Cantidad || data.Cantidad <= 0) {
-                    showToast('Selecciona un producto y una cantidad válida', 'warning');
+                if (!proveedorId) {
+                    showToast('Selecciona un proveedor', 'warning');
                     return;
                 }
 
-                $('#btnEjecutarSimulacion').prop('disabled', true);
+                var fechaEsperada = new Date();
+                fechaEsperada.setDate(fechaEsperada.getDate() + 7); // plazo por defecto: 7 días
+
+                var data = {
+                    ProductoId: productoId,
+                    Cantidad: cantidad,
+                    ProveedorId: proveedorId,
+                    FechaEsperada: fechaEsperada.toISOString()
+                };
 
                 $.ajax({
-                    url: '/Produccion/simular',
+                    url: '/OrdenesCompra/guardar-orden',
                     type: 'POST',
                     contentType: 'application/json',
                     data: JSON.stringify(data),
                     success: function(r) {
-                        $('#btnEjecutarSimulacion').prop('disabled', false);
                         if (!r.success) { showToast(r.mensaje, 'danger'); return; }
-                        showToast(r.mensaje, 'success');
-                        mostrarResultadoSimulacion(r.result);
-                        cargarOrdenes();
+                        showToast(r.mensaje + ' Revísala en Órdenes de Compra.', 'success');
+                        modalNueva.hide();
                     },
                     error: function() {
-                        $('#btnEjecutarSimulacion').prop('disabled', false);
-                        showToast('Ocurrió un error al ejecutar la simulación', 'danger');
+                        showToast('Ocurrió un error al generar la orden de compra', 'danger');
                     }
                 });
             }
 
-            function mostrarResultadoSimulacion(res) {
-                $('#simularForm').hide();
-                $('#btnEjecutarSimulacion').hide();
+            function completarProduccion(id) {
+                // En vez del confirm() de antes, mostramos una simulación animada
+                // del ensamblaje mientras se procesa la orden en segundo plano.
+                var producto = $('#fila-op-' + id).data('producto') || 'producto';
+                $('#simProductoNombre').text(producto);
+                renderPasosSimulacion();
+                modalSimulacion.show();
 
-                var filas = '';
-                $.each(res.componentesConsumidos, function(i, c) {
-                    filas += `
-                                    <tr>
-                                        <td>${c.componente}</td>
-                                        <td class="text-center">${c.cantidadPorUnidad}</td>
-                                        <td class="text-center">${c.consumidoTotal}</td>
-                                        <td class="text-center">${c.stockAntes}</td>
-                                        <td class="text-center"><strong>${c.stockDespues}</strong></td>
-                                    </tr>`;
+                var totalPasos = PASOS_SIMULACION.length;
+                var pasoActual = 0;
+                var llamadaTerminada = false;
+                var resultado = null;
+
+                // Disparamos la petición real en paralelo a la animación.
+                $.ajax({
+                    url: '/Produccion/completar/' + id,
+                    type: 'POST',
+                    success: function(r) { resultado = r; },
+                    error: function() { resultado = { success: false, mensaje: 'Ocurrió un error al completar la producción' }; },
+                    complete: function() { llamadaTerminada = true; }
                 });
 
-                var html = `
-                            <div class="mb-3">
-                                <span class="badge-cute badge-cute-success">${res.numeroOP}</span>
-                                <p class="mt-2 mb-0">Se produjeron <strong>${res.unidadesProducidas}</strong> unidad(es) de <strong>${res.producto}</strong>.</p>
-                                <p class="text-muted">Stock del producto: ${res.stockProductoAntes} &rarr; <strong>${res.stockProductoDespues}</strong></p>
-                            </div>
-                            <div class="table-responsive">
-                                <table class="table-cute">
-                                    <thead>
-                                        <tr>
-                                            <th>Componente</th>
-                                            <th class="text-center">Por unidad</th>
-                                            <th class="text-center">Consumido</th>
-                                            <th class="text-center">Stock antes</th>
-                                            <th class="text-center">Stock después</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>${filas}</tbody>
-                                </table>
-                            </div>`;
+                var intervalo = setInterval(function() {
+                    if (pasoActual < totalPasos) {
+                        marcarPasoActivo(pasoActual);
+                        pasoActual++;
+                        actualizarProgreso(pasoActual, totalPasos);
+                    } else if (llamadaTerminada) {
+                        clearInterval(intervalo);
+                        finalizarSimulacion(resultado);
+                    }
+                    // Si la animación termina antes que la respuesta del servidor,
+                    // el intervalo simplemente espera (no incrementa más) hasta que llegue.
+                }, 550);
+            }
 
-                $('#simularResultado').html(html).show();
+            function renderPasosSimulacion() {
+                var lista = $('#simStepList');
+                lista.empty();
+                $.each(PASOS_SIMULACION, function(i, paso) {
+                    lista.append(`
+                                <li id="simPaso${i}">
+                                    <span class="sim-step-icon"><i class="bi ${paso.icono}"></i></span>
+                                    <span>${paso.texto}</span>
+                                </li>`);
+                });
+                $('#simProgressBar').css('width', '0%');
+                $('#simPorcentaje').text('0%');
+            }
+
+            function marcarPasoActivo(indice) {
+                $('.sim-step-list li').removeClass('sim-step-active');
+                for (var i = 0; i < indice; i++) {
+                    $('#simPaso' + i).removeClass('sim-step-active').addClass('sim-step-done');
+                }
+                $('#simPaso' + indice).addClass('sim-step-active');
+            }
+
+            function actualizarProgreso(pasosCompletados, totalPasos) {
+                var porcentaje = Math.round((pasosCompletados / totalPasos) * 100);
+                $('#simProgressBar').css('width', porcentaje + '%');
+                $('#simPorcentaje').text(porcentaje + '%');
+            }
+
+            function finalizarSimulacion(resultado) {
+                $('.sim-step-list li').removeClass('sim-step-active').addClass('sim-step-done');
+                $('#simProgressBar').css('width', '100%');
+                $('#simPorcentaje').text('100%');
+                $('.sim-icon-wrap').removeClass('spin');
+
+                setTimeout(function() {
+                    modalSimulacion.hide();
+                    if (!resultado || !resultado.success) {
+                        showToast((resultado && resultado.mensaje) || 'Ocurrió un error al completar la producción', 'danger');
+                        return;
+                    }
+                    showToast(resultado.mensaje, 'success');
+                    cargarOrdenes();
+                }, 500);
             }
 
             function showToast(mensaje, tipo) {
