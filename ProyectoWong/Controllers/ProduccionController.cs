@@ -188,7 +188,7 @@ namespace ProyectoWong.Controllers
                 // 2. Crear la OP (cabecera + receta)
                 var orden = new OrdenProduccion
                 {
-                    NumeroOP = $"OP-SIM-{DateTime.Now:yyyyMMdd}-{Guid.NewGuid().ToString().Substring(0, 6).ToUpper()}",
+                    NumeroOP = $"WO-SIM-{DateTime.Now:yyyyMMdd}-{Guid.NewGuid().ToString().Substring(0, 6).ToUpper()}",
                     ProductoId = producto.Id,
                     CantidadAProducir = request.Cantidad,
                     Estado = "Pendiente",
