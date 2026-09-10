@@ -77,7 +77,7 @@ namespace ProyectoWong.Controllers
                 // Crear la cabecera
                 var orden = new OrdenProduccion
                 {
-                    NumeroOP = $"OP-{DateTime.Now:yyyyMMdd}-{Guid.NewGuid().ToString().Substring(0, 6).ToUpper()}",
+                    NumeroOP = $"WO-{DateTime.Now:yyyyMMdd}-{Guid.NewGuid().ToString().Substring(0, 6).ToUpper()}",
                     ProductoId = request.ProductoId,
                     CantidadAProducir = request.Cantidad,
                     Estado = "Pendiente",
