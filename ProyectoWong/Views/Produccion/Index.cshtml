@@ -256,9 +256,14 @@
             <div class="content-card">
                 <div class="card-header-custom">
                     <h3><i class="bi bi-gear-wide-connected"></i> Órdenes de Producción</h3>
-                    <button class="btn-cute-primary" onclick="abrirModalNueva()">
-                        <i class="bi bi-plus-lg"></i> Nueva Orden
-                    </button>
+                    <div class="d-flex gap-2">
+                        <button class="btn-cute-secondary" onclick="abrirModalSimular()">
+                            <i class="bi bi-lightning-charge-fill"></i> Simular Producción
+                        </button>
+                        <button class="btn-cute-primary" onclick="abrirModalNueva()">
+                            <i class="bi bi-plus-lg"></i> Nueva Orden
+                        </button>
+                    </div>
                 </div>
                 <div class="table-responsive">
                     <table class="table-cute">
@@ -313,12 +318,49 @@
         </div>
     </div>
 
+    <!-- MODAL SIMULACIÓN DE PRODUCCIÓN -->
+    <div class="modal fade" id="modalSimular" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="bi bi-lightning-charge-fill"></i> Simular Producción</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="simularForm">
+                        <p class="text-muted">
+                            Crea y completa una orden de producción en un solo paso: descuenta los componentes
+                            necesarios del inventario y suma el producto terminado. Útil para probar rápido, por
+                            ejemplo, una corrida del <strong>Mini Ventilador Portátil V1</strong> (motor, aspas, case y batería).
+                        </p>
+                        <div class="mb-3">
+                            <label class="form-label">Producto a Fabricar</label>
+                            <select class="form-select" id="sProductoId"></select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Cantidad a Producir</label>
+                            <input type="number" class="form-control" id="sCantidad" min="1" value="10">
+                        </div>
+                    </div>
+                    <div id="simularResultado" style="display:none;"></div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn-cute-secondary" data-bs-dismiss="modal">Cerrar</button>
+                    <button class="btn-cute-primary" id="btnEjecutarSimulacion" onclick="ejecutarSimulacion()">
+                        <i class="bi bi-play-fill"></i> Ejecutar Simulación
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.js"></script>
     <script>
-            var modalNueva;
+            var modalNueva, modalSimular;
             $(function() {
                 modalNueva = new bootstrap.Modal(document.getElementById('modalNueva'));
+                modalSimular = new bootstrap.Modal(document.getElementById('modalSimular'));
                 cargarProductos();
                 cargarOrdenes();
             });
@@ -327,9 +369,12 @@
                 $.get('/Produccion/obtener-productos', function(r) {
                     if (r.success) {
                         var sel = $('#nProductoId');
+                        var selSimular = $('#sProductoId');
                         sel.empty();
+                        selSimular.empty();
                         $.each(r.result, function(i, p) {
                             sel.append(`<option value="${p.id}">${p.nombre}</option>`);
+                            selSimular.append(`<option value="${p.id}">${p.nombre}</option>`);
                         });
                     }
                 });
@@ -408,6 +453,86 @@
                         cargarOrdenes();
                     }
                 });
+            }
+
+            function abrirModalSimular() {
+                $('#sCantidad').val(10);
+                $('#simularForm').show();
+                $('#simularResultado').hide().empty();
+                $('#btnEjecutarSimulacion').show();
+                modalSimular.show();
+            }
+
+            function ejecutarSimulacion() {
+                var data = {
+                    ProductoId: parseInt($('#sProductoId').val()),
+                    Cantidad: parseInt($('#sCantidad').val())
+                };
+
+                if (!data.ProductoId || !data.Cantidad || data.Cantidad <= 0) {
+                    showToast('Selecciona un producto y una cantidad válida', 'warning');
+                    return;
+                }
+
+                $('#btnEjecutarSimulacion').prop('disabled', true);
+
+                $.ajax({
+                    url: '/Produccion/simular',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify(data),
+                    success: function(r) {
+                        $('#btnEjecutarSimulacion').prop('disabled', false);
+                        if (!r.success) { showToast(r.mensaje, 'danger'); return; }
+                        showToast(r.mensaje, 'success');
+                        mostrarResultadoSimulacion(r.result);
+                        cargarOrdenes();
+                    },
+                    error: function() {
+                        $('#btnEjecutarSimulacion').prop('disabled', false);
+                        showToast('Ocurrió un error al ejecutar la simulación', 'danger');
+                    }
+                });
+            }
+
+            function mostrarResultadoSimulacion(res) {
+                $('#simularForm').hide();
+                $('#btnEjecutarSimulacion').hide();
+
+                var filas = '';
+                $.each(res.componentesConsumidos, function(i, c) {
+                    filas += `
+                                    <tr>
+                                        <td>${c.componente}</td>
+                                        <td class="text-center">${c.cantidadPorUnidad}</td>
+                                        <td class="text-center">${c.consumidoTotal}</td>
+                                        <td class="text-center">${c.stockAntes}</td>
+                                        <td class="text-center"><strong>${c.stockDespues}</strong></td>
+                                    </tr>`;
+                });
+
+                var html = `
+                            <div class="mb-3">
+                                <span class="badge-cute badge-cute-success">${res.numeroOP}</span>
+                                <p class="mt-2 mb-0">Se produjeron <strong>${res.unidadesProducidas}</strong> unidad(es) de <strong>${res.producto}</strong>.</p>
+                                <p class="text-muted">Stock del producto: ${res.stockProductoAntes} &rarr; <strong>${res.stockProductoDespues}</strong></p>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="table-cute">
+                                    <thead>
+                                        <tr>
+                                            <th>Componente</th>
+                                            <th class="text-center">Por unidad</th>
+                                            <th class="text-center">Consumido</th>
+                                            <th class="text-center">Stock antes</th>
+                                            <th class="text-center">Stock después</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>${filas}</tbody>
+                                </table>
+                            </div>`;
+
+                $('#simularResultado').html(html).show();
             }
 
             function showToast(mensaje, tipo) {
