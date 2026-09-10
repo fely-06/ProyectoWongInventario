@@ -19,6 +19,9 @@ namespace ProyectoWong.Models
         [Column(TypeName = "decimal(18,2)")]
         public decimal PrecioBase { get; set; } // Precio unitario base
 
+        [Range(0, int.MaxValue, ErrorMessage = "La cantidad no puede ser negativa")]
+        public int Cantidad { get; set; } = 0; // Stock de producto terminado (se actualiza al completar una OP)
+
         public bool Activo { get; set; } = true;
         public DateTime FechaAlta { get; set; } = DateTime.Now;
 
