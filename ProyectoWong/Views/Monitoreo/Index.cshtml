@@ -1,0 +1,340 @@
+﻿@{
+    Layout = null;
+    ViewBag.Title = "Monitoreo - SIV";
+}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewBag.Title</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
+
+    <style>
+            :root {
+                --color-amarillo: #f3eeb6;
+                --color-verde-claro: #d4db74;
+                --color-verde: #9abf17;
+                --color-aqua: #84bf93;
+                --color-aqua-claro: #aed9c5;
+                --color-azul-claro: #ddecf1;
+                --color-texto: #4a5568;
+                --color-texto-claro: #718096;
+                --color-blanco-glass: rgba(255, 255, 255, 0.85);
+                --color-rojo: #e11d48;
+                --color-rojo-claro: #fee2e2;
+            }
+
+            .sidebar {
+                width: 260px;
+                background: var(--color-blanco-glass);
+                backdrop-filter: blur(12px);
+                border-radius: 24px;
+                padding: 2rem 1.5rem;
+                display: flex;
+                flex-direction: column;
+                box-shadow: 0 10px 30px rgba(132, 191, 147, 0.15);
+                flex-shrink: 0;
+            }
+
+            .sidebar-logo {
+                color: var(--color-verde);
+                font-size: 1.8rem;
+                font-weight: 800;
+                display: flex;
+                align-items: center;
+                gap: 0.5rem;
+                margin-bottom: 2.5rem;
+            }
+
+            .nav-menu {
+                list-style: none;
+                padding: 0;
+                margin: 0;
+                flex-grow: 1;
+            }
+
+            .nav-link {
+                display: flex;
+                align-items: center;
+                gap: 0.75rem;
+                padding: 0.85rem 1.25rem;
+                border-radius: 16px;
+                color: var(--color-texto);
+                font-weight: 700;
+                text-decoration: none;
+                transition: all 0.3s;
+                border: 2px solid transparent;
+                margin-bottom: 0.75rem;
+            }
+
+                .nav-link:hover {
+                    background-color: var(--color-amarillo);
+                    color: var(--color-verde);
+                }
+
+                .nav-link.active {
+                    background: linear-gradient(135deg, var(--color-verde) 0%, var(--color-aqua) 100%);
+                    color: white;
+                }
+
+
+            body {
+                font-family: 'Nunito', sans-serif;
+                background: linear-gradient(135deg, var(--color-azul-claro) 0%, var(--color-amarillo) 50%, var(--color-aqua-claro) 100%);
+                min-height: 100vh;
+                margin: 0;
+                position: relative;
+                overflow-x: hidden;
+                color: var(--color-texto);
+            }
+
+            /* IMPORTANTE: @@keyframes y @@media deben estar al inicio absoluto de la línea sin espacios */
+            @@keyframes float {
+                0%, 100% {
+                    transform: translateY(0px) scale(1);
+                }
+
+                50% {
+                    transform: translateY(-20px) scale(1.05);
+                }
+            }
+
+            @@keyframes slideUp {
+                from {
+                    opacity: 0;
+                    transform: translateY(20px);
+                }
+
+                to {
+                    opacity: 1;
+                    transform: translateY(0);
+                }
+            }
+
+            .bg-blob {
+                position: fixed;
+                border-radius: 50%;
+                filter: blur(60px);
+                z-index: 0;
+                opacity: 0.6;
+                animation: float 8s ease-in-out infinite;
+            }
+
+            .blob-1 {
+                width: 400px;
+                height: 400px;
+                background: var(--color-verde-claro);
+                top: -100px;
+                left: -100px;
+            }
+
+            .blob-2 {
+                width: 350px;
+                height: 350px;
+                background: var(--color-aqua);
+                bottom: -80px;
+                right: -80px;
+                animation-delay: 2s;
+            }
+
+            .blob-3 {
+                width: 250px;
+                height: 250px;
+                background: var(--color-amarillo);
+                top: 30%;
+                right: 20%;
+                animation-delay: 4s;
+            }
+
+            .dashboard-wrapper {
+                display: flex;
+                min-height: 100vh;
+                padding: 1.5rem;
+                gap: 1.5rem;
+                position: relative;
+                z-index: 1;
+            }
+
+            .main-content {
+                flex-grow: 1;
+                display: flex;
+                flex-direction: column;
+                gap: 1.5rem;
+            }
+
+            .top-bar {
+                background: var(--color-blanco-glass);
+                backdrop-filter: blur(12px);
+                -webkit-backdrop-filter: blur(12px);
+                border-radius: 24px;
+                padding: 1.25rem 2rem;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                box-shadow: 0 10px 30px rgba(132, 191, 147, 0.15), 0 0 0 2px rgba(255, 255, 255, 0.6);
+            }
+
+            .welcome-text h2 {
+                margin: 0;
+                font-size: 1.5rem;
+                font-weight: 800;
+                color: var(--color-texto);
+            }
+
+            .welcome-text p {
+                margin: 0;
+                font-size: 0.9rem;
+                color: var(--color-texto-claro);
+                font-weight: 600;
+            }
+
+            .content-card {
+                background: var(--color-blanco-glass);
+                backdrop-filter: blur(12px);
+                -webkit-backdrop-filter: blur(12px);
+                border-radius: 24px;
+                padding: 2rem;
+                box-shadow: 0 10px 30px rgba(132, 191, 147, 0.15), 0 0 0 2px rgba(255, 255, 255, 0.6);
+                animation: slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+            }
+
+            .card-header-custom {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 1.5rem;
+            }
+
+                .card-header-custom h3 {
+                    margin: 0;
+                    font-size: 1.15rem;
+                    font-weight: 800;
+                    color: var(--color-verde);
+                    display: flex;
+                    align-items: center;
+                    gap: 0.5rem;
+                }
+
+            /* ── Menú de monitoreo ────────────────────────────────────── */
+            .menu-monitoreo {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+                gap: 1.5rem;
+            }
+
+            .menu-card {
+                background: white;
+                border-radius: 20px;
+                padding: 1.75rem;
+                text-decoration: none;
+                color: var(--color-texto);
+                box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+                transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+                display: flex;
+                flex-direction: column;
+                gap: 0.9rem;
+                border: 2px solid transparent;
+            }
+
+                .menu-card:hover {
+                    transform: translateY(-4px);
+                    box-shadow: 0 10px 25px rgba(132, 191, 147, 0.25);
+                    color: var(--color-texto);
+                    border-color: var(--color-aqua-claro);
+                }
+
+            .menu-icon {
+                width: 56px;
+                height: 56px;
+                border-radius: 16px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 1.6rem;
+                color: white;
+                background: linear-gradient(135deg, var(--color-verde), var(--color-aqua));
+            }
+
+            .menu-card h4 {
+                margin: 0;
+                font-size: 1.05rem;
+                font-weight: 800;
+            }
+
+            .menu-card p {
+                margin: 0;
+                font-size: 0.85rem;
+                color: var(--color-texto-claro);
+                font-weight: 600;
+                flex-grow: 1;
+            }
+
+            .menu-card .ir-link {
+                display: inline-flex;
+                align-items: center;
+                gap: 0.4rem;
+                font-weight: 700;
+                font-size: 0.85rem;
+                color: var(--color-verde);
+            }
+
+            .menu-card:hover .ir-link i {
+                transform: translateX(4px);
+            }
+
+            .menu-card .ir-link i {
+                transition: transform 0.3s ease;
+            }
+
+            @@media (max-width: 768px) {
+                .dashboard-wrapper {
+                    flex-direction: column;
+                    padding: 1rem;
+                }
+            }
+    </style>
+</head>
+<body>
+    <div class="bg-blob blob-1"></div>
+    <div class="bg-blob blob-2"></div>
+    <div class="bg-blob blob-3"></div>
+
+    <div class="dashboard-wrapper">
+        @await Html.PartialAsync("_Sidebar")
+
+        <main class="main-content">
+            <div class="top-bar">
+                <div class="welcome-text">
+                    <h2><i class="bi bi-activity"></i> Monitoreo</h2>
+                    <p>Selecciona el tipo de monitoreo que deseas revisar.</p>
+                </div>
+            </div>
+
+            <div class="content-card">
+                <div class="card-header-custom">
+                    <h3><i class="bi bi-grid-fill"></i> Opciones de monitoreo</h3>
+                </div>
+
+                <div class="menu-monitoreo">
+                    <a class="menu-card" asp-controller="Monitoreo" asp-action="Produccion">
+                        <div class="menu-icon"><i class="bi bi-gear-fill"></i></div>
+                        <h4>Monitoreo de producción</h4>
+                        <p>Visualiza en tiempo real el estado y avance de las líneas de producción.</p>
+                        <span class="ir-link">Ir a producción <i class="bi bi-arrow-right"></i></span>
+                    </a>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+</body>
+</html>

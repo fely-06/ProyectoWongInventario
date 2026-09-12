@@ -1,0 +1,245 @@
+﻿@{
+    Layout = null;
+    ViewBag.Title = "Monitoreo de Producción - SIV";
+}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewBag.Title</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
+
+    <style>
+            :root {
+                --color-amarillo: #f3eeb6;
+                --color-verde-claro: #d4db74;
+                --color-verde: #9abf17;
+                --color-aqua: #84bf93;
+                --color-aqua-claro: #aed9c5;
+                --color-azul-claro: #ddecf1;
+                --color-texto: #4a5568;
+                --color-texto-claro: #718096;
+                --color-blanco-glass: rgba(255, 255, 255, 0.85);
+            }
+
+            .sidebar {
+                width: 260px;
+                background: var(--color-blanco-glass);
+                backdrop-filter: blur(12px);
+                border-radius: 24px;
+                padding: 2rem 1.5rem;
+                display: flex;
+                flex-direction: column;
+                box-shadow: 0 10px 30px rgba(132, 191, 147, 0.15);
+                flex-shrink: 0;
+            }
+
+            .sidebar-logo {
+                color: var(--color-verde);
+                font-size: 1.8rem;
+                font-weight: 800;
+                display: flex;
+                align-items: center;
+                gap: 0.5rem;
+                margin-bottom: 2.5rem;
+            }
+
+            .nav-menu {
+                list-style: none;
+                padding: 0;
+                margin: 0;
+                flex-grow: 1;
+            }
+
+            .nav-link {
+                display: flex;
+                align-items: center;
+                gap: 0.75rem;
+                padding: 0.85rem 1.25rem;
+                border-radius: 16px;
+                color: var(--color-texto);
+                font-weight: 700;
+                text-decoration: none;
+                transition: all 0.3s;
+                border: 2px solid transparent;
+                margin-bottom: 0.75rem;
+            }
+
+                .nav-link:hover {
+                    background-color: var(--color-amarillo);
+                    color: var(--color-verde);
+                }
+
+                .nav-link.active {
+                    background: linear-gradient(135deg, var(--color-verde) 0%, var(--color-aqua) 100%);
+                    color: white;
+                }
+
+            body {
+                font-family: 'Nunito', sans-serif;
+                background: linear-gradient(135deg, var(--color-azul-claro) 0%, var(--color-amarillo) 50%, var(--color-aqua-claro) 100%);
+                min-height: 100vh;
+                margin: 0;
+                position: relative;
+                overflow-x: hidden;
+                color: var(--color-texto);
+            }
+
+            @@keyframes float {
+                0%, 100% {
+                    transform: translateY(0px) scale(1);
+                }
+
+                50% {
+                    transform: translateY(-20px) scale(1.05);
+                }
+            }
+
+            .bg-blob {
+                position: fixed;
+                border-radius: 50%;
+                filter: blur(60px);
+                z-index: 0;
+                opacity: 0.6;
+                animation: float 8s ease-in-out infinite;
+            }
+
+            .blob-1 {
+                width: 400px;
+                height: 400px;
+                background: var(--color-verde-claro);
+                top: -100px;
+                left: -100px;
+            }
+
+            .blob-2 {
+                width: 350px;
+                height: 350px;
+                background: var(--color-aqua);
+                bottom: -80px;
+                right: -80px;
+                animation-delay: 2s;
+            }
+
+            .dashboard-wrapper {
+                display: flex;
+                min-height: 100vh;
+                padding: 1.5rem;
+                gap: 1.5rem;
+                position: relative;
+                z-index: 1;
+            }
+
+            .main-content {
+                flex-grow: 1;
+                display: flex;
+                flex-direction: column;
+                gap: 1.5rem;
+            }
+
+            .top-bar {
+                background: var(--color-blanco-glass);
+                backdrop-filter: blur(12px);
+                border-radius: 24px;
+                padding: 1.25rem 2rem;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                box-shadow: 0 10px 30px rgba(132, 191, 147, 0.15), 0 0 0 2px rgba(255, 255, 255, 0.6);
+            }
+
+            .welcome-text h2 {
+                margin: 0;
+                font-size: 1.5rem;
+                font-weight: 800;
+                color: var(--color-texto);
+            }
+
+            .welcome-text p {
+                margin: 0;
+                font-size: 0.9rem;
+                color: var(--color-texto-claro);
+                font-weight: 600;
+            }
+
+            .btn-volver {
+                display: inline-flex;
+                align-items: center;
+                gap: 0.4rem;
+                background: white;
+                border-radius: 50px;
+                padding: 0.5rem 1.1rem;
+                color: var(--color-verde);
+                font-weight: 700;
+                font-size: 0.85rem;
+                text-decoration: none;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            }
+
+                .btn-volver:hover {
+                    color: var(--color-verde);
+                    transform: translateY(-2px);
+                }
+
+            .content-card {
+                background: var(--color-blanco-glass);
+                backdrop-filter: blur(12px);
+                border-radius: 24px;
+                padding: 2rem;
+                box-shadow: 0 10px 30px rgba(132, 191, 147, 0.15), 0 0 0 2px rgba(255, 255, 255, 0.6);
+            }
+
+            .empty-state {
+                text-align: center;
+                padding: 2rem 1rem;
+                color: var(--color-texto-claro);
+                font-weight: 600;
+                font-size: 0.9rem;
+            }
+
+                .empty-state i {
+                    font-size: 1.8rem;
+                    display: block;
+                    margin-bottom: 0.5rem;
+                    color: var(--color-aqua);
+                }
+    </style>
+</head>
+<body>
+    <div class="bg-blob blob-1"></div>
+    <div class="bg-blob blob-2"></div>
+
+    <div class="dashboard-wrapper">
+        @await Html.PartialAsync("_Sidebar")
+
+        <main class="main-content">
+            <div class="top-bar">
+                <div class="welcome-text">
+                    <h2><i class="bi bi-gear-fill"></i> Monitoreo de producción</h2>
+                    <p>Estado en tiempo real de las líneas de producción.</p>
+                </div>
+                <a class="btn-volver" asp-controller="Monitoreo" asp-action="Index">
+                    <i class="bi bi-arrow-left"></i> Volver al menú
+                </a>
+            </div>
+
+            <div class="content-card">
+                <div class="empty-state">
+                    <i class="bi bi-tools"></i>
+                    Aquí irá el contenido del monitoreo de producción (gráficas, tablas, indicadores, etc).
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+</body>
+</html>
