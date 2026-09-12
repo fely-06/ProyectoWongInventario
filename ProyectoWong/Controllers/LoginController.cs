@@ -34,15 +34,14 @@ namespace ProyectoWong.Controllers
 
                     // Redirigir a la página principal si es exitoso
                     return RedirectToAction("Index", "Home");
-
-                    // Si falla, agregamos un error al modelo
-                    ModelState.AddModelError("", "Usuario o contraseña incorrectos");
                 }
+                // Si falla, agregamos un error al modelo
+                ModelState.AddModelError("", "Usuario o contraseña incorrectos");
 
                 // Si hay errores de validación, volvemos a mostrar la vista con los datos
-                return View(model);
+                return View("Index", model);
             }
-            return View(model);
+            return View("Index", model);
         }
 
         public IActionResult Logout()

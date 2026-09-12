@@ -66,12 +66,40 @@ namespace ProyectoWong.Controllers
 
                 if (producto == null) return Json(Respuesta.Error("Producto no encontrado"));
 
-                // Validar que haya stock suficiente de cada componente
+                // Validar que haya stock suficiente de cada componente.
+                // Revisamos TODOS los componentes (no solo el primero que falle) para
+                // poder devolver la lista completa de faltantes y así el frontend pueda
+                // ofrecer generar automáticamente la orden de compra correspondiente.
+                var componentesFaltantes = new List<object>();
                 foreach (var pc in producto.Componentes)
                 {
                     int requerido = pc.CantidadRequerida * request.Cantidad;
-                    if (pc.Componente.Cantidad < requerido)
-                        return Json(Respuesta.Error($"Stock insuficiente de '{pc.Componente.Nombre}'. Disponible: {pc.Componente.Cantidad}, Requerido: {requerido}"));
+                    int disponible = pc.Componente.Cantidad;
+                    if (disponible < requerido)
+                    {
+                        componentesFaltantes.Add(new
+                        {
+                            componenteId = pc.ComponenteId,
+                            nombre = pc.Componente.Nombre,
+                            disponible,
+                            requerido,
+                            faltante = requerido - disponible
+                        });
+                    }
+                }
+
+                if (componentesFaltantes.Any())
+                {
+                    return Json(new
+                    {
+                        success = false,
+                        mensaje = "Stock insuficiente para fabricar este producto.",
+                        stockInsuficiente = true,
+                        productoId = producto.Id,
+                        productoNombre = producto.Nombre,
+                        cantidad = request.Cantidad,
+                        componentesFaltantes
+                    });
                 }
 
                 // Crear la cabecera

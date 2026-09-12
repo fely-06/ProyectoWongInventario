@@ -21,6 +21,7 @@ using (var scope = app.Services.CreateScope())
     var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
     //db.Database.Migrate(); // aplica migraciones pendientes en la BD
     ProyectoWong.Helpers.DbSeeder.SeedAdminUser(db);
+    ProyectoWong.Helpers.DbSeeder.SeedVentiladorPortatil(db); // datos de ejemplo: motor, aspas, case y batería
 }
 // 4. CONFIGURAR EL PIPELINE HTTP (Middleware)
 if (!app.Environment.IsDevelopment())
