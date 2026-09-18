@@ -1,6 +1,7 @@
-﻿@{
+﻿@model List<ProyectoWong.Models.Monitoreo.ProcesoOrdenViewModel>
+@{
     Layout = null;
-    ViewBag.Title = "Monitoreo - SIV";
+    ViewBag.Title = "Monitoreo de Producción - SIV";
 }
 <!DOCTYPE html>
 <html lang="es">
@@ -27,8 +28,6 @@
                 --color-texto: #4a5568;
                 --color-texto-claro: #718096;
                 --color-blanco-glass: rgba(255, 255, 255, 0.85);
-                --color-rojo: #e11d48;
-                --color-rojo-claro: #fee2e2;
             }
 
             body {
@@ -41,7 +40,6 @@
                 color: var(--color-texto);
             }
 
-            /* IMPORTANTE: @@keyframes y @@media deben estar al inicio absoluto de la línea sin espacios */
             @@keyframes float {
                 0%, 100% {
                     transform: translateY(0px) scale(1);
@@ -49,18 +47,6 @@
 
                 50% {
                     transform: translateY(-20px) scale(1.05);
-                }
-            }
-
-            @@keyframes slideUp {
-                from {
-                    opacity: 0;
-                    transform: translateY(20px);
-                }
-
-                to {
-                    opacity: 1;
-                    transform: translateY(0);
                 }
             }
 
@@ -88,15 +74,6 @@
                 bottom: -80px;
                 right: -80px;
                 animation-delay: 2s;
-            }
-
-            .blob-3 {
-                width: 250px;
-                height: 250px;
-                background: var(--color-amarillo);
-                top: 30%;
-                right: 20%;
-                animation-delay: 4s;
             }
 
             .dashboard-wrapper {
@@ -226,7 +203,6 @@
             .top-bar {
                 background: var(--color-blanco-glass);
                 backdrop-filter: blur(12px);
-                -webkit-backdrop-filter: blur(12px);
                 border-radius: 24px;
                 padding: 1.25rem 2rem;
                 display: flex;
@@ -249,15 +225,47 @@
                 font-weight: 600;
             }
 
+            .btn-volver {
+                display: inline-flex;
+                align-items: center;
+                gap: 0.4rem;
+                background: white;
+                border-radius: 50px;
+                padding: 0.5rem 1.1rem;
+                color: var(--color-verde);
+                font-weight: 700;
+                font-size: 0.85rem;
+                text-decoration: none;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            }
+
+                .btn-volver:hover {
+                    color: var(--color-verde);
+                    transform: translateY(-2px);
+                }
+
             .content-card {
                 background: var(--color-blanco-glass);
                 backdrop-filter: blur(12px);
-                -webkit-backdrop-filter: blur(12px);
                 border-radius: 24px;
                 padding: 2rem;
                 box-shadow: 0 10px 30px rgba(132, 191, 147, 0.15), 0 0 0 2px rgba(255, 255, 255, 0.6);
-                animation: slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1);
             }
+
+            .empty-state {
+                text-align: center;
+                padding: 2rem 1rem;
+                color: var(--color-texto-claro);
+                font-weight: 600;
+                font-size: 0.9rem;
+            }
+
+                .empty-state i {
+                    font-size: 1.8rem;
+                    display: block;
+                    margin-bottom: 0.5rem;
+                    color: var(--color-aqua);
+                }
 
             .card-header-custom {
                 display: flex;
@@ -276,75 +284,98 @@
                     gap: 0.5rem;
                 }
 
-            /* ── Menú de monitoreo ────────────────────────────────────── */
-            .menu-monitoreo {
-                display: grid;
-                grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-                gap: 1.5rem;
+            .table-cute {
+                width: 100%;
+                border-collapse: separate;
+                border-spacing: 0 0.6rem;
             }
 
-            .menu-card {
-                background: white;
-                border-radius: 20px;
-                padding: 1.75rem;
-                text-decoration: none;
-                color: var(--color-texto);
-                box-shadow: 0 2px 8px rgba(0,0,0,0.03);
-                transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-                display: flex;
-                flex-direction: column;
-                gap: 0.9rem;
-                border: 2px solid transparent;
-            }
-
-                .menu-card:hover {
-                    transform: translateY(-4px);
-                    box-shadow: 0 10px 25px rgba(132, 191, 147, 0.25);
+                .table-cute thead th {
+                    background-color: var(--color-azul-claro);
                     color: var(--color-texto);
-                    border-color: var(--color-aqua-claro);
+                    font-weight: 700;
+                    font-size: 0.78rem;
+                    text-transform: uppercase;
+                    letter-spacing: 0.05em;
+                    padding: 0.75rem 1rem;
+                    border: none;
                 }
 
-            .menu-icon {
-                width: 56px;
-                height: 56px;
-                border-radius: 16px;
+                    .table-cute thead th:first-child {
+                        border-radius: 12px 0 0 12px;
+                    }
+
+                    .table-cute thead th:last-child {
+                        border-radius: 0 12px 12px 0;
+                    }
+
+                .table-cute tbody tr {
+                    background-color: white;
+                    box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+                    transition: all 0.2s ease;
+                }
+
+                    .table-cute tbody tr:hover {
+                        transform: scale(1.01);
+                        box-shadow: 0 4px 12px rgba(132, 191, 147, 0.2);
+                    }
+
+                .table-cute tbody td {
+                    padding: 0.85rem 1rem;
+                    vertical-align: middle;
+                    border: none;
+                    font-size: 0.88rem;
+                    color: var(--color-texto);
+                }
+
+                    .table-cute tbody td:first-child {
+                        border-radius: 12px 0 0 12px;
+                    }
+
+                    .table-cute tbody td:last-child {
+                        border-radius: 0 12px 12px 0;
+                    }
+
+            .badge-cute {
+                padding: 0.3rem 0.7rem;
+                border-radius: 50px;
+                font-size: 0.72rem;
+                font-weight: 700;
+                white-space: nowrap;
+            }
+
+            .badge-proceso {
+                background-color: var(--color-amarillo);
+                color: #857a10;
+            }
+
+            .progreso-wrap {
                 display: flex;
                 align-items: center;
-                justify-content: center;
-                font-size: 1.6rem;
-                color: white;
+                gap: 0.6rem;
+                min-width: 120px;
+            }
+
+            .progreso-bar {
+                flex-grow: 1;
+                height: 8px;
+                border-radius: 50px;
+                background-color: var(--color-azul-claro);
+                overflow: hidden;
+            }
+
+            .progreso-fill {
+                height: 100%;
+                border-radius: 50px;
                 background: linear-gradient(135deg, var(--color-verde), var(--color-aqua));
             }
 
-            .menu-card h4 {
-                margin: 0;
-                font-size: 1.05rem;
+            .progreso-label {
+                font-size: 0.78rem;
                 font-weight: 800;
-            }
-
-            .menu-card p {
-                margin: 0;
-                font-size: 0.85rem;
-                color: var(--color-texto-claro);
-                font-weight: 600;
-                flex-grow: 1;
-            }
-
-            .menu-card .ir-link {
-                display: inline-flex;
-                align-items: center;
-                gap: 0.4rem;
-                font-weight: 700;
-                font-size: 0.85rem;
                 color: var(--color-verde);
-            }
-
-            .menu-card:hover .ir-link i {
-                transform: translateX(4px);
-            }
-
-            .menu-card .ir-link i {
-                transition: transform 0.3s ease;
+                min-width: 32px;
+                text-align: right;
             }
 
             @@media (max-width: 768px) {
@@ -367,7 +398,6 @@
 <body>
     <div class="bg-blob blob-1"></div>
     <div class="bg-blob blob-2"></div>
-    <div class="bg-blob blob-3"></div>
 
     <div class="dashboard-wrapper">
         @await Html.PartialAsync("_Sidebar")
@@ -375,24 +405,69 @@
         <main class="main-content">
             <div class="top-bar">
                 <div class="welcome-text">
-                    <h2><i class="bi bi-activity"></i> Monitoreo</h2>
-                    <p>Selecciona el tipo de monitoreo que deseas revisar.</p>
+                    <h2><i class="bi bi-gear-fill"></i> Monitoreo de producción</h2>
+                    <p>Estado en tiempo real de las líneas de producción.</p>
                 </div>
+                <a class="btn-volver" asp-controller="Monitoreo" asp-action="Index">
+                    <i class="bi bi-arrow-left"></i> Volver al menú
+                </a>
+                <!-- Este link ya está bien: sigue apuntando a MonitoreoController/Index (el menú) -->
+                <!-- La vista misma ahora vive en Views/MonitoreoProduccion/Index.cshtml -->
+                <!-- porque pertenece a MonitoreoProduccionController -->
+
             </div>
 
             <div class="content-card">
                 <div class="card-header-custom">
-                    <h3><i class="bi bi-grid-fill"></i> Opciones de monitoreo</h3>
+                    <h3><i class="bi bi-list-check"></i> Proceso de orden</h3>
                 </div>
 
-                <div class="menu-monitoreo">
-                    <a class="menu-card" asp-controller="MonitoreoProduccion" asp-action="Index">
-                        <div class="menu-icon"><i class="bi bi-gear-fill"></i></div>
-                        <h4>Monitoreo de producción</h4>
-                        <p>Visualiza en tiempo real el estado y avance de las líneas de producción.</p>
-                        <span class="ir-link">Ir a producción <i class="bi bi-arrow-right"></i></span>
-                    </a>
-                </div>
+                @if (Model != null && Model.Any())
+                {
+                    <div class="table-responsive">
+                        <table class="table-cute">
+                            <thead>
+                                <tr>
+                                    <th>N° Orden</th>
+                                    <th>Producto</th>
+                                    <th>Cantidad</th>
+                                    <th>Tiempo de producción</th>
+                                    <th>Estado</th>
+                                    <th>Progreso</th>
+                                    <th>Línea</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var o in Model)
+                                {
+                                    <tr>
+                                        <td><strong>@o.NumeroOrden</strong></td>
+                                        <td>@o.Producto</td>
+                                        <td>@o.Cantidad</td>
+                                        <td>@o.TiempoProduccion</td>
+                                        <td><span class="badge-cute badge-proceso">@o.EstadoProduccion</span></td>
+                                        <td>
+                                            <div class="progreso-wrap">
+                                                <div class="progreso-bar">
+                                                    <div class="progreso-fill" style="width:@o.PorcentajeAvance%;"></div>
+                                                </div>
+                                                <span class="progreso-label">@o.PorcentajeAvance%</span>
+                                            </div>
+                                        </td>
+                                        <td>@o.LineaProduccion</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+                else
+                {
+                    <div class="empty-state">
+                        <i class="bi bi-check-circle"></i>
+                        No hay órdenes en producción actualmente.
+                    </div>
+                }
             </div>
         </main>
     </div>

@@ -9,9 +9,6 @@ namespace ProyectoWong.Controllers
             return View();
         }
 
-        public IActionResult Produccion()
-        {
-            return View("MonitoreoProduccion");
-        }
+       
     }
 }
