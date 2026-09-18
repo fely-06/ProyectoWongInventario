@@ -178,6 +178,23 @@ namespace ProyectoWong.Controllers
                 return Json(Respuesta.Error(e.Message));
             }
         }
+        // 6. INICIAR LA PRODUCCIÓN (pasa de Pendiente -> EnProceso y marca FechaInicio)
+        [HttpPost("iniciar/{id}")]
+        public async Task<IActionResult> Iniciar(int id)
+        {
+            var orden = await _context.OrdenProduccion.FirstOrDefaultAsync(o => o.Id == id);
+
+            if (orden == null) return Json(Respuesta.Error("Orden no encontrada"));
+            if (orden.Estado != "Pendiente")
+                return Json(Respuesta.Error("Solo se pueden iniciar órdenes en estado Pendiente"));
+
+            orden.Estado = "EnProceso";
+            orden.FechaInicio = DateTime.Now;
+
+            await _context.SaveChangesAsync();
+
+            return Json(Respuesta.OK($"Orden {orden.NumeroOP} iniciada"));
+        }
     }
 
     // DTO para recibir los datos del frontend

@@ -367,16 +367,39 @@
             .progreso-fill {
                 height: 100%;
                 border-radius: 50px;
-                background: linear-gradient(135deg, var(--color-verde), var(--color-aqua));
+                transition: width 0.4s ease, background 0.4s ease;
             }
+
+                .progreso-fill.baja {
+                    background: linear-gradient(135deg, #f87171, var(--color-rojo));
+                }
+
+                .progreso-fill.media {
+                    background: linear-gradient(135deg, #f3d774, #e8b830);
+                }
+
+                .progreso-fill.alta {
+                    background: linear-gradient(135deg, var(--color-verde), var(--color-aqua));
+                }
 
             .progreso-label {
                 font-size: 0.78rem;
                 font-weight: 800;
-                color: var(--color-verde);
                 min-width: 32px;
                 text-align: right;
             }
+
+                .progreso-label.baja {
+                    color: var(--color-rojo);
+                }
+
+                .progreso-label.media {
+                    color: #b8860b;
+                }
+
+                .progreso-label.alta {
+                    color: var(--color-verde);
+                }
 
             @@media (max-width: 768px) {
                 .dashboard-wrapper {
@@ -440,6 +463,9 @@
                             <tbody>
                                 @foreach (var o in Model)
                                 {
+                                    string colorClase = o.PorcentajeAvance >= 75 ? "alta"
+                                        : o.PorcentajeAvance >= 40 ? "media"
+                                        : "baja";
                                     <tr>
                                         <td><strong>@o.NumeroOrden</strong></td>
                                         <td>@o.Producto</td>
@@ -449,9 +475,9 @@
                                         <td>
                                             <div class="progreso-wrap">
                                                 <div class="progreso-bar">
-                                                    <div class="progreso-fill" style="width:@o.PorcentajeAvance%;"></div>
+                                                    <div class="progreso-fill @colorClase" style="width:@o.PorcentajeAvance%;"></div>
                                                 </div>
-                                                <span class="progreso-label">@o.PorcentajeAvance%</span>
+                                                <span class="progreso-label @colorClase">@o.PorcentajeAvance%</span>
                                             </div>
                                         </td>
                                         <td>@o.LineaProduccion</td>

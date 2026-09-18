@@ -502,6 +502,34 @@
                 });
             }
 
+            // function cargarOrdenes() {
+            //     $.get('/Produccion/consultar-ordenes', function(r) {
+            //         var tbody = $('#bodyOrdenes');
+            //         tbody.empty();
+            //         if (!r.success || !r.result || !r.result.length) {
+            //             tbody.html('<tr><td colspan="7" class="text-center text-muted py-4">Sin órdenes de producción</td></tr>');
+            //             return;
+            //         }
+            //         $.each(r.result, function(i, o) {
+            //             var badge = o.estado === 'Pendiente' ? 'badge-cute-warning' :
+            //                 o.estado === 'EnProceso' ? 'badge-cute-info' : 'badge-cute-success';
+            //             var btnCompletar = (o.estado === 'Pendiente' || o.estado === 'EnProceso')
+            //                 ? `<button class="btn-cute-primary btn-cute-sm" onclick="completarProduccion(${o.id})"><i class="bi bi-check-lg"></i> Completar</button>`
+            //                 : '<span class="text-muted small">Finalizada</span>';
+
+            //             tbody.append(`
+            //                         <tr id="fila-op-${o.id}" data-producto="${o.producto}">
+            //                             <td><strong>${o.numeroOP}</strong></td>
+            //                             <td>${o.producto}</td>
+            //                             <td class="text-center">${o.cantidad} uds</td>
+            //                             <td>${o.numeroOC}</td>
+            //                             <td><span class="badge-cute ${badge}">${o.estado}</span></td>
+            //                             <td>${new Date(o.fechaCreacion).toLocaleDateString()}</td>
+            //                             <td class="text-center">${btnCompletar}</td>
+            //                         </tr>`);
+            //         });
+            //     });
+            // }
             function cargarOrdenes() {
                 $.get('/Produccion/consultar-ordenes', function(r) {
                     var tbody = $('#bodyOrdenes');
@@ -513,9 +541,15 @@
                     $.each(r.result, function(i, o) {
                         var badge = o.estado === 'Pendiente' ? 'badge-cute-warning' :
                             o.estado === 'EnProceso' ? 'badge-cute-info' : 'badge-cute-success';
-                        var btnCompletar = (o.estado === 'Pendiente' || o.estado === 'EnProceso')
-                            ? `<button class="btn-cute-primary btn-cute-sm" onclick="completarProduccion(${o.id})"><i class="bi bi-check-lg"></i> Completar</button>`
-                            : '<span class="text-muted small">Finalizada</span>';
+
+                        var acciones;
+                        if (o.estado === 'Pendiente') {
+                            acciones = `<button class="btn-cute-secondary btn-cute-sm" onclick="iniciarProduccion(${o.id})"><i class="bi bi-play-fill"></i> Iniciar</button>`;
+                        } else if (o.estado === 'EnProceso') {
+                            acciones = `<button class="btn-cute-primary btn-cute-sm" onclick="completarProduccion(${o.id})"><i class="bi bi-check-lg"></i> Completar</button>`;
+                        } else {
+                            acciones = '<span class="text-muted small">Finalizada</span>';
+                        }
 
                         tbody.append(`
                                     <tr id="fila-op-${o.id}" data-producto="${o.producto}">
@@ -525,12 +559,11 @@
                                         <td>${o.numeroOC}</td>
                                         <td><span class="badge-cute ${badge}">${o.estado}</span></td>
                                         <td>${new Date(o.fechaCreacion).toLocaleDateString()}</td>
-                                        <td class="text-center">${btnCompletar}</td>
+                                        <td class="text-center">${acciones}</td>
                                     </tr>`);
                     });
                 });
             }
-
             function abrirModalNueva() {
                 $('#nCantidad').val(1);
                 $('#nNumeroOC').val('');
@@ -625,6 +658,23 @@
                     },
                     error: function() {
                         showToast('Ocurrió un error al generar la orden de compra', 'danger');
+                    }
+                });
+            }
+            function iniciarProduccion(id) {
+                $.ajax({
+                    url: '/Produccion/iniciar/' + id,
+                    type: 'POST',
+                    success: function(r) {
+                        if (!r.success) {
+                            showToast(r.mensaje, 'danger');
+                            return;
+                        }
+                        showToast(r.mensaje, 'success');
+                        cargarOrdenes();
+                    },
+                    error: function() {
+                        showToast('Ocurrió un error al iniciar la producción', 'danger');
                     }
                 });
             }
