@@ -29,6 +29,10 @@ namespace ProyectoWong.Models.Produccion
         public DateTime? FechaInicio { get; set; }
         public DateTime? FechaFin { get; set; }
 
+        public double DuracionEstimadaMinutos { get; set; }
+        public DateTime? FechaPausa { get; set; }
+        public double TiempoPausadoMinutos { get; set; } // Acumulado de tiempo en pausa
+
         public ICollection<OrdenProduccionDetalle>? Detalles { get; set; }
     }
 }

@@ -362,6 +362,9 @@
                         <i class="bi bi-plus-lg"></i> Nueva Orden
                     </button>
                 </div>
+
+               
+
                 <div class="table-responsive">
                     <table class="table-cute">
                         <thead>
@@ -432,350 +435,339 @@
         </div>
     </div>
 
-    <!-- MODAL SIMULACIÓN DE PRODUCCIÓN -->
-    <div class="modal fade" id="modalSimulacion" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title"><i class="bi bi-fan"></i> Fabricando <span id="simProductoNombre"></span></h5>
-                </div>
-                <div class="modal-body">
-                    <div class="sim-icon-wrap spin">
-                        <i class="bi bi-fan"></i>
+    
+    <!-- MODAL DE SIMULACIÓN DE PRODUCCIÓN (TIEMPO REAL) -->
+<div class="modal fade" id="modalSimulacion" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-header" style="background: linear-gradient(135deg, var(--color-verde) 0%, var(--color-aqua) 100%); color: white; border-radius: 24px 24px 0 0;">
+                <h5 class="modal-title"><i class="bi bi-cpu-fill"></i> Producción: <span id="simModalNumeroOP"></span></h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="row align-items-center">
+                    <div class="col-md-4 text-center mb-3 mb-md-0">
+                        <img id="simModalImagen" src="" alt="Producto" class="img-fluid rounded-4 shadow-sm" style="max-height: 180px; object-fit: cover;">
+                        <h5 class="mt-3 mb-0 fw-bold" id="simModalProducto">Producto</h5>
+                        <span class="badge-cute badge-cute-info mt-2 d-inline-block" id="simModalTiempo">Calculando...</span>
                     </div>
-                    <div class="sim-progress">
-                        <div class="sim-progress-bar" id="simProgressBar"></div>
+                    <div class="col-md-8">
+                        <div class="d-flex justify-content-between mb-1">
+                            <span class="fw-bold" style="color: var(--color-verde)" id="simModalEstadoTexto">Ensamblaje en progreso</span>
+                            <span class="fw-bold" id="simModalPorcentaje">0%</span>
+                        </div>
+                        <div class="sim-progress mb-4" style="height: 24px;">
+                            <div class="sim-progress-bar" id="simModalProgressBar" style="width: 0%; display: flex; align-items: center; justify-content: center; color: white; font-weight: 800;">0%</div>
+                        </div>
+                        
+                        <div class="d-flex align-items-center gap-3 p-3 rounded-4" style="background-color: var(--color-azul-claro);">
+                            <div class="sim-icon-wrap spin" id="simModalIconoWrap" style="width: 60px; height: 60px; margin: 0; flex-shrink: 0;">
+                                <i class="bi bi-fan" style="font-size: 1.5rem;"></i>
+                            </div>
+                            <div>
+                                <h6 class="mb-1 fw-bold" id="simModalPasoActual">Iniciando preparación...</h6>
+                                <small class="text-muted">El sistema descuenta e inventaría automáticamente al llegar al 100%.</small>
+                            </div>
+                        </div>
                     </div>
-                    <div class="text-center text-muted small mb-3" id="simPorcentaje">0%</div>
-                    <ul class="sim-step-list" id="simStepList"></ul>
                 </div>
             </div>
         </div>
     </div>
+</div>
 
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.js"></script>
     <script>
-            var modalNueva, modalSimulacion;
+    // ==========================================
+    // VARIABLES GLOBALES
+    // ==========================================
+    let modalNueva, modalSimulacion;
+    let pollingInterval = null;
+    let currentMonitoredOrderId = null;
 
-            // Pasos genéricos del ensamblaje de un ventilador portátil.
-            // Se muestran uno a uno mientras la barra de progreso avanza.
-            var PASOS_SIMULACION = [
-                { texto: 'Verificando componentes en inventario', icono: 'bi-clipboard-check' },
-                { texto: 'Ubicando motor', icono: 'bi-gear-fill' },
-                { texto: 'Colocando aspas', icono: 'bi-fan' },
-                { texto: 'Ensamblando carcasa', icono: 'bi-box-seam' },
-                { texto: 'Conectando cableado y batería', icono: 'bi-plug-fill' },
-                { texto: 'Control de calidad', icono: 'bi-patch-check-fill' },
-                { texto: 'Actualizando inventario', icono: 'bi-arrow-repeat' }
-            ];
+    const PASOS_SIMULACION = [
+        'Verificando componentes en inventario',
+        'Ubicando motor y base',
+        'Colocando aspas del ventilador',
+        'Ensamblando carcasa protectora',
+        'Conectando cableado y batería',
+        'Control de calidad y pruebas',
+        'Empaquetado y actualización de inventario'
+    ];
 
-            $(function() {
-                modalNueva = new bootstrap.Modal(document.getElementById('modalNueva'));
-                modalSimulacion = new bootstrap.Modal(document.getElementById('modalSimulacion'));
-                cargarProductos();
-                cargarOrdenes();
-                cargarProveedoresFaltantes();
+    // ==========================================
+    // INICIALIZACIÓN
+    // ==========================================
+    $(function() {
+        modalNueva = new bootstrap.Modal(document.getElementById('modalNueva'));
+        modalSimulacion = new bootstrap.Modal(document.getElementById('modalSimulacion'));
+        
+        // Detener el polling si el usuario cierra el modal manualmente
+        document.getElementById('modalSimulacion').addEventListener('hidden.bs.modal', function () {
+            detenerMonitoreo();
+        });
+
+        cargarProductos();
+        cargarOrdenes();
+        cargarProveedoresFaltantes();
+    });
+
+    // ==========================================
+    // CARGA DE DATOS
+    // ==========================================
+    function cargarProveedoresFaltantes() {
+        $.get('/Proveedor/consultar-proveedores', function(r) {
+            if (r.success) {
+                var sel = $('#faltanteProveedorId');
+                sel.empty();
+                $.each(r.result, function(i, p) { sel.append(`<option value="${p.id}">${p.nombre}</option>`); });
+            }
+        });
+    }
+
+    function cargarProductos() {
+        $.get('/Produccion/obtener-productos', function(r) {
+            if (r.success) {
+                var sel = $('#nProductoId');
+                sel.empty();
+                $.each(r.result, function(i, p) { sel.append(`<option value="${p.id}">${p.nombre}</option>`); });
+            }
+        });
+    }
+
+    function cargarOrdenes() {
+        $.get('/Produccion/consultar-ordenes', function(r) {
+            var tbody = $('#bodyOrdenes');
+            tbody.empty();
+            if (!r.success || !r.result || !r.result.length) {
+                tbody.html('<tr><td colspan="7" class="text-center text-muted py-4">Sin órdenes de producción</td></tr>');
+                return;
+            }
+            
+            $.each(r.result, function(i, o) {
+                let badgeClass = o.estado === 'Pendiente' ? 'badge-cute-warning' : 
+                                 o.estado === 'Pausada' ? 'badge-cute-warning' : 
+                                 o.estado === 'EnProceso' ? 'badge-cute-info' : 'badge-cute-success';
+                
+                let acciones = '';
+                if (o.estado === 'Pendiente') {
+                    acciones = `<button class="btn-cute-secondary btn-cute-sm me-1" onclick="iniciarProduccion(${o.id})"><i class="bi bi-play-fill"></i> Iniciar</button>`;
+                } else if (o.estado === 'EnProceso') {
+                    acciones = `
+                        <button class="btn-cute-secondary btn-cute-sm me-1" onclick="pausarProduccion(${o.id})"><i class="bi bi-pause-fill"></i> Pausar</button>
+                        <button class="btn-cute-primary btn-cute-sm" onclick="verSimulacion(${o.id})"><i class="bi bi-eye-fill"></i> Ver</button>`;
+                } else if (o.estado === 'Pausada') {
+                    acciones = `
+                        <button class="btn-cute-secondary btn-cute-sm me-1" onclick="reanudarProduccion(${o.id})"><i class="bi bi-play-fill"></i> Reanudar</button>
+                        <button class="btn-cute-primary btn-cute-sm" onclick="verSimulacion(${o.id})"><i class="bi bi-eye-fill"></i> Ver</button>`;
+                } else {
+                    acciones = '<span class="text-muted small">Finalizada</span>';
+                }
+
+                tbody.append(`
+                    <tr id="fila-op-${o.id}">
+                        <td><strong>${o.numeroOP}</strong></td>
+                        <td>${o.producto}</td>
+                        <td class="text-center">${o.cantidad} uds</td>
+                        <td>${o.numeroOC}</td>
+                        <td><span class="badge-cute ${badgeClass}">${o.estado}</span></td>
+                        <td>${new Date(o.fechaCreacion).toLocaleDateString()}</td>
+                        <td class="text-center">${acciones}</td>
+                    </tr>
+                `);
             });
+        });
+    }
 
-            function cargarProveedoresFaltantes() {
-                $.get('/Proveedor/consultar-proveedores', function(r) {
-                    if (r.success) {
-                        var sel = $('#faltanteProveedorId');
-                        sel.empty();
-                        $.each(r.result, function(i, p) {
-                            sel.append(`<option value="${p.id}">${p.nombre}</option>`);
-                        });
-                    }
-                });
+    // ==========================================
+    // GESTIÓN DE ÓRDENES (Crear, Iniciar, Pausar, Reanudar)
+    // ==========================================
+    function abrirModalNueva() {
+        $('#nCantidad').val(1); $('#nNumeroOC').val(''); ocultarFaltantes();
+        modalNueva.show();
+    }
+
+    function guardarOrden() {
+        var data = { ProductoId: parseInt($('#nProductoId').val()), Cantidad: parseInt($('#nCantidad').val()), OrdenCompraId: null };
+        if (!data.ProductoId || !data.Cantidad) { showToast('Completa los campos obligatorios', 'warning'); return; }
+        ocultarFaltantes();
+
+        $.ajax({
+            url: '/Produccion/generar-orden', type: 'POST', contentType: 'application/json', data: JSON.stringify(data),
+            success: function(r) {
+                if (!r.success) { r.stockInsuficiente ? mostrarFaltantes(r) : showToast(r.mensaje, 'danger'); return; }
+                showToast(r.mensaje, 'success'); modalNueva.hide(); cargarOrdenes();
             }
+        });
+    }
 
-            function cargarProductos() {
-                $.get('/Produccion/obtener-productos', function(r) {
-                    if (r.success) {
-                        var sel = $('#nProductoId');
-                        sel.empty();
-                        $.each(r.result, function(i, p) {
-                            sel.append(`<option value="${p.id}">${p.nombre}</option>`);
-                        });
-                    }
-                });
+    function mostrarFaltantes(r) {
+        var lista = $('#listaFaltantes'); lista.empty();
+        $.each(r.componentesFaltantes, function(i, c) {
+            lista.append(`<li>${c.nombre}: faltan <strong>${c.faltante}</strong> (disp: ${c.disponible} / req: ${c.requerido})</li>`);
+        });
+        $('#alertFaltantes').data('producto-id', r.productoId).data('cantidad', r.cantidad).removeClass('d-none');
+    }
+    function ocultarFaltantes() { $('#alertFaltantes').addClass('d-none'); $('#listaFaltantes').empty(); }
+
+    function crearOCAutomatica() {
+        var proveedorId = parseInt($('#faltanteProveedorId').val());
+        if (!proveedorId) { showToast('Selecciona un proveedor', 'warning'); return; }
+        var data = {
+            ProductoId: $('#alertFaltantes').data('producto-id'),
+            Cantidad: $('#alertFaltantes').data('cantidad'),
+            ProveedorId: proveedorId,
+            FechaEsperada: new Date(Date.now() + 7*24*60*60*1000).toISOString()
+        };
+        $.ajax({
+            url: '/OrdenesCompra/guardar-orden', type: 'POST', contentType: 'application/json', data: JSON.stringify(data),
+            success: function(r) {
+                if (!r.success) { showToast(r.mensaje, 'danger'); return; }
+                showToast(r.mensaje, 'success'); modalNueva.hide();
             }
+        });
+    }
 
-            // function cargarOrdenes() {
-            //     $.get('/Produccion/consultar-ordenes', function(r) {
-            //         var tbody = $('#bodyOrdenes');
-            //         tbody.empty();
-            //         if (!r.success || !r.result || !r.result.length) {
-            //             tbody.html('<tr><td colspan="7" class="text-center text-muted py-4">Sin órdenes de producción</td></tr>');
-            //             return;
-            //         }
-            //         $.each(r.result, function(i, o) {
-            //             var badge = o.estado === 'Pendiente' ? 'badge-cute-warning' :
-            //                 o.estado === 'EnProceso' ? 'badge-cute-info' : 'badge-cute-success';
-            //             var btnCompletar = (o.estado === 'Pendiente' || o.estado === 'EnProceso')
-            //                 ? `<button class="btn-cute-primary btn-cute-sm" onclick="completarProduccion(${o.id})"><i class="bi bi-check-lg"></i> Completar</button>`
-            //                 : '<span class="text-muted small">Finalizada</span>';
+    function iniciarProduccion(id) {
+        $.post('/Produccion/iniciar/' + id, function(r) {
+            r.success ? (showToast(r.mensaje, 'success'), cargarOrdenes(), verSimulacion(id)) : showToast(r.mensaje, 'danger');
+        });
+    }
 
-            //             tbody.append(`
-            //                         <tr id="fila-op-${o.id}" data-producto="${o.producto}">
-            //                             <td><strong>${o.numeroOP}</strong></td>
-            //                             <td>${o.producto}</td>
-            //                             <td class="text-center">${o.cantidad} uds</td>
-            //                             <td>${o.numeroOC}</td>
-            //                             <td><span class="badge-cute ${badge}">${o.estado}</span></td>
-            //                             <td>${new Date(o.fechaCreacion).toLocaleDateString()}</td>
-            //                             <td class="text-center">${btnCompletar}</td>
-            //                         </tr>`);
-            //         });
-            //     });
-            // }
-            function cargarOrdenes() {
-                $.get('/Produccion/consultar-ordenes', function(r) {
-                    var tbody = $('#bodyOrdenes');
-                    tbody.empty();
-                    if (!r.success || !r.result || !r.result.length) {
-                        tbody.html('<tr><td colspan="7" class="text-center text-muted py-4">Sin órdenes de producción</td></tr>');
-                        return;
-                    }
-                    $.each(r.result, function(i, o) {
-                        var badge = o.estado === 'Pendiente' ? 'badge-cute-warning' :
-                            o.estado === 'EnProceso' ? 'badge-cute-info' : 'badge-cute-success';
+    function pausarProduccion(id) {
+        $.post('/Produccion/pausar/' + id, function(r) {
+            r.success ? (showToast(r.mensaje, 'warning'), cargarOrdenes()) : showToast(r.mensaje, 'danger');
+        });
+    }
 
-                        var acciones;
-                        if (o.estado === 'Pendiente') {
-                            acciones = `<button class="btn-cute-secondary btn-cute-sm" onclick="iniciarProduccion(${o.id})"><i class="bi bi-play-fill"></i> Iniciar</button>`;
-                        } else if (o.estado === 'EnProceso') {
-                            acciones = `<button class="btn-cute-primary btn-cute-sm" onclick="completarProduccion(${o.id})"><i class="bi bi-check-lg"></i> Completar</button>`;
-                        } else {
-                            acciones = '<span class="text-muted small">Finalizada</span>';
-                        }
+    function reanudarProduccion(id) {
+        $.post('/Produccion/reanudar/' + id, function(r) {
+            r.success ? (showToast(r.mensaje, 'success'), cargarOrdenes(), verSimulacion(id)) : showToast(r.mensaje, 'danger');
+        });
+    }
 
-                        tbody.append(`
-                                    <tr id="fila-op-${o.id}" data-producto="${o.producto}">
-                                        <td><strong>${o.numeroOP}</strong></td>
-                                        <td>${o.producto}</td>
-                                        <td class="text-center">${o.cantidad} uds</td>
-                                        <td>${o.numeroOC}</td>
-                                        <td><span class="badge-cute ${badge}">${o.estado}</span></td>
-                                        <td>${new Date(o.fechaCreacion).toLocaleDateString()}</td>
-                                        <td class="text-center">${acciones}</td>
-                                    </tr>`);
-                    });
-                });
-            }
-            function abrirModalNueva() {
-                $('#nCantidad').val(1);
-                $('#nNumeroOC').val('');
-                ocultarFaltantes();
-                modalNueva.show();
-            }
+    // ==========================================
+    // SIMULACIÓN EN TIEMPO REAL (MODAL)
+    // ==========================================
+    function verSimulacion(id) {
+        currentMonitoredOrderId = id;
+        modalSimulacion.show();
+        
+        if (pollingInterval) clearInterval(pollingInterval);
+        
+        consultarProgresoBackend(); // Ejecutar inmediatamente
+        pollingInterval = setInterval(consultarProgresoBackend, 3000); // Consultar cada 3 segundos
+    }
 
-            function guardarOrden() {
-                var data = {
-                    ProductoId: parseInt($('#nProductoId').val()),
-                    Cantidad: parseInt($('#nCantidad').val()),
-                    OrdenCompraId: null // Si quieres vincularla por ID, habría que buscar el ID de la OC primero. Por ahora lo dejamos null y se muestra el texto.
-                };
+    function detenerMonitoreo() {
+        if (pollingInterval) {
+            clearInterval(pollingInterval);
+            pollingInterval = null;
+        }
+        currentMonitoredOrderId = null;
+    }
 
-                if (!data.ProductoId || !data.Cantidad) {
-                    showToast('Completa los campos obligatorios', 'warning');
-                    return;
-                }
+    function consultarProgresoBackend() {
+    if (!currentMonitoredOrderId) return;
 
-                ocultarFaltantes();
+    $.get(`/Produccion/progreso/${currentMonitoredOrderId}`, function(r) {
+        if (!r.success) return;
+        const data = r.result;
 
-                $.ajax({
-                    url: '/Produccion/generar-orden',
-                    type: 'POST',
-                    contentType: 'application/json',
-                    data: JSON.stringify(data),
-                    success: function(r) {
-                        if (!r.success) {
-                            if (r.stockInsuficiente) {
-                                mostrarFaltantes(r);
-                            } else {
-                                showToast(r.mensaje, 'danger');
-                            }
-                            return;
-                        }
-                        showToast(r.mensaje, 'success');
-                        modalNueva.hide();
-                        cargarOrdenes();
-                    }
-                });
-            }
+        // Actualizar UI del Modal
+        $('#simModalNumeroOP').text(data.numeroOP);
+        $('#simModalProducto').text(data.productoNombre);
+        $('#simModalImagen').attr('src', data.productoImagen);
+        $('#simModalTiempo').text(data.tiempoRestanteTexto);
 
-            // Muestra, dentro del mismo modal de "Nueva Orden", el detalle de los
-            // componentes que faltan y habilita la opción de generar la OC automáticamente.
-            function mostrarFaltantes(r) {
-                var lista = $('#listaFaltantes');
-                lista.empty();
-                $.each(r.componentesFaltantes, function(i, c) {
-                    lista.append(`<li>${c.nombre}: faltan <strong>${c.faltante}</strong> (disponible ${c.disponible} / requerido ${c.requerido})</li>`);
-                });
+        const pct = data.progreso;
+        $('#simModalProgressBar').css('width', pct + '%').text(Math.round(pct) + '%');
+        $('#simModalPorcentaje').text(Math.round(pct) + '%');
 
-                $('#alertFaltantes')
-                    .data('producto-id', r.productoId)
-                    .data('cantidad', r.cantidad)
-                    .removeClass('d-none');
-            }
+        const pasoIndex = Math.max(0, data.pasoActual - 1);
+        $('#simModalPasoActual').text(PASOS_SIMULACION[pasoIndex]);
 
-            function ocultarFaltantes() {
-                $('#alertFaltantes').addClass('d-none');
-                $('#listaFaltantes').empty();
-            }
+        if (data.estadoSimulacion === 'Pausada') {
+            $('#simModalEstadoTexto').text('⏸ Producción Pausada').css('color', '#d97706');
+            $('#simModalIconoWrap').removeClass('spin');
+        } else if (data.estadoSimulacion === 'EnProceso') {
+            $('#simModalEstadoTexto').text('▶ Ensamblaje en progreso').css('color', 'var(--color-verde)');
+            $('#simModalIconoWrap').addClass('spin');
+        }
 
-            function crearOCAutomatica() {
-                var productoId = $('#alertFaltantes').data('producto-id');
-                var cantidad = $('#alertFaltantes').data('cantidad');
-                var proveedorId = parseInt($('#faltanteProveedorId').val());
+        // 🔥 SEGURO DE VIDA: Si llega a 100% pero el servidor no lo ha marcado como Completada, ¡FORZAMOS!
+        if (pct >= 100 && data.estadoSimulacion !== 'Completada') {
+            console.warn("⚠️ Progreso al 100% pero estado no es 'Completada'. Forzando actualización desde frontend...");
+            forzarCompletado(data.ordenId);
+            return; // Salimos para no seguir consultando
+        }
 
-                if (!proveedorId) {
-                    showToast('Selecciona un proveedor', 'warning');
-                    return;
-                }
-
-                var fechaEsperada = new Date();
-                fechaEsperada.setDate(fechaEsperada.getDate() + 7); // plazo por defecto: 7 días
-
-                var data = {
-                    ProductoId: productoId,
-                    Cantidad: cantidad,
-                    ProveedorId: proveedorId,
-                    FechaEsperada: fechaEsperada.toISOString()
-                };
-
-                $.ajax({
-                    url: '/OrdenesCompra/guardar-orden',
-                    type: 'POST',
-                    contentType: 'application/json',
-                    data: JSON.stringify(data),
-                    success: function(r) {
-                        if (!r.success) { showToast(r.mensaje, 'danger'); return; }
-                        showToast(r.mensaje + ' Revísala en Órdenes de Compra.', 'success');
-                        modalNueva.hide();
-                    },
-                    error: function() {
-                        showToast('Ocurrió un error al generar la orden de compra', 'danger');
-                    }
-                });
-            }
-            function iniciarProduccion(id) {
-                $.ajax({
-                    url: '/Produccion/iniciar/' + id,
-                    type: 'POST',
-                    success: function(r) {
-                        if (!r.success) {
-                            showToast(r.mensaje, 'danger');
-                            return;
-                        }
-                        showToast(r.mensaje, 'success');
-                        cargarOrdenes();
-                    },
-                    error: function() {
-                        showToast('Ocurrió un error al iniciar la producción', 'danger');
-                    }
-                });
-            }
-
-            function completarProduccion(id) {
-                // En vez del confirm() de antes, mostramos una simulación animada
-                // del ensamblaje mientras se procesa la orden en segundo plano.
-                var producto = $('#fila-op-' + id).data('producto') || 'producto';
-                $('#simProductoNombre').text(producto);
-                renderPasosSimulacion();
-                modalSimulacion.show();
-
-                var totalPasos = PASOS_SIMULACION.length;
-                var pasoActual = 0;
-                var llamadaTerminada = false;
-                var resultado = null;
-
-                // Disparamos la petición real en paralelo a la animación.
-                $.ajax({
-                    url: '/Produccion/completar/' + id,
-                    type: 'POST',
-                    success: function(r) { resultado = r; },
-                    error: function() { resultado = { success: false, mensaje: 'Ocurrió un error al completar la producción' }; },
-                    complete: function() { llamadaTerminada = true; }
-                });
-
-                var intervalo = setInterval(function() {
-                    if (pasoActual < totalPasos) {
-                        marcarPasoActivo(pasoActual);
-                        pasoActual++;
-                        actualizarProgreso(pasoActual, totalPasos);
-                    } else if (llamadaTerminada) {
-                        clearInterval(intervalo);
-                        finalizarSimulacion(resultado);
-                    }
-                    // Si la animación termina antes que la respuesta del servidor,
-                    // el intervalo simplemente espera (no incrementa más) hasta que llegue.
-                }, 550);
-            }
-
-            function renderPasosSimulacion() {
-                var lista = $('#simStepList');
-                lista.empty();
-                $.each(PASOS_SIMULACION, function(i, paso) {
-                    lista.append(`
-                                <li id="simPaso${i}">
-                                    <span class="sim-step-icon"><i class="bi ${paso.icono}"></i></span>
-                                    <span>${paso.texto}</span>
-                                </li>`);
-                });
-                $('#simProgressBar').css('width', '0%');
-                $('#simPorcentaje').text('0%');
-            }
-
-            function marcarPasoActivo(indice) {
-                $('.sim-step-list li').removeClass('sim-step-active');
-                for (var i = 0; i < indice; i++) {
-                    $('#simPaso' + i).removeClass('sim-step-active').addClass('sim-step-done');
-                }
-                $('#simPaso' + indice).addClass('sim-step-active');
-            }
-
-            function actualizarProgreso(pasosCompletados, totalPasos) {
-                var porcentaje = Math.round((pasosCompletados / totalPasos) * 100);
-                $('#simProgressBar').css('width', porcentaje + '%');
-                $('#simPorcentaje').text(porcentaje + '%');
-            }
-
-            function finalizarSimulacion(resultado) {
-                $('.sim-step-list li').removeClass('sim-step-active').addClass('sim-step-done');
-                $('#simProgressBar').css('width', '100%');
-                $('#simPorcentaje').text('100%');
-                $('.sim-icon-wrap').removeClass('spin');
-
-                setTimeout(function() {
+        // Si el backend ya la marcó como completada, el frontend solo celebra y cierra
+        if (data.estadoSimulacion === 'Completada') {
+            detenerMonitoreo(); 
+            $('#simModalEstadoTexto').text('✅ Producción Completada').css('color', 'var(--color-verde)');
+            $('#simModalIconoWrap').removeClass('spin');
+        
+            setTimeout(() => {
+                modalSimulacion.hide();
+                showToast('¡Producción finalizada e inventario actualizado!', 'success');
+                cargarOrdenes();
+            }, 1500);
+        }
+    }).fail(function() {
+        console.log("Error de conexión temporal, el servidor sigue procesando la orden.");
+    });
+}
+    // NUEVA FUNCIÓN: Fuerza la llamada al Controller para asegurar el descuento de inventario
+    function forzarCompletado(id) {
+        $.ajax({
+            url: '/Produccion/completar/' + id,
+            type: 'POST',
+            success: function(r) {
+                if (r.success) {
+                    showToast('Inventario actualizado correctamente', 'success');
+                    detenerMonitoreo();
                     modalSimulacion.hide();
-                    if (!resultado || !resultado.success) {
-                        showToast((resultado && resultado.mensaje) || 'Ocurrió un error al completar la producción', 'danger');
-                        return;
-                    }
-                    showToast(resultado.mensaje, 'success');
                     cargarOrdenes();
-                }, 500);
-            }
-
-            function showToast(mensaje, tipo) {
-                let toastContainer = document.getElementById('toast-container');
-                if (!toastContainer) {
-                    toastContainer = document.createElement('div');
-                    toastContainer.id = 'toast-container';
-                    toastContainer.className = 'toast-container position-fixed bottom-0 end-0 p-3';
-                    toastContainer.style.zIndex = '9999';
-                    document.body.appendChild(toastContainer);
+                } else {
+                    showToast('Error al actualizar inventario: ' + r.mensaje, 'danger');
                 }
-                const bgClass = tipo === 'success' ? 'bg-success text-white' : tipo === 'danger' ? 'bg-danger text-white' : 'bg-warning text-dark';
-                const toastId = 'toast-' + Date.now();
-                toastContainer.insertAdjacentHTML('beforeend', `<div id="${toastId}" class="toast align-items-center ${bgClass} border-0 shadow-lg" role="alert" style="border-radius:16px;"><div class="d-flex"><div class="toast-body fw-semibold">${mensaje}</div><button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button></div></div>`);
-                const toast = new bootstrap.Toast(document.getElementById(toastId), { delay: 3000 });
-                toast.show();
-                document.getElementById(toastId).addEventListener('hidden.bs.toast', (e) => e.target.remove());
+            },
+            error: function() {
+                showToast('Error de conexión al completar la producción', 'danger');
             }
-    </script>
+        });
+    }
+
+    // ==========================================
+    // UTILIDADES
+    // ==========================================
+    function showToast(mensaje, tipo) {
+        let container = document.getElementById('toast-container');
+        if (!container) {
+            container = document.createElement('div');
+            container.id = 'toast-container';
+            container.className = 'toast-container position-fixed bottom-0 end-0 p-3';
+            container.style.zIndex = '9999';
+            document.body.appendChild(container);
+        }
+        const bg = tipo === 'success' ? 'bg-success' : tipo === 'danger' ? 'bg-danger' : 'bg-warning';
+        const text = tipo === 'warning' ? 'text-dark' : 'text-white';
+        const id = 'toast-' + Date.now();
+        
+        container.insertAdjacentHTML('beforeend', `
+            <div id="${id}" class="toast align-items-center ${bg} ${text} border-0 shadow-lg" role="alert" style="border-radius:16px;">
+                <div class="d-flex">
+                    <div class="toast-body fw-semibold">${mensaje}</div>
+                    <button type="button" class="btn-close ${tipo === 'warning' ? '' : 'btn-close-white'} me-2 m-auto" data-bs-dismiss="toast"></button>
+                </div>
+            </div>`);
+        
+        const toast = new bootstrap.Toast(document.getElementById(id), { delay: 3500 });
+        toast.show();
+        document.getElementById(id).addEventListener('hidden.bs.toast', (e) => e.target.remove());
+    }
+</script>
 </body>
 </html>

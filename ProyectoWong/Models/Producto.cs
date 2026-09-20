@@ -23,6 +23,7 @@ namespace ProyectoWong.Models
         public int Cantidad { get; set; } = 0; // Stock de producto terminado (se actualiza al completar una OP)
 
         public bool Activo { get; set; } = true;
+        public string? ImagenUrl { get; set; }
         public DateTime FechaAlta { get; set; } = DateTime.Now;
 
         // Relación: Un producto tiene muchos componentes (la "receta")

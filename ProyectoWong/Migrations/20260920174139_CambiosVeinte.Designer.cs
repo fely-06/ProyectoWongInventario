@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using ProyectoWong.Data;
 
@@ -11,9 +12,11 @@ using ProyectoWong.Data;
 namespace ProyectoWong.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260920174139_CambiosVeinte")]
+    partial class CambiosVeinte
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -132,9 +135,6 @@ namespace ProyectoWong.Migrations
                     b.Property<int>("CantidadAProducir")
                         .HasColumnType("int");
 
-                    b.Property<double>("DuracionEstimadaMinutos")
-                        .HasColumnType("float");
-
                     b.Property<string>("Estado")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -148,9 +148,6 @@ namespace ProyectoWong.Migrations
                     b.Property<DateTime?>("FechaInicio")
                         .HasColumnType("datetime2");
 
-                    b.Property<DateTime?>("FechaPausa")
-                        .HasColumnType("datetime2");
-
                     b.Property<string>("NumeroOP")
                         .IsRequired()
                         .HasMaxLength(50)
@@ -161,9 +158,6 @@ namespace ProyectoWong.Migrations
 
                     b.Property<int>("ProductoId")
                         .HasColumnType("int");
-
-                    b.Property<double>("TiempoPausadoMinutos")
-                        .HasColumnType("float");
 
                     b.HasKey("Id");
 
@@ -223,9 +217,6 @@ namespace ProyectoWong.Migrations
 
                     b.Property<DateTime>("FechaAlta")
                         .HasColumnType("datetime2");
-
-                    b.Property<string>("ImagenUrl")
-                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Nombre")
                         .IsRequired()

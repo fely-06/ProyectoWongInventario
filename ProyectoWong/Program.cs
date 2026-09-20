@@ -9,7 +9,8 @@ builder.Services.AddControllersWithViews();
 // El DbContext debe ir AQUÍ, antes de construir la app
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
-
+// Antes de builder.Build()
+builder.Services.AddHostedService<ProyectoWong.Helpers.ProduccionBackgroundService>();
 // 3. CONSTRUIR LA APLICACIÓN
 builder.WebHost.ConfigureKestrel(options =>
 {

@@ -18,7 +18,99 @@ namespace ProyectoWong.Controllers
             ViewBag.ActiveMenu = "Produccion";
             return View("Index", "Produccion");
         }
+        // 1. INICIAR (Reinicia contadores de pausa)
+        [HttpPost("iniciar/{id}")]
+        public async Task<IActionResult> Iniciar(int id)
+        {
+            var orden = await _context.OrdenProduccion.FirstOrDefaultAsync(o => o.Id == id);
+            if (orden == null || orden.Estado != "Pendiente") return Json(Respuesta.Error("No se puede iniciar esta orden"));
 
+            orden.Estado = "EnProceso";
+            orden.FechaInicio = DateTime.Now;
+            orden.FechaPausa = null;
+            orden.TiempoPausadoMinutos = 0;
+            orden.DuracionEstimadaMinutos = orden.CantidadAProducir * 0.05; // 0.5 min por unidad
+
+            await _context.SaveChangesAsync();
+            return Json(Respuesta.OK($"Orden iniciada. Tiempo estimado: {orden.DuracionEstimadaMinutos} min"));
+        }
+
+        // 2. PAUSAR
+        [HttpPost("pausar/{id}")]
+        public async Task<IActionResult> Pausar(int id)
+        {
+            var orden = await _context.OrdenProduccion.FirstOrDefaultAsync(o => o.Id == id);
+            if (orden == null || orden.Estado != "EnProceso") return Json(Respuesta.Error("No se puede pausar esta orden"));
+
+            orden.Estado = "Pausada";
+            orden.FechaPausa = DateTime.Now;
+            await _context.SaveChangesAsync();
+            return Json(Respuesta.OK("Producción pausada"));
+        }
+
+        // 3. REANUDAR
+        [HttpPost("reanudar/{id}")]
+        public async Task<IActionResult> Reanudar(int id)
+        {
+            var orden = await _context.OrdenProduccion.FirstOrDefaultAsync(o => o.Id == id);
+            if (orden == null || orden.Estado != "Pausada" || !orden.FechaPausa.HasValue)
+                return Json(Respuesta.Error("No se puede reanudar esta orden"));
+
+            // Calcular cuánto tiempo estuvo pausada y sumarlo al acumulado
+            var minutosPausa = (DateTime.Now - orden.FechaPausa.Value).TotalMinutes;
+            orden.TiempoPausadoMinutos += minutosPausa;
+
+            orden.Estado = "EnProceso";
+            orden.FechaPausa = null;
+            await _context.SaveChangesAsync();
+            return Json(Respuesta.OK("Producción reanudada"));
+        }
+
+        // 4. CONSULTAR PROGRESO (Matemática corregida para soportar pausas)
+        [HttpGet("progreso/{id}")]
+        public async Task<IActionResult> ConsultarProgreso(int id)
+        {
+            var orden = await _context.OrdenProduccion
+                .Include(o => o.Producto)
+                .FirstOrDefaultAsync(o => o.Id == id);
+
+            if (orden == null) return Json(Respuesta.Error("Orden no encontrada"));
+
+            double minutosTrabajados = 0;
+            double tiempoRestanteMin = 0;
+
+            if (orden.Estado == "EnProceso" && orden.FechaInicio.HasValue)
+            {
+                minutosTrabajados = (DateTime.Now - orden.FechaInicio.Value).TotalMinutes - orden.TiempoPausadoMinutos;
+            }
+            else if (orden.Estado == "Pausada" && orden.FechaInicio.HasValue && orden.FechaPausa.HasValue)
+            {
+                minutosTrabajados = (orden.FechaPausa.Value - orden.FechaInicio.Value).TotalMinutes - orden.TiempoPausadoMinutos;
+            }
+            else if (orden.Estado == "Completada")
+            {
+                minutosTrabajados = orden.DuracionEstimadaMinutos;
+            }
+
+            double progreso = Math.Min(100, Math.Max(0, (minutosTrabajados / orden.DuracionEstimadaMinutos) * 100));
+            tiempoRestanteMin = Math.Max(0, orden.DuracionEstimadaMinutos - minutosTrabajados);
+
+            int totalPasos = 7;
+            int pasoActual = (int)Math.Ceiling((progreso / 100) * totalPasos);
+            pasoActual = Math.Clamp(pasoActual, 1, totalPasos);
+
+            return Json(Respuesta.OK("OK", new
+            {
+                ordenId = orden.Id,
+                numeroOP = orden.NumeroOP,
+                productoNombre = orden.Producto.Nombre,
+                productoImagen = orden.Producto.ImagenUrl ?? "https://share.google/IBaGOU8Jg6V5NDVzE",
+                progreso = Math.Round(progreso, 1),
+                pasoActual,
+                estadoSimulacion = orden.Estado,
+                tiempoRestanteTexto = orden.Estado == "Completada" ? "Finalizado" : $"{(int)tiempoRestanteMin}m {Math.Round((tiempoRestanteMin % 1) * 60)}s"
+            }));
+        }
         // 2. OBTENER PRODUCTOS (Para el select del modal)
         [HttpGet("obtener-productos")]
         public async Task<IActionResult> ObtenerProductos()
@@ -150,7 +242,7 @@ namespace ProyectoWong.Controllers
                     .FirstOrDefaultAsync(o => o.Id == id);
 
                 if (orden == null) return Json(Respuesta.Error("Orden no encontrada"));
-                if (orden.Estado != "Pendiente" && orden.Estado != "EnProceso")
+                if (orden.Estado != "Pendiente" && orden.Estado != "EnProceso" && orden.Estado != "Pausada")
                     return Json(Respuesta.Error("La orden no puede ser completada en su estado actual"));
 
                 // 1. Descontar componentes del inventario
@@ -161,7 +253,7 @@ namespace ProyectoWong.Controllers
                 }
 
                 // 2. Aumentar stock del producto terminado
-                //orden.Producto.Cantidad += orden.CantidadAProducir;
+                orden.Producto.Cantidad += orden.CantidadAProducir;
 
                 // 3. Actualizar estado y fechas
                 orden.Estado = "Completada";
@@ -178,23 +270,8 @@ namespace ProyectoWong.Controllers
                 return Json(Respuesta.Error(e.Message));
             }
         }
-        // 6. INICIAR LA PRODUCCIÓN (pasa de Pendiente -> EnProceso y marca FechaInicio)
-        [HttpPost("iniciar/{id}")]
-        public async Task<IActionResult> Iniciar(int id)
-        {
-            var orden = await _context.OrdenProduccion.FirstOrDefaultAsync(o => o.Id == id);
-
-            if (orden == null) return Json(Respuesta.Error("Orden no encontrada"));
-            if (orden.Estado != "Pendiente")
-                return Json(Respuesta.Error("Solo se pueden iniciar órdenes en estado Pendiente"));
-
-            orden.Estado = "EnProceso";
-            orden.FechaInicio = DateTime.Now;
-
-            await _context.SaveChangesAsync();
-
-            return Json(Respuesta.OK($"Orden {orden.NumeroOP} iniciada"));
-        }
+        
+        
     }
 
     // DTO para recibir los datos del frontend
