@@ -33,6 +33,10 @@ namespace ProyectoWong.Models.Produccion
         public DateTime? FechaPausa { get; set; }
         public double TiempoPausadoMinutos { get; set; } // Acumulado de tiempo en pausa
 
+        // --- Campos para Inspección Visual ---
+        public int CantidadAprobada { get; set; } = 0;
+        public int CantidadRechazada { get; set; } = 0;
+        public string? ObservacionesInspeccion { get; set; }
         public ICollection<OrdenProduccionDetalle>? Detalles { get; set; }
     }
 }

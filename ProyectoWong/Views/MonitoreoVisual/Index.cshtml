@@ -1,0 +1,382 @@
+﻿@{
+    Layout = null;
+    ViewBag.Title = "Inspección Visual - Mini Abanicos";
+}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewBag.Title</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
+    <style>
+        :root {
+            --color-amarillo: #f3eeb6; --color-verde-claro: #d4db74; --color-verde: #9abf17;
+            --color-aqua: #84bf93; --color-aqua-claro: #aed9c5; --color-azul-claro: #ddecf1;
+            --color-texto: #4a5568; --color-texto-claro: #718096; --color-blanco-glass: rgba(255, 255, 255, 0.85);
+            --color-rojo: #ef4444; --color-naranja: #f59e0b;
+        }
+        body { font-family: 'Nunito', sans-serif; background: linear-gradient(135deg, var(--color-azul-claro) 0%, var(--color-amarillo) 50%, var(--color-aqua-claro) 100%); min-height: 100vh; margin: 0; color: var(--color-texto); }
+        .dashboard-wrapper { display: flex; min-height: 100vh; padding: 1.5rem; gap: 1.5rem; }
+            .sidebar {
+                width: 260px;
+                background: var(--color-blanco-glass);
+                backdrop-filter: blur(12px);
+                -webkit-backdrop-filter: blur(12px);
+                border-radius: 24px;
+                padding: 2rem 1.5rem;
+                display: flex;
+                flex-direction: column;
+                box-shadow: 0 10px 30px rgba(132, 191, 147, 0.15), 0 0 0 2px rgba(255, 255, 255, 0.6);
+                flex-shrink: 0;
+            }
+
+            .sidebar-logo {
+                color: var(--color-verde);
+                font-size: 1.8rem;
+                font-weight: 800;
+                display: flex;
+                align-items: center;
+                gap: 0.5rem;
+                margin-bottom: 2.5rem;
+                padding-left: 0.5rem;
+            }
+
+                .sidebar-logo i {
+                    color: var(--color-aqua);
+                    font-size: 2rem;
+                }
+
+            .nav-menu {
+                list-style: none;
+                padding: 0;
+                margin: 0;
+                flex-grow: 1;
+            }
+
+            .nav-item {
+                margin-bottom: 0.75rem;
+            }
+
+            .nav-link {
+                display: flex;
+                align-items: center;
+                gap: 0.75rem;
+                padding: 0.85rem 1.25rem;
+                border-radius: 16px;
+                color: var(--color-texto);
+                font-weight: 700;
+                font-size: 0.95rem;
+                text-decoration: none;
+                transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+                border: 2px solid transparent;
+            }
+
+                .nav-link i {
+                    font-size: 1.2rem;
+                    transition: transform 0.3s ease;
+                }
+
+                .nav-link:hover {
+                    background-color: var(--color-amarillo);
+                    color: var(--color-verde);
+                    transform: translateX(5px);
+                }
+
+                    .nav-link:hover i {
+                        transform: scale(1.1);
+                    }
+
+                .nav-link.active {
+                    background: linear-gradient(135deg, var(--color-verde) 0%, var(--color-aqua) 100%);
+                    color: white;
+                    box-shadow: 0 4px 15px rgba(154, 191, 23, 0.3);
+                }
+
+                    .nav-link.active i {
+                        color: white;
+                    }
+
+            .sidebar-footer {
+                margin-top: auto;
+                padding-top: 1.5rem;
+                border-top: 2px solid var(--color-azul-claro);
+            }
+
+            .btn-logout {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 0.5rem;
+                width: 100%;
+                padding: 0.75rem;
+                border-radius: 16px;
+                border: 2px solid #fecaca;
+                background-color: #fef2f2;
+                color: #e11d48;
+                font-weight: 700;
+                text-decoration: none;
+                transition: all 0.3s ease;
+            }
+
+                .btn-logout:hover {
+                    background-color: #e11d48;
+                    color: white;
+                    border-color: #e11d48;
+                }
+        .main-content { flex-grow: 1; display: flex; flex-direction: column; gap: 1.5rem; }
+        .top-bar { background: var(--color-blanco-glass); backdrop-filter: blur(12px); border-radius: 24px; padding: 1.25rem 2rem; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 10px 30px rgba(132, 191, 147, 0.15); }
+        .filtros-wrap { display: flex; gap: 0.5rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
+        .btn-filtro { background: white; border: 2px solid var(--color-azul-claro); border-radius: 50px; padding: 0.5rem 1.2rem; color: var(--color-texto); font-weight: 700; font-size: 0.85rem; cursor: pointer; transition: all 0.3s ease; }
+        .btn-filtro.active { background: linear-gradient(135deg, var(--color-verde) 0%, var(--color-aqua) 100%); color: white; border-color: transparent; }
+
+        .cards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 1.5rem; }
+        .inspection-card { background: var(--color-blanco-glass); backdrop-filter: blur(12px); border-radius: 24px; padding: 1.5rem; box-shadow: 0 10px 30px rgba(132, 191, 147, 0.15); transition: transform 0.3s ease; border-left: 6px solid var(--color-aqua); }
+        .inspection-card:hover { transform: translateY(-5px); }
+        .inspection-card.estado-aprobada { border-left-color: var(--color-verde); }
+        .inspection-card.estado-rechazada { border-left-color: var(--color-rojo); }
+        .inspection-card.estado-eninspeccion { border-left-color: var(--color-naranja); }
+
+        .card-header-visual { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem; }
+        .product-icon { width: 50px; height: 50px; border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; background: var(--color-azul-claro); color: var(--color-texto); }
+        .orden-badge { background: var(--color-amarillo); color: #92400e; padding: 0.3rem 0.8rem; border-radius: 50px; font-size: 0.75rem; font-weight: 800; }
+        .metric-row { display: flex; justify-content: space-between; margin: 1rem 0; text-align: center; }
+        .metric-box { flex: 1; padding: 0.5rem; }
+        .metric-value { font-size: 1.5rem; font-weight: 800; display: block; }
+        .metric-label { font-size: 0.7rem; text-transform: uppercase; color: var(--color-texto-claro); font-weight: 700; }
+        .text-verde { color: var(--color-verde); } .text-rojo { color: var(--color-rojo); }
+        .quality-bar { height: 12px; background: var(--color-azul-claro); border-radius: 50px; overflow: hidden; margin-top: 0.5rem; }
+        .quality-fill { height: 100%; border-radius: 50px; transition: width 0.5s ease; }
+        .defecto-alert { background: #fef2f2; color: var(--color-rojo); padding: 0.5rem; border-radius: 12px; font-size: 0.8rem; font-weight: 700; margin-top: 1rem; display: flex; align-items: center; gap: 0.5rem; }
+
+        .btn-cute-action { width: 100%; margin-top: 1rem; padding: 0.6rem; border-radius: 12px; border: none; font-weight: 700; cursor: pointer; transition: all 0.2s; }
+        .btn-inspeccionar { background: linear-gradient(135deg, var(--color-naranja) 0%, #d97706 100%); color: white; }
+        .btn-inspeccionar:hover { transform: scale(1.02); box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4); }
+    </style>
+</head>
+<body>
+    <div class="dashboard-wrapper">
+        @await Html.PartialAsync("_Sidebar")
+        <main class="main-content">
+            <div class="top-bar">
+                <div>
+                    <h2 style="margin:0; font-weight:800; color:var(--color-verde);">
+                        <i class="bi bi-fan"></i> Inspección Visual: Mini Abanicos
+                    </h2>
+                    <p style="margin:0; font-size:0.9rem; color:var(--color-texto-claro);">Control de calidad final de producción.</p>
+                </div>
+                <a class="btn btn-light rounded-pill fw-bold" asp-controller="Produccion" asp-action="Index">
+                    <i class="bi bi-arrow-left"></i> Volver a Órdenes
+                </a>
+            </div>
+
+            <div style="background: transparent; box-shadow: none; padding: 0;">
+                <div class="filtros-wrap">
+                    <button class="btn-filtro active" data-filtro="EnInspeccion">En Inspección</button>
+                    <button class="btn-filtro" data-filtro="Aprobada">Aprobadas</button>
+                    <button class="btn-filtro" data-filtro="Rechazada">Rechazadas</button>
+                    <button class="btn-filtro" data-filtro="Todas">Todas</button>
+                </div>
+
+                <div id="cardsContainer" class="cards-grid">
+                    <div class="text-center w-100 py-5 text-muted">
+                        <div class="spinner-border text-success" role="status"></div>
+                        <p class="mt-2 fw-bold">Cargando tablero visual...</p>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- MODAL DE REGISTRO DE INSPECCIÓN -->
+    <div class="modal fade" id="modalInspeccion" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content" style="border-radius: 24px; border: none;">
+                <div class="modal-header" style="background: linear-gradient(135deg, var(--color-naranja) 0%, #d97706 100%); color: white; border-radius: 24px 24px 0 0;">
+                    <h5 class="modal-title fw-bold"><i class="bi bi-clipboard-check"></i> Registrar Inspección</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <input type="hidden" id="inspOrdenId">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Orden: <span id="inspNumeroOP" class="text-muted"></span></label><br>
+                        <label class="form-label fw-bold">Total Producido: <span id="inspTotal" class="text-verde"></span></label>
+                    </div>
+                    <div class="row g-3 mb-3">
+                        <div class="col-6">
+                            <label class="form-label small fw-bold">Cantidad Aprobada</label>
+                            <input type="number" class="form-control" id="inspAprobada" min="0" value="0">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small fw-bold">Cantidad Rechazada</label>
+                            <input type="number" class="form-control" id="inspRechazada" min="0" value="0">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">Observaciones / Defecto Principal</label>
+                        <textarea class="form-control" id="inspObservaciones" rows="3" placeholder="Ej: 2 unidades con aspa rota, resto OK."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer" style="border-top: 2px solid var(--color-azul-claro);">
+                    <button class="btn btn-light rounded-pill fw-bold" data-bs-dismiss="modal">Cancelar</button>
+                    <button class="btn rounded-pill fw-bold text-white" style="background: var(--color-verde);" onclick="guardarInspeccion()">
+                        <i class="bi bi-check-circle-fill"></i> Guardar Resultado
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let filtroActual = 'EnInspeccion';
+        let intervaloMonitoreo = null;
+        let modalInspeccion;
+
+        $(function() {
+            modalInspeccion = new bootstrap.Modal(document.getElementById('modalInspeccion'));
+
+            $('.btn-filtro').on('click', function() {
+                $('.btn-filtro').removeClass('active');
+                $(this).addClass('active');
+                filtroActual = $(this).data('filtro');
+                cargarDatos();
+            });
+
+            cargarDatos();
+            intervaloMonitoreo = setInterval(cargarDatos, 5000);
+        });
+
+        function cargarDatos() {
+            $.ajax({
+                url: '/MonitoreoVisual/ObtenerDatos',
+                type: 'GET',
+                data: { filtro: filtroActual },
+                success: function(r) {
+                    if (r.success && r.data) renderizarTarjetas(r.data);
+                }
+            });
+        }
+
+        function renderizarTarjetas(datos) {
+            const container = $('#cardsContainer');
+            if (!datos || datos.length === 0) {
+                container.html('<div class="text-center w-100 py-5 text-muted"><i class="bi bi-check-circle fs-1"></i><p class="mt-2 fw-bold">No hay órdenes en este estado.</p></div>');
+                return;
+            }
+
+            let html = '';
+            $.each(datos, function(i, o) {
+                let estadoClass = o.EstadoInspeccion === 'Aprobada' ? 'estado-aprobada' : (o.EstadoInspeccion === 'Rechazada' ? 'estado-rechazada' : 'estado-eninspeccion');
+                let badge = o.EstadoInspeccion === 'Aprobada' ? '<span class="badge bg-success rounded-pill">Aprobada</span>' :
+                            (o.EstadoInspeccion === 'Rechazada' ? '<span class="badge bg-danger rounded-pill">Rechazada</span>' : '<span class="badge bg-warning text-dark rounded-pill">Pendiente</span>');
+
+                let colorBarra = o.PorcentajeCalidad >= 95 ? 'var(--color-verde)' : (o.PorcentajeCalidad >= 80 ? 'var(--color-naranja)' : 'var(--color-rojo)');
+                let botonAccion = o.EstadoInspeccion === 'EnInspeccion' ?
+                    `<button class="btn-cute-action btn-inspeccionar" onclick="abrirModalInspeccion(${o.Id}, '${o.NumeroOrden}', ${o.CantidadTotal})">
+                        <i class="bi bi-clipboard-check"></i> Registrar Inspección
+                     </button>` : '';
+
+                html += `
+                <div class="inspection-card ${estadoClass}">
+                    <div class="card-header-visual">
+                        <div>
+                            <span class="orden-badge">${o.NumeroOrden}</span>
+                            <h5 class="mt-2 mb-0 fw-bold">${o.Producto}</h5>
+                            <small class="text-muted"><i class="bi bi-diagram-3"></i> ${o.LineaProduccion}</small>
+                        </div>
+                        <div class="product-icon"><i class="bi bi-fan"></i></div>
+                    </div>
+
+                    <div class="metric-row">
+                        <div class="metric-box"><span class="metric-value">${o.CantidadTotal}</span><span class="metric-label">Total</span></div>
+                        <div class="metric-box"><span class="metric-value text-verde">${o.CantidadAprobada}</span><span class="metric-label">Aprobados</span></div>
+                        <div class="metric-box"><span class="metric-value text-rojo">${o.CantidadRechazada}</span><span class="metric-label">Defectos</span></div>
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-center mt-3">
+                        <small class="fw-bold">Calidad: ${o.PorcentajeCalidad}%</small>
+                        ${badge}
+                    </div>
+                    <div class="quality-bar"><div class="quality-fill" style="width: ${o.PorcentajeCalidad}%; background: ${colorBarra};"></div></div>
+
+                    ${o.CantidadRechazada > 0 ? `<div class="defecto-alert"><i class="bi bi-exclamation-triangle-fill"></i> <span>${o.DefectoPrincipal}</span></div>` : ''}
+                    ${botonAccion}
+                </div>`;
+            });
+            container.html(html);
+        }
+
+        function abrirModalInspeccion(id, numeroOp, total) {
+            $('#inspOrdenId').val(id);
+            $('#inspNumeroOP').text(numeroOp);
+            $('#inspTotal').text(total);
+            $('#inspAprobada').val(total);
+            $('#inspRechazada').val(0);
+            $('#inspObservaciones').val('');
+            modalInspeccion.show();
+        }
+
+        $('#inspAprobada, #inspRechazada').on('input', function() {
+            let total = parseInt($('#inspTotal').text());
+            let aprob = parseInt($('#inspAprobada').val()) || 0;
+            let rech = parseInt($('#inspRechazada').val()) || 0;
+            if (aprob + rech > total) {
+                if ($(this).attr('id') === 'inspAprobada') $('#inspRechazada').val(total - aprob);
+                else $('#inspAprobada').val(total - rech);
+            }
+        });
+
+        function guardarInspeccion() {
+            let data = {
+                Id: parseInt($('#inspOrdenId').val()),
+                CantidadAprobada: parseInt($('#inspAprobada').val()) || 0,
+                CantidadRechazada: parseInt($('#inspRechazada').val()) || 0,
+                Observaciones: $('#inspObservaciones').val()
+            };
+
+            $.ajax({
+                url: '/MonitoreoVisual/RegistrarResultado',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(data),
+                success: function(r) {
+                    if (r.success) {
+                        modalInspeccion.hide();
+                        showToast('Inspección registrada correctamente', 'success');
+                        cargarDatos();
+                    } else {
+                        showToast(r.mensaje, 'danger');
+                    }
+                }
+            });
+        }
+
+        function showToast(mensaje, tipo) {
+            let container = document.getElementById('toast-container');
+            if (!container) {
+                container = document.createElement('div');
+                container.id = 'toast-container';
+                container.className = 'toast-container position-fixed bottom-0 end-0 p-3';
+                container.style.zIndex = '9999';
+                document.body.appendChild(container);
+            }
+            const bg = tipo === 'success' ? 'bg-success' : 'bg-danger';
+            const id = 'toast-' + Date.now();
+            container.insertAdjacentHTML('beforeend', `
+                <div id="${id}" class="toast align-items-center ${bg} text-white border-0 shadow-lg" role="alert" style="border-radius:16px;">
+                    <div class="d-flex">
+                        <div class="toast-body fw-semibold">${mensaje}</div>
+                        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+                    </div>
+                </div>`);
+            const toast = new bootstrap.Toast(document.getElementById(id), { delay: 3000 });
+            toast.show();
+            document.getElementById(id).addEventListener('hidden.bs.toast', (e) => e.target.remove());
+        }
+    </script>
+</body>
+</html>

@@ -550,21 +550,46 @@
                                  o.estado === 'Pausada' ? 'badge-cute-warning' : 
                                  o.estado === 'EnProceso' ? 'badge-cute-info' : 'badge-cute-success';
                 
-                let acciones = '';
-                if (o.estado === 'Pendiente') {
-                    acciones = `<button class="btn-cute-secondary btn-cute-sm me-1" onclick="iniciarProduccion(${o.id})"><i class="bi bi-play-fill"></i> Iniciar</button>`;
-                } else if (o.estado === 'EnProceso') {
-                    acciones = `
-                        <button class="btn-cute-secondary btn-cute-sm me-1" onclick="pausarProduccion(${o.id})"><i class="bi bi-pause-fill"></i> Pausar</button>
-                        <button class="btn-cute-primary btn-cute-sm" onclick="verSimulacion(${o.id})"><i class="bi bi-eye-fill"></i> Ver</button>`;
-                } else if (o.estado === 'Pausada') {
-                    acciones = `
-                        <button class="btn-cute-secondary btn-cute-sm me-1" onclick="reanudarProduccion(${o.id})"><i class="bi bi-play-fill"></i> Reanudar</button>
-                        <button class="btn-cute-primary btn-cute-sm" onclick="verSimulacion(${o.id})"><i class="bi bi-eye-fill"></i> Ver</button>`;
-                } else {
-                    acciones = '<span class="text-muted small">Finalizada</span>';
-                }
-
+                // let acciones = '';
+                // if (o.estado === 'Pendiente') {
+                //     acciones = `<button class="btn-cute-secondary btn-cute-sm me-1" onclick="iniciarProduccion(${o.id})"><i class="bi bi-play-fill"></i> Iniciar</button>`;
+                // } else if (o.estado === 'EnProceso') {
+                //     acciones = `
+                //         <button class="btn-cute-secondary btn-cute-sm me-1" onclick="pausarProduccion(${o.id})"><i class="bi bi-pause-fill"></i> Pausar</button>
+                //         <button class="btn-cute-primary btn-cute-sm" onclick="verSimulacion(${o.id})"><i class="bi bi-eye-fill"></i> Ver</button>`;
+                // } else if (o.estado === 'Pausada') {
+                //     acciones = `
+                //         <button class="btn-cute-secondary btn-cute-sm me-1" onclick="reanudarProduccion(${o.id})"><i class="bi bi-play-fill"></i> Reanudar</button>
+                //         <button class="btn-cute-primary btn-cute-sm" onclick="verSimulacion(${o.id})"><i class="bi bi-eye-fill"></i> Ver</button>`;
+                // } else {
+                //     acciones = '<span class="text-muted small">Finalizada</span>';
+                // }
+                        let acciones = '';
+                        if (o.estado === 'Pendiente') {
+                            acciones = `<button class="btn-cute-secondary btn-cute-sm me-1" onclick="iniciarProduccion(${o.id})"><i class="bi bi-play-fill"></i> Iniciar</button>`;
+                        } else if (o.estado === 'EnProceso') {
+                            acciones = `
+                    <button class="btn-cute-secondary btn-cute-sm me-1" onclick="pausarProduccion(${o.id})"><i class="bi bi-pause-fill"></i> Pausar</button>
+                    <button class="btn-cute-primary btn-cute-sm" onclick="verSimulacion(${o.id})"><i class="bi bi-eye-fill"></i> Ver</button>`;
+                        } else if (o.estado === 'Pausada') {
+                            acciones = `
+                    <button class="btn-cute-secondary btn-cute-sm me-1" onclick="reanudarProduccion(${o.id})"><i class="bi bi-play-fill"></i> Reanudar</button>
+                    <button class="btn-cute-primary btn-cute-sm" onclick="verSimulacion(${o.id})"><i class="bi bi-eye-fill"></i> Ver</button>`;
+                        } else if (o.estado === 'Completada') {
+                            // 🔥 NUEVO: Botón para enviar a inspección visual
+                            acciones = `
+                    <button class="btn-cute-primary btn-cute-sm me-1" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);" onclick="enviarAInspeccion(${o.id})">
+                        <i class="bi bi-search"></i> Enviar a Inspección
+                    </button>`;
+                        } else if (o.estado === 'EnInspeccion') {
+                            acciones = `<span class="badge-cute badge-cute-info"><i class="bi bi-search"></i> En Inspección</span>`;
+                        } else if (o.estado === 'Aprobada') {
+                            acciones = `<span class="badge-cute badge-cute-success"><i class="bi bi-check-circle"></i> Aprobada</span>`;
+                        } else if (o.estado === 'Rechazada') {
+                            acciones = `<span class="badge-cute badge-cute-warning"><i class="bi bi-x-circle"></i> Rechazada</span>`;
+                        } else {
+                            acciones = '<span class="text-muted small">Finalizada</span>';
+                        }
                 tbody.append(`
                     <tr id="fila-op-${o.id}">
                         <td><strong>${o.numeroOP}</strong></td>
@@ -743,6 +768,20 @@
     // ==========================================
     // UTILIDADES
     // ==========================================
+            function enviarAInspeccion(id) {
+                if (!confirm("¿Enviar esta orden a la zona de Inspección Visual?")) return;
+
+                $.post('/MonitoreoVisual/EnviarAInspeccion/' + id, function(r) {
+                    if (r.success) {
+                        showToast(r.mensaje, 'success');
+                        cargarOrdenes();
+                    } else {
+                        showToast(r.mensaje, 'danger');
+                    }
+                }).fail(function() {
+                    showToast("Error de conexión al enviar a inspección", 'danger');
+                });
+            }
     function showToast(mensaje, tipo) {
         let container = document.getElementById('toast-container');
         if (!container) {
@@ -768,6 +807,7 @@
         toast.show();
         document.getElementById(id).addEventListener('hidden.bs.toast', (e) => e.target.remove());
     }
+           
 </script>
 </body>
 </html>
