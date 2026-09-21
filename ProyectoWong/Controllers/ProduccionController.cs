@@ -104,7 +104,7 @@ namespace ProyectoWong.Controllers
                 ordenId = orden.Id,
                 numeroOP = orden.NumeroOP,
                 productoNombre = orden.Producto.Nombre,
-                productoImagen = orden.Producto.ImagenUrl ?? "https://share.google/IBaGOU8Jg6V5NDVzE",
+                productoImagen = orden.Producto.ImagenUrl ?? "/Producto.png",
                 progreso = Math.Round(progreso, 1),
                 pasoActual,
                 estadoSimulacion = orden.Estado,
