@@ -1,5 +1,4 @@
-﻿@model List<ProyectoWong.Models.Monitoreo.ProcesoOrdenViewModel>
-@{
+﻿@{
     Layout = null;
     ViewBag.Title = "Monitoreo de Producción - SIV";
 }
@@ -13,7 +12,6 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
-
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
 
@@ -28,6 +26,7 @@
                 --color-texto: #4a5568;
                 --color-texto-claro: #718096;
                 --color-blanco-glass: rgba(255, 255, 255, 0.85);
+                --color-rojo: #ef4444;
             }
 
             body {
@@ -35,45 +34,7 @@
                 background: linear-gradient(135deg, var(--color-azul-claro) 0%, var(--color-amarillo) 50%, var(--color-aqua-claro) 100%);
                 min-height: 100vh;
                 margin: 0;
-                position: relative;
-                overflow-x: hidden;
                 color: var(--color-texto);
-            }
-
-            @@keyframes float {
-                0%, 100% {
-                    transform: translateY(0px) scale(1);
-                }
-
-                50% {
-                    transform: translateY(-20px) scale(1.05);
-                }
-            }
-
-            .bg-blob {
-                position: fixed;
-                border-radius: 50%;
-                filter: blur(60px);
-                z-index: 0;
-                opacity: 0.6;
-                animation: float 8s ease-in-out infinite;
-            }
-
-            .blob-1 {
-                width: 400px;
-                height: 400px;
-                background: var(--color-verde-claro);
-                top: -100px;
-                left: -100px;
-            }
-
-            .blob-2 {
-                width: 350px;
-                height: 350px;
-                background: var(--color-aqua);
-                bottom: -80px;
-                right: -80px;
-                animation-delay: 2s;
             }
 
             .dashboard-wrapper {
@@ -81,117 +42,19 @@
                 min-height: 100vh;
                 padding: 1.5rem;
                 gap: 1.5rem;
-                position: relative;
-                z-index: 1;
             }
 
-            /* ── Sidebar ──────────────────────────────────────────────── */
             .sidebar {
                 width: 260px;
                 background: var(--color-blanco-glass);
                 backdrop-filter: blur(12px);
-                -webkit-backdrop-filter: blur(12px);
                 border-radius: 24px;
                 padding: 2rem 1.5rem;
                 display: flex;
                 flex-direction: column;
-                box-shadow: 0 10px 30px rgba(132, 191, 147, 0.15), 0 0 0 2px rgba(255, 255, 255, 0.6);
+                box-shadow: 0 10px 30px rgba(132, 191, 147, 0.15);
                 flex-shrink: 0;
             }
-
-            .sidebar-logo {
-                color: var(--color-verde);
-                font-size: 1.8rem;
-                font-weight: 800;
-                display: flex;
-                align-items: center;
-                gap: 0.5rem;
-                margin-bottom: 2.5rem;
-                padding-left: 0.5rem;
-            }
-
-                .sidebar-logo i {
-                    color: var(--color-aqua);
-                    font-size: 2rem;
-                }
-
-            .nav-menu {
-                list-style: none;
-                padding: 0;
-                margin: 0;
-                flex-grow: 1;
-            }
-
-            .nav-item {
-                margin-bottom: 0.75rem;
-            }
-
-            .nav-link {
-                display: flex;
-                align-items: center;
-                gap: 0.75rem;
-                padding: 0.85rem 1.25rem;
-                border-radius: 16px;
-                color: var(--color-texto);
-                font-weight: 700;
-                font-size: 0.95rem;
-                text-decoration: none;
-                transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-                border: 2px solid transparent;
-            }
-
-                .nav-link i {
-                    font-size: 1.2rem;
-                    transition: transform 0.3s ease;
-                }
-
-                .nav-link:hover {
-                    background-color: var(--color-amarillo);
-                    color: var(--color-verde);
-                    transform: translateX(5px);
-                }
-
-                    .nav-link:hover i {
-                        transform: scale(1.1);
-                    }
-
-                .nav-link.active {
-                    background: linear-gradient(135deg, var(--color-verde) 0%, var(--color-aqua) 100%);
-                    color: white;
-                    box-shadow: 0 4px 15px rgba(154, 191, 23, 0.3);
-                }
-
-                    .nav-link.active i {
-                        color: white;
-                    }
-
-            .sidebar-footer {
-                margin-top: auto;
-                padding-top: 1.5rem;
-                border-top: 2px solid var(--color-azul-claro);
-            }
-
-            .btn-logout {
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                gap: 0.5rem;
-                width: 100%;
-                padding: 0.75rem;
-                border-radius: 16px;
-                border: 2px solid #fecaca;
-                background-color: #fef2f2;
-                color: #e11d48;
-                font-weight: 700;
-                text-decoration: none;
-                transition: all 0.3s ease;
-            }
-
-                .btn-logout:hover {
-                    background-color: #e11d48;
-                    color: white;
-                    border-color: #e11d48;
-                }
 
             .main-content {
                 flex-grow: 1;
@@ -208,82 +71,99 @@
                 display: flex;
                 justify-content: space-between;
                 align-items: center;
-                box-shadow: 0 10px 30px rgba(132, 191, 147, 0.15), 0 0 0 2px rgba(255, 255, 255, 0.6);
+                box-shadow: 0 10px 30px rgba(132, 191, 147, 0.15);
             }
-
-            .welcome-text h2 {
-                margin: 0;
-                font-size: 1.5rem;
-                font-weight: 800;
-                color: var(--color-texto);
-            }
-
-            .welcome-text p {
-                margin: 0;
-                font-size: 0.9rem;
-                color: var(--color-texto-claro);
-                font-weight: 600;
-            }
-
-            .btn-volver {
-                display: inline-flex;
-                align-items: center;
-                gap: 0.4rem;
-                background: white;
-                border-radius: 50px;
-                padding: 0.5rem 1.1rem;
-                color: var(--color-verde);
-                font-weight: 700;
-                font-size: 0.85rem;
-                text-decoration: none;
-                box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-            }
-
-                .btn-volver:hover {
-                    color: var(--color-verde);
-                    transform: translateY(-2px);
-                }
 
             .content-card {
                 background: var(--color-blanco-glass);
                 backdrop-filter: blur(12px);
                 border-radius: 24px;
                 padding: 2rem;
-                box-shadow: 0 10px 30px rgba(132, 191, 147, 0.15), 0 0 0 2px rgba(255, 255, 255, 0.6);
+                box-shadow: 0 10px 30px rgba(132, 191, 147, 0.15);
             }
 
-            .empty-state {
-                text-align: center;
-                padding: 2rem 1rem;
-                color: var(--color-texto-claro);
-                font-weight: 600;
-                font-size: 0.9rem;
+            .filtros-wrap {
+                display: flex;
+                gap: 0.5rem;
+                margin-bottom: 1.5rem;
+                flex-wrap: wrap;
             }
 
-                .empty-state i {
-                    font-size: 1.8rem;
-                    display: block;
-                    margin-bottom: 0.5rem;
-                    color: var(--color-aqua);
+            .btn-filtro {
+                background: white;
+                border: 2px solid var(--color-azul-claro);
+                border-radius: 50px;
+                padding: 0.5rem 1.2rem;
+                color: var(--color-texto);
+                font-weight: 700;
+                font-size: 0.85rem;
+                cursor: pointer;
+                transition: all 0.3s ease;
+            }
+
+                .btn-filtro:hover {
+                    border-color: var(--color-aqua);
+                    color: var(--color-verde);
                 }
 
-            .card-header-custom {
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                margin-bottom: 1.5rem;
-            }
+                .btn-filtro.active {
+                    background: linear-gradient(135deg, var(--color-verde) 0%, var(--color-aqua) 100%);
+                    color: white;
+                    border-color: transparent;
+                }
+                /* Agrega esto en el <style> de MonitoreoProduccion/Index.cshtml */
+                .sidebar {
+                    width: 260px;
+                    background: var(--color-blanco-glass);
+                    backdrop-filter: blur(12px);
+                    border-radius: 24px;
+                    padding: 2rem 1.5rem;
+                    display: flex;
+                    flex-direction: column;
+                    box-shadow: 0 10px 30px rgba(132, 191, 147, 0.15);
+                    flex-shrink: 0;
+                }
 
-                .card-header-custom h3 {
-                    margin: 0;
-                    font-size: 1.15rem;
-                    font-weight: 800;
+                .sidebar-logo {
                     color: var(--color-verde);
+                    font-size: 1.8rem;
+                    font-weight: 800;
                     display: flex;
                     align-items: center;
                     gap: 0.5rem;
+                    margin-bottom: 2.5rem;
                 }
 
+                .nav-menu {
+                    list-style: none;
+                    padding: 0;
+                    margin: 0;
+                    flex-grow: 1;
+                }
+
+                .nav-link {
+                    display: flex;
+                    align-items: center;
+                    gap: 0.75rem;
+                    padding: 0.85rem 1.25rem;
+                    border-radius: 16px;
+                    color: var(--color-texto);
+                    font-weight: 700;
+                    text-decoration: none;
+                    transition: all 0.3s;
+                    border: 2px solid transparent;
+                    margin-bottom: 0.75rem;
+                }
+
+                .nav-link:hover {
+                    background-color: var(--color-amarillo);
+                    color: var(--color-verde);
+                }
+
+                .nav-link.active {
+                    background: linear-gradient(135deg, var(--color-verde) 0%, var(--color-aqua) 100%);
+                    color: white;
+                }
             .table-cute {
                 width: 100%;
                 border-collapse: separate;
@@ -296,7 +176,6 @@
                     font-weight: 700;
                     font-size: 0.78rem;
                     text-transform: uppercase;
-                    letter-spacing: 0.05em;
                     padding: 0.75rem 1rem;
                     border: none;
                 }
@@ -325,7 +204,6 @@
                     vertical-align: middle;
                     border: none;
                     font-size: 0.88rem;
-                    color: var(--color-texto);
                 }
 
                     .table-cute tbody td:first-child {
@@ -344,21 +222,31 @@
                 white-space: nowrap;
             }
 
-            .badge-proceso {
-                background-color: var(--color-amarillo);
-                color: #857a10;
+            .badge-cute-warning {
+                background-color: #fef3c7;
+                color: #92400e;
+            }
+
+            .badge-cute-info {
+                background-color: var(--color-azul-claro);
+                color: #1e5a73;
+            }
+
+            .badge-cute-success {
+                background-color: var(--color-verde-claro);
+                color: #3f4d12;
             }
 
             .progreso-wrap {
                 display: flex;
                 align-items: center;
                 gap: 0.6rem;
-                min-width: 120px;
+                min-width: 140px;
             }
 
             .progreso-bar {
                 flex-grow: 1;
-                height: 8px;
+                height: 10px;
                 border-radius: 50px;
                 background-color: var(--color-azul-claro);
                 overflow: hidden;
@@ -367,7 +255,7 @@
             .progreso-fill {
                 height: 100%;
                 border-radius: 50px;
-                transition: width 0.4s ease, background 0.4s ease;
+                transition: width 0.5s ease, background 0.5s ease;
             }
 
                 .progreso-fill.baja {
@@ -385,7 +273,7 @@
             .progreso-label {
                 font-size: 0.78rem;
                 font-weight: 800;
-                min-width: 32px;
+                min-width: 35px;
                 text-align: right;
             }
 
@@ -400,105 +288,161 @@
                 .progreso-label.alta {
                     color: var(--color-verde);
                 }
-
-            @@media (max-width: 768px) {
-                .dashboard-wrapper {
-                    flex-direction: column;
-                    padding: 1rem;
-                }
-
-                .sidebar {
-                    width: 100%;
-                    padding: 1.5rem;
-                }
-
-                .nav-link {
-                    padding: 0.75rem 1rem;
-                }
-            }
     </style>
 </head>
 <body>
-    <div class="bg-blob blob-1"></div>
-    <div class="bg-blob blob-2"></div>
-
     <div class="dashboard-wrapper">
         @await Html.PartialAsync("_Sidebar")
 
         <main class="main-content">
             <div class="top-bar">
-                <div class="welcome-text">
-                    <h2><i class="bi bi-gear-fill"></i> Monitoreo de producción</h2>
-                    <p>Estado en tiempo real de las líneas de producción.</p>
+                <div>
+                    <h2 style="margin:0; font-weight:800; color:var(--color-verde);"><i class="bi bi-activity"></i> Monitoreo de Producción</h2>
+                    <p style="margin:0; font-size:0.9rem; color:var(--color-texto-claro);">Estado en tiempo real de las órdenes de fabricación.</p>
                 </div>
-                <a class="btn-volver" asp-controller="Monitoreo" asp-action="Index">
-                    <i class="bi bi-arrow-left"></i> Volver al menú
+                <a class="btn btn-light rounded-pill fw-bold" asp-controller="Produccion" asp-action="Index">
+                    <i class="bi bi-arrow-left"></i> Ir a Ordenes de Producción
                 </a>
-                <!-- Este link ya está bien: sigue apuntando a MonitoreoController/Index (el menú) -->
-                <!-- La vista misma ahora vive en Views/MonitoreoProduccion/Index.cshtml -->
-                <!-- porque pertenece a MonitoreoProduccionController -->
-
             </div>
 
             <div class="content-card">
-                <div class="card-header-custom">
-                    <h3><i class="bi bi-list-check"></i> Proceso de orden</h3>
+                <!-- BOTONES DE FILTRO -->
+                <div class="filtros-wrap">
+                    <button class="btn-filtro" data-filtro="Todas">Todas</button>
+                    <button class="btn-filtro" data-filtro="Pendiente">Pendientes</button>
+                    <button class="btn-filtro active" data-filtro="EnProceso">En Proceso</button>
+                    <button class="btn-filtro" data-filtro="Pausada">Pausadas</button>
+                    <button class="btn-filtro" data-filtro="Completada">Completadas</button>
                 </div>
 
-                @if (Model != null && Model.Any())
-                {
-                    <div class="table-responsive">
-                        <table class="table-cute">
-                            <thead>
-                                <tr>
-                                    <th>N° Orden</th>
-                                    <th>Producto</th>
-                                    <th>Cantidad</th>
-                                    <th>Tiempo de producción</th>
-                                    <th>Estado</th>
-                                    <th>Progreso</th>
-                                    <th>Línea</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach (var o in Model)
-                                {
-                                    string colorClase = o.PorcentajeAvance >= 75 ? "alta"
-                                        : o.PorcentajeAvance >= 40 ? "media"
-                                        : "baja";
-                                    <tr>
-                                        <td><strong>@o.NumeroOrden</strong></td>
-                                        <td>@o.Producto</td>
-                                        <td>@o.Cantidad</td>
-                                        <td>@o.TiempoProduccion</td>
-                                        <td><span class="badge-cute badge-proceso">@o.EstadoProduccion</span></td>
-                                        <td>
-                                            <div class="progreso-wrap">
-                                                <div class="progreso-bar">
-                                                    <div class="progreso-fill @colorClase" style="width:@o.PorcentajeAvance%;"></div>
-                                                </div>
-                                                <span class="progreso-label @colorClase">@o.PorcentajeAvance%</span>
-                                            </div>
-                                        </td>
-                                        <td>@o.LineaProduccion</td>
-                                    </tr>
-                                }
-                            </tbody>
-                        </table>
-                    </div>
-                }
-                else
-                {
-                    <div class="empty-state">
-                        <i class="bi bi-check-circle"></i>
-                        No hay órdenes en producción actualmente.
-                    </div>
-                }
+                <div class="table-responsive">
+                    <table class="table-cute">
+                        <thead>
+                            <tr>
+                                <th>N° Orden</th>
+                                <th>Producto</th>
+                                <th class="text-center">Cantidad</th>
+                                <th>Tiempo (Real / Total)</th>
+                                <th>Estado</th>
+                                <th>Progreso</th>
+                                <th>Línea</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tablaMonitoreoBody">
+                            <tr><td colspan="7" class="text-center text-muted py-4">Cargando datos en tiempo real...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </main>
     </div>
 
-    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script>
+            let filtroActual = 'En Proceso';
+            let intervaloMonitoreo = null;
+
+            $(function() {
+                console.log(" Inicializando Monitoreo de Producción...");
+
+                // Manejo de clic en filtros
+                $('.btn-filtro').on('click', function() {
+                    $('.btn-filtro').removeClass('active');
+                    $(this).addClass('active');
+                    filtroActual = $(this).data('filtro');
+                    console.log("🔄 Filtro cambiado a:", filtroActual);
+                    cargarDatos();
+                });
+
+                // Carga inicial
+                cargarDatos();
+
+                // Actualización automática cada 5 segundos
+                intervaloMonitoreo = setInterval(cargarDatos, 5000);
+            });
+
+            function cargarDatos() {
+                console.log("📡 Consultando datos con filtro:", filtroActual);
+
+                $.ajax({
+                    url: '/ObtenerDatosMonitoreo',
+                    type: 'GET',
+                    data: { filtro: filtroActual },
+                    success: function(r) {
+
+                        if (r.success && r.data) {
+                            renderizarTabla(r.data);
+                        } else {
+                            console.error("Respuesta completa:", r);
+                            $('#tablaMonitoreoBody').html(
+                                '<tr><td colspan="7" class="text-center text-danger py-4">Error: No se recibieron datos válidos del servidor</td></tr>'
+                            );
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        console.error("❌ Error en la petición AJAX:", error);
+                        console.error("Status:", status);
+                        console.error("XHR:", xhr);
+                        $('#tablaMonitoreoBody').html(
+                            `<tr><td colspan="7" class="text-center text-danger py-4">Error de conexión: ${error}</td></tr>`
+                        );
+                    }
+                });
+            }
+
+            function renderizarTabla(datos) {
+                const tbody = $('#tablaMonitoreoBody');
+
+                if (!datos || datos.length === 0) {
+                    tbody.html('<tr><td colspan="7" class="text-center text-muted py-4">No hay órdenes con este filtro.</td></tr>');
+                    return;
+                }
+
+                let html = '';
+                $.each(datos, function(i, o) {
+                    // Debug: mostrar el primer objeto en consola
+                    if (i === 0) {
+                        console.log(" Primer objeto a renderizar:", o);
+                    }
+
+                    // Validar que las propiedades existan
+                    let numeroOrden = o.NumeroOrden || o.numeroOrden || 'N/A';
+                    let producto = o.Producto || o.producto || 'Sin producto';
+                    let cantidad = o.Cantidad || o.cantidad || 0;
+                    let tiempo = o.TiempoProduccion || o.tiempoProduccion || '00:00 / 00:00';
+                    let estado = o.Estado || o.estado || 'Desconocido';
+                    let porcentaje = o.PorcentajeAvance || o.porcentajeAvance || 0;
+                    let linea = o.LineaProduccion || o.lineaProduccion || 'N/A';
+
+                    let colorClase = porcentaje >= 75 ? "alta" : porcentaje >= 40 ? "media" : "baja";
+
+                    let badgeClass = 'badge-cute-warning';
+                    if (estado === 'EnProceso' || estado === 'enproceso') badgeClass = 'badge-cute-info';
+                    else if (estado === 'Completada' || estado === 'completada') badgeClass = 'badge-cute-success';
+                    else if (estado === 'Pausada' || estado === 'pausada') badgeClass = 'badge-cute-warning';
+
+                    html += `
+                            <tr>
+                                <td><strong>${numeroOrden}</strong></td>
+                                <td>${producto}</td>
+                                <td class="text-center">${cantidad} uds</td>
+                                <td style="font-family: monospace; font-weight:600;">${tiempo}</td>
+                                <td><span class="badge-cute ${badgeClass}">${estado}</span></td>
+                                <td>
+                                    <div class="progreso-wrap">
+                                        <div class="progreso-bar">
+                                            <div class="progreso-fill ${colorClase}" style="width: ${porcentaje}%"></div>
+                                        </div>
+                                        <span class="progreso-label ${colorClase}">${porcentaje}%</span>
+                                    </div>
+                                </td>
+                                <td>${linea}</td>
+                            </tr>
+                        `;
+                });
+
+                tbody.html(html);
+            }
+    </script>
 </body>
 </html>
