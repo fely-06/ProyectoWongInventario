@@ -29,7 +29,7 @@ namespace ProyectoWong.Controllers
             orden.FechaInicio = DateTime.Now;
             orden.FechaPausa = null;
             orden.TiempoPausadoMinutos = 0;
-            orden.DuracionEstimadaMinutos = orden.CantidadAProducir * 0.05; // 0.5 min por unidad
+            orden.DuracionEstimadaMinutos = orden.CantidadAProducir * 0.5; // 0.5 min por unidad
 
             await _context.SaveChangesAsync();
             return Json(Respuesta.OK($"Orden iniciada. Tiempo estimado: {orden.DuracionEstimadaMinutos} min"));
