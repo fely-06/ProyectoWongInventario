@@ -218,6 +218,33 @@
                         <label class="form-label small fw-bold">Observaciones / Defecto Principal</label>
                         <textarea class="form-control" id="inspObservaciones" rows="3" placeholder="Ej: 2 unidades con aspa rota, resto OK."></textarea>
                     </div>
+
+                    <!-- Evidencia fotográfica obligatoria (requisito de monitoreo visual) -->
+                    <div class="mb-2">
+                        <label class="form-label small fw-bold">
+                            <i class="bi bi-camera-fill"></i> Evidencia fotográfica (obligatoria)
+                        </label>
+                        <div class="text-center border rounded-4 p-2" style="border-color: var(--color-azul-claro) !important;">
+                            <video id="videoInsp" autoplay playsinline style="width:100%; max-height:260px; object-fit:cover; border-radius:12px; display:none;"></video>
+                            <canvas id="canvasInsp" style="display:none;"></canvas>
+                            <img id="fotoPreview" style="width:100%; max-height:260px; object-fit:cover; border-radius:12px; display:none;">
+                            <div id="fotoPlaceholder" class="text-muted py-4">
+                                <i class="bi bi-camera fs-1"></i>
+                                <p class="mb-0 small fw-bold">Sin foto capturada</p>
+                            </div>
+                            <div class="mt-2">
+                                <button type="button" class="btn btn-outline-secondary btn-sm rounded-pill" id="btnActivarCam">
+                                    <i class="bi bi-camera-video-fill"></i> Activar cámara
+                                </button>
+                                <button type="button" class="btn btn-sm rounded-pill text-white" style="background: var(--color-naranja); display:none;" id="btnCapturar">
+                                    <i class="bi bi-camera"></i> Capturar foto
+                                </button>
+                                <button type="button" class="btn btn-outline-danger btn-sm rounded-pill" id="btnRetomar" style="display:none;">
+                                    <i class="bi bi-arrow-counterclockwise"></i> Retomar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 <div class="modal-footer" style="border-top: 2px solid var(--color-azul-claro);">
                     <button class="btn btn-light rounded-pill fw-bold" data-bs-dismiss="modal">Cancelar</button>
@@ -304,11 +331,67 @@
                     <div class="quality-bar"><div class="quality-fill" style="width: ${o.PorcentajeCalidad}%; background: ${colorBarra};"></div></div>
 
                     ${o.CantidadRechazada > 0 ? `<div class="defecto-alert"><i class="bi bi-exclamation-triangle-fill"></i> <span>${o.DefectoPrincipal}</span></div>` : ''}
+                    ${o.TieneFoto ? `<img src="/MonitoreoVisual/Foto/${o.Id}" class="w-100 mt-3" style="max-height:160px; object-fit:cover; border-radius:12px;" alt="Evidencia inspección">` : ''}
                     ${botonAccion}
                 </div>`;
             });
             container.html(html);
         }
+
+        // ==========================================
+        // CÁMARA - EVIDENCIA DE INSPECCIÓN VISUAL
+        // ==========================================
+        let streamCam = null;
+        let fotoBlob = null;
+
+        function resetCamara() {
+            if (streamCam) {
+                streamCam.getTracks().forEach(t => t.stop());
+                streamCam = null;
+            }
+            fotoBlob = null;
+            $('#videoInsp').hide().attr('srcObject', null);
+            $('#fotoPreview').hide().attr('src', '');
+            $('#fotoPlaceholder').show();
+            $('#btnActivarCam').show();
+            $('#btnCapturar').hide();
+            $('#btnRetomar').hide();
+        }
+
+        $('#btnActivarCam').on('click', async function () {
+            try {
+                streamCam = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" }, audio: false });
+                const video = document.getElementById('videoInsp');
+                video.srcObject = streamCam;
+                $('#fotoPlaceholder').hide();
+                $('#videoInsp').show();
+                $('#btnActivarCam').hide();
+                $('#btnCapturar').show();
+            } catch (err) {
+                showToast('No se pudo acceder a la cámara: ' + err.message, 'danger');
+            }
+        });
+
+        $('#btnCapturar').on('click', function () {
+            const video = document.getElementById('videoInsp');
+            const canvas = document.getElementById('canvasInsp');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
+
+            canvas.toBlob(function (blob) {
+                fotoBlob = blob;
+                $('#fotoPreview').attr('src', URL.createObjectURL(blob)).show();
+                $('#videoInsp').hide();
+                if (streamCam) { streamCam.getTracks().forEach(t => t.stop()); streamCam = null; }
+                $('#btnCapturar').hide();
+                $('#btnRetomar').show();
+            }, 'image/jpeg', 0.9);
+        });
+
+        $('#btnRetomar').on('click', function () {
+            resetCamara();
+        });
 
         function abrirModalInspeccion(id, numeroOp, total) {
             $('#inspOrdenId').val(id);
@@ -317,6 +400,7 @@
             $('#inspAprobada').val(total);
             $('#inspRechazada').val(0);
             $('#inspObservaciones').val('');
+            resetCamara();
             modalInspeccion.show();
         }
 
@@ -331,26 +415,36 @@
         });
 
         function guardarInspeccion() {
-            let data = {
-                Id: parseInt($('#inspOrdenId').val()),
-                CantidadAprobada: parseInt($('#inspAprobada').val()) || 0,
-                CantidadRechazada: parseInt($('#inspRechazada').val()) || 0,
-                Observaciones: $('#inspObservaciones').val()
-            };
+            if (!fotoBlob) {
+                showToast('Debes capturar una foto con la cámara antes de guardar (requisito de monitoreo visual).', 'danger');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('id', parseInt($('#inspOrdenId').val()));
+            formData.append('cantidadAprobada', parseInt($('#inspAprobada').val()) || 0);
+            formData.append('cantidadRechazada', parseInt($('#inspRechazada').val()) || 0);
+            formData.append('observaciones', $('#inspObservaciones').val());
+            formData.append('foto', fotoBlob, 'inspeccion_' + Date.now() + '.jpg');
 
             $.ajax({
                 url: '/MonitoreoVisual/RegistrarResultado',
                 type: 'POST',
-                contentType: 'application/json',
-                data: JSON.stringify(data),
+                data: formData,
+                processData: false,
+                contentType: false,
                 success: function(r) {
                     if (r.success) {
                         modalInspeccion.hide();
+                        resetCamara();
                         showToast('Inspección registrada correctamente', 'success');
                         cargarDatos();
                     } else {
                         showToast(r.mensaje, 'danger');
                     }
+                },
+                error: function() {
+                    showToast('Error de conexión al registrar la inspección', 'danger');
                 }
             });
         }

@@ -37,6 +37,11 @@ namespace ProyectoWong.Models.Produccion
         public int CantidadAprobada { get; set; } = 0;
         public int CantidadRechazada { get; set; } = 0;
         public string? ObservacionesInspeccion { get; set; }
+
+        // --- Evidencia fotográfica de la inspección visual (requisito de monitoreo visual) ---
+        public byte[]? FotoInspeccion { get; set; }
+        public DateTime? FechaFotoInspeccion { get; set; }
+
         public ICollection<OrdenProduccionDetalle>? Detalles { get; set; }
     }
 }
