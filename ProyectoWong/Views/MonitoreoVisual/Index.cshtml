@@ -297,13 +297,13 @@
 
             let html = '';
             $.each(datos, function(i, o) {
-                let estadoClass = o.EstadoInspeccion === 'Aprobada' ? 'estado-aprobada' : (o.EstadoInspeccion === 'Rechazada' ? 'estado-rechazada' : 'estado-eninspeccion');
-                let badge = o.EstadoInspeccion === 'Aprobada' ? '<span class="badge bg-success rounded-pill">Aprobada</span>' :
-                            (o.EstadoInspeccion === 'Rechazada' ? '<span class="badge bg-danger rounded-pill">Rechazada</span>' : '<span class="badge bg-warning text-dark rounded-pill">Pendiente</span>');
+                let estadoClass = o.estadoInspeccion === 'Aprobada' ? 'estado-aprobada' : (o.estadoInspeccion === 'Rechazada' ? 'estado-rechazada' : 'estado-eninspeccion');
+                let badge = o.estadoInspeccion === 'Aprobada' ? '<span class="badge bg-success rounded-pill">Aprobada</span>' :
+                            (o.estadoInspeccion === 'Rechazada' ? '<span class="badge bg-danger rounded-pill">Rechazada</span>' : '<span class="badge bg-warning text-dark rounded-pill">Pendiente</span>');
 
-                let colorBarra = o.PorcentajeCalidad >= 95 ? 'var(--color-verde)' : (o.PorcentajeCalidad >= 80 ? 'var(--color-naranja)' : 'var(--color-rojo)');
-                let botonAccion = o.EstadoInspeccion === 'EnInspeccion' ?
-                    `<button class="btn-cute-action btn-inspeccionar" onclick="abrirModalInspeccion(${o.Id}, '${o.NumeroOrden}', ${o.CantidadTotal})">
+                let colorBarra = o.porcentajeCalidad >= 95 ? 'var(--color-verde)' : (o.porcentajeCalidad >= 80 ? 'var(--color-naranja)' : 'var(--color-rojo)');
+                let botonAccion = o.estadoInspeccion === 'EnInspeccion' ?
+                    `<button class="btn-cute-action btn-inspeccionar" onclick="abrirModalInspeccion(${o.id}, '${o.numeroOrden}', ${o.cantidadTotal})">
                         <i class="bi bi-clipboard-check"></i> Registrar Inspección
                      </button>` : '';
 
@@ -311,27 +311,27 @@
                 <div class="inspection-card ${estadoClass}">
                     <div class="card-header-visual">
                         <div>
-                            <span class="orden-badge">${o.NumeroOrden}</span>
-                            <h5 class="mt-2 mb-0 fw-bold">${o.Producto}</h5>
-                            <small class="text-muted"><i class="bi bi-diagram-3"></i> ${o.LineaProduccion}</small>
+                            <span class="orden-badge">${o.numeroOrden}</span>
+                            <h5 class="mt-2 mb-0 fw-bold">${o.producto}</h5>
+                            <small class="text-muted"><i class="bi bi-diagram-3"></i> ${o.lineaProduccion}</small>
                         </div>
                         <div class="product-icon"><i class="bi bi-fan"></i></div>
                     </div>
 
                     <div class="metric-row">
-                        <div class="metric-box"><span class="metric-value">${o.CantidadTotal}</span><span class="metric-label">Total</span></div>
-                        <div class="metric-box"><span class="metric-value text-verde">${o.CantidadAprobada}</span><span class="metric-label">Aprobados</span></div>
-                        <div class="metric-box"><span class="metric-value text-rojo">${o.CantidadRechazada}</span><span class="metric-label">Defectos</span></div>
+                        <div class="metric-box"><span class="metric-value">${o.cantidadTotal}</span><span class="metric-label">Total</span></div>
+                        <div class="metric-box"><span class="metric-value text-verde">${o.cantidadAprobada}</span><span class="metric-label">Aprobados</span></div>
+                        <div class="metric-box"><span class="metric-value text-rojo">${o.cantidadRechazada}</span><span class="metric-label">Defectos</span></div>
                     </div>
 
                     <div class="d-flex justify-content-between align-items-center mt-3">
-                        <small class="fw-bold">Calidad: ${o.PorcentajeCalidad}%</small>
+                        <small class="fw-bold">Calidad: ${o.porcentajeCalidad}%</small>
                         ${badge}
                     </div>
-                    <div class="quality-bar"><div class="quality-fill" style="width: ${o.PorcentajeCalidad}%; background: ${colorBarra};"></div></div>
+                    <div class="quality-bar"><div class="quality-fill" style="width: ${o.porcentajeCalidad}%; background: ${colorBarra};"></div></div>
 
-                    ${o.CantidadRechazada > 0 ? `<div class="defecto-alert"><i class="bi bi-exclamation-triangle-fill"></i> <span>${o.DefectoPrincipal}</span></div>` : ''}
-                    ${o.TieneFoto ? `<img src="/MonitoreoVisual/Foto/${o.Id}" class="w-100 mt-3" style="max-height:160px; object-fit:cover; border-radius:12px;" alt="Evidencia inspección">` : ''}
+                    ${o.cantidadRechazada > 0 ? `<div class="defecto-alert"><i class="bi bi-exclamation-triangle-fill"></i> <span>${o.defectoPrincipal}</span></div>` : ''}
+                    ${o.tieneFoto ? `<img src="/MonitoreoVisual/Foto/${o.id}" class="w-100 mt-3" style="max-height:160px; object-fit:cover; border-radius:12px;" alt="Evidencia inspección">` : ''}
                     ${botonAccion}
                 </div>`;
             });

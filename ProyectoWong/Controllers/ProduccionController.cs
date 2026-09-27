@@ -158,11 +158,7 @@ namespace ProyectoWong.Controllers
 
                 if (producto == null) return Json(Respuesta.Error("Producto no encontrado"));
 
-                // Validar que haya stock suficiente de cada componente.
-                // Revisamos TODOS los componentes (no solo el primero que falle) para
-                // poder devolver la lista completa de faltantes y así el frontend pueda
-                // ofrecer generar automáticamente la orden de compra correspondiente.
-                var componentesFaltantes = new List<object>();
+                 var componentesFaltantes = new List<object>();
                 foreach (var pc in producto.Componentes)
                 {
                     int requerido = pc.CantidadRequerida * request.Cantidad;
@@ -197,7 +193,7 @@ namespace ProyectoWong.Controllers
                 // Crear la cabecera
                 var orden = new OrdenProduccion
                 {
-                    NumeroOP = $"OP-{DateTime.Now:yyyyMMdd}-{Guid.NewGuid().ToString().Substring(0, 6).ToUpper()}",
+                    NumeroOP = $"WO-{DateTime.Now:yyyyMMdd}-{Guid.NewGuid().ToString().Substring(0, 6).ToUpper()}",
                     ProductoId = request.ProductoId,
                     CantidadAProducir = request.Cantidad,
                     Estado = "Pendiente",
