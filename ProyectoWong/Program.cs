@@ -11,6 +11,9 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 // Antes de builder.Build()
 builder.Services.AddHostedService<ProyectoWong.Helpers.ProduccionBackgroundService>();
+// Lectura de sensores del Arduino por puerto serial (config en appsettings.json -> "Sensores")
+builder.Services.AddSingleton<ProyectoWong.Helpers.SensorDataStore>();
+builder.Services.AddHostedService<ProyectoWong.Helpers.SensorSerialService>();
 // 3. CONSTRUIR LA APLICACIÓN
 builder.WebHost.ConfigureKestrel(options =>
 {
