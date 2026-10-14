@@ -7,8 +7,9 @@ namespace ProyectoWong.Controllers
     public class PruebasSensoresController : Controller
     {
         private readonly SensorDataStore _store;
-        private readonly SensorSerialService _serialService; // <-- Inyectado correctamente
+        private readonly SensorSerialService _serialService; // 1. Agregado
 
+        // 2. Constructor actualizado para recibir AMBOS servicios
         public PruebasSensoresController(SensorDataStore store, SensorSerialService serialService)
         {
             _store = store;
@@ -39,6 +40,7 @@ namespace ProyectoWong.Controllers
             return Json(new { success = true });
         }
 
+        // 3. NUEVO: Envía la orden al Arduino para empezar a medir
         [HttpPost("PruebasSensores/Iniciar")]
         public IActionResult Iniciar()
         {
@@ -46,6 +48,7 @@ namespace ProyectoWong.Controllers
             return Json(new { success = true });
         }
 
+        // 4. NUEVO: Envía la orden al Arduino para detenerse y evaluar
         [HttpPost("PruebasSensores/Detener")]
         public IActionResult Detener()
         {

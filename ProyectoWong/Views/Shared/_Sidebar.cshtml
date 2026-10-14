@@ -1,14 +1,12 @@
 @{
-    // Se alimenta de ViewBag.ActiveMenu, que cada controlador ya asigna en su Index():
-    //   "Componentes", "Usuarios", "OrdenesCompra", "Proveedores", "Recepcion", "Inventario"
-    // Para el Home no se asigna nada, así que "Inicio" queda como valor por defecto.
-    string activo = ViewBag.ActiveMenu ?? "Inicio";
+    var activeMenu = ViewBag.ActiveMenu as string ?? "";
+     string activo = ViewBag.ActiveMenu ?? "Inicio";
 }
 <aside class="sidebar">
     <div class="sidebar-logo">
-        <i class="bi bi-patch-check-fill"></i> SIV
+        <i class="bi bi-cpu-fill"></i> SIV Tester
     </div>
-
+    
     <ul class="nav-menu">
         <li class="nav-item">
             <a class="nav-link @(activo == "Inicio" ? "active" : "")" asp-controller="Home" asp-action="Index">

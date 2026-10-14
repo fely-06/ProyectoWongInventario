@@ -1,16 +1,16 @@
 #include <DHT.h>
 
-#define DHTTYPE DHT11
+#define Type DHT11
 const int dhtPin = 2;
 const int irPin = 3;
-DHT dht(dhtPin, DHTTYPE);
+DHT HT(dhtPin, Type);
 
 const bool usarRPM = true;
-float humedad = 0;
-float tempC = 0;
+float humedad;
+float tempC;
 
 unsigned long tiempoAnteriorDHT = 0;
-const unsigned long intervaloDHT = 1000; // Lee cada 1 segundo durante la prueba
+const unsigned long intervaloDHT = 1000; // 1 segundo durante la prueba
 
 const int ledRojo = 11;
 const int ledVerde = 10;
@@ -30,12 +30,12 @@ bool pruebaTempPasada = false;
 bool rpmValida = false;
 bool pruebaRpmPasada = false;
 
-// NUEVO: Control de estado de la prueba
+// ✅ NUEVO: Controla si el Arduino debe medir o esperar
 bool enPrueba = false; 
 
 void setup() {
   Serial.begin(9600);
-  dht.begin();
+  HT.begin();
   pinMode(ledRojo, OUTPUT);
   pinMode(ledVerde, OUTPUT);
   pinMode(irPin, INPUT);
@@ -45,10 +45,10 @@ void setup() {
 }
 
 void loop() {
-  // 1. ESCUCHAR COMANDOS DE LA PC
+  // 1. ESCUCHAR COMANDOS DE LA PC (START o STOP)
   if (Serial.available() > 0) {
     String comando = Serial.readStringUntil('\n');
-    comando.trim(); // Elimina caracteres ocultos como \r
+    comando.trim(); 
     
     if (comando == "START") {
       enPrueba = true;
@@ -113,8 +113,8 @@ void pruebaDHT() {
   if (tiempoActual - tiempoAnteriorDHT >= intervaloDHT) {
     tiempoAnteriorDHT = tiempoActual;
     
-    float h = dht.readHumidity();
-    float t = dht.readTemperature();
+    float h = HT.readHumidity();
+    float t = HT.readTemperature();
     
     if (isnan(t) || isnan(h)) {
       tempValida = false;

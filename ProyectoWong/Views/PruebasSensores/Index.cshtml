@@ -436,8 +436,8 @@
     </div>
 
     <script src="~/lib/jquery/dist/jquery.js"></script>
+    <script src="~/lib/jquery/dist/jquery.js"></script>
     <script>
-            // Configuración de las Pruebas Secuenciales
             const pasos = [
                 {
                     id: 'rpm',
@@ -447,9 +447,9 @@
                         'Asegure las correas o soportes para evitar vibraciones externas.',
                         'Verifique que el sensor infrarrojo esté alineado con la marca reflectante.'
                     ],
-                    duracion: 60, // segundos
+                    duracion: 60,
                     metricas: ['rpm'],
-                    evaluar: (datos) => datos.ultima && datos.ultima.rpm >= 2000 // Lógica de aprobación
+                    evaluar: (datos) => datos.ultima && datos.ultima.rpm >= 2000
                 },
                 {
                     id: 'temp',
@@ -462,22 +462,6 @@
                     duracion: 60,
                     metricas: ['temperatura', 'humedad'],
                     evaluar: (datos) => datos.ultima && datos.ultima.temperatura >= 18 && datos.ultima.temperatura <= 28
-                },
-                {
-                    id: 'vibracion',
-                    titulo: 'Prueba 3: Vibración (Próximamente)',
-                    instrucciones: ['Configuración pendiente de hardware.', 'Esta prueba se habilitará en la siguiente versión.'],
-                    duracion: 30,
-                    metricas: [],
-                    evaluar: (datos) => true // Simulado por ahora
-                },
-                {
-                    id: 'corriente',
-                    titulo: 'Prueba 4: Corriente Consumida (Próximamente)',
-                    instrucciones: ['Configuración pendiente de hardware.', 'Esta prueba se habilitará en la siguiente versión.'],
-                    duracion: 30,
-                    metricas: [],
-                    evaluar: (datos) => true // Simulado por ahora
                 }
             ];
 
@@ -490,7 +474,7 @@
             $(document).ready(function() {
                 renderizarPasos();
                 cargarPaso(0);
-                setInterval(verificarConexion, 3000); // Monitoreo de fondo de la conexión
+                setInterval(verificarConexion, 3000);
             });
 
             function renderizarPasos() {
@@ -498,12 +482,7 @@
                 pasos.forEach((paso, index) => {
                     let clase = index === pasoActual ? 'active' : (index < pasoActual ? 'completed' : '');
                     let icono = index < pasoActual ? '<i class="bi bi-check-lg"></i>' : (index + 1);
-                    html += `
-                        <div class="step-item ${clase}">
-                            <div class="step-circle">${icono}</div>
-                            <div class="step-label">${paso.id.toUpperCase()}</div>
-                        </div>
-                    `;
+                    html += `<div class="step-item ${clase}"><div class="step-circle">${icono}</div><div class="step-label">${paso.id.toUpperCase()}</div></div>`;
                 });
                 $('#progressSteps').html(html);
             }
@@ -519,20 +498,12 @@
                 $('#stepTitle').text(paso.titulo);
                 $('#stepInstructions').html(paso.instrucciones.map(i => `<li>${i}</li>`).join(''));
 
-                // Configurar métricas en vivo
                 let metricasHtml = '';
-                if (paso.metricas.includes('rpm')) {
-                    metricasHtml += `<div class="live-metric"><div class="label">Velocidad</div><div class="value" id="liveRpm">--</div><div class="unit">RPM</div></div>`;
-                }
-                if (paso.metricas.includes('temperatura')) {
-                    metricasHtml += `<div class="live-metric"><div class="label">Temperatura</div><div class="value" id="liveTemp">--</div><div class="unit">°C</div></div>`;
-                }
-                if (paso.metricas.includes('humedad')) {
-                    metricasHtml += `<div class="live-metric"><div class="label">Humedad</div><div class="value" id="liveHum">--</div><div class="unit">%</div></div>`;
-                }
+                if (paso.metricas.includes('rpm')) metricasHtml += `<div class="live-metric"><div class="label">Velocidad</div><div class="value" id="liveRpm">--</div><div class="unit">RPM</div></div>`;
+                if (paso.metricas.includes('temperatura')) metricasHtml += `<div class="live-metric"><div class="label">Temperatura</div><div class="value" id="liveTemp">--</div><div class="unit">°C</div></div>`;
+                if (paso.metricas.includes('humedad')) metricasHtml += `<div class="live-metric"><div class="label">Humedad</div><div class="value" id="liveHum">--</div><div class="unit">%</div></div>`;
                 $('#liveDataGrid').html(metricasHtml);
 
-                // Resetear UI de controles
                 $('#resultBadge').removeClass('pass fail').hide().text('');
                 $('#timerDisplay').removeClass('running finished').text(formatoTiempo(paso.duracion));
                 $('#btnStart').show();
@@ -542,32 +513,56 @@
                 renderizarPasos();
             }
 
-            function iniciarPrueba() {
-                if (!verificarConexion()) {
-                    alert("⚠️ No se detecta el Arduino conectado. Por favor, revise el puerto serial.");
+            // ✅ CORRECCIÓN 1: Función asíncrona que SÍ devuelve true/false y muestra el error real
+            async function verificarConexion() {
+                try {
+                    const r = await $.get('/PruebasSensores/Ultimos');
+                    if (r.conectado) {
+                        $('#connStatus').removeClass('off').addClass('on');
+                        $('#connText').text('Arduino Conectado (' + r.puerto + ')');
+                        return true;
+                    } else {
+                        $('#connStatus').removeClass('on').addClass('off');
+                        // Muestra el mensaje de error exacto que envía el servidor (ej: "Access denied" o "COM4 no encontrado")
+                        $('#connText').text(r.estado || 'Desconectado (Sin detalles)');
+                        return false;
+                    }
+                } catch (error) {
+                    $('#connStatus').removeClass('on').addClass('off');
+                    $('#connText').text('Error de Servidor al consultar');
+                    return false;
+                }
+            }
+
+            // ✅ CORRECCIÓN 2: Espera la respuesta real de verificarConexion y envía START
+            async function iniciarPrueba() {
+                const estaConectado = await verificarConexion();
+
+                if (!estaConectado) {
+                    alert("⚠️ No se detecta el Arduino conectado.\n\nDetalle del error: " + $('#connText').text());
                     return;
                 }
 
                 pruebaEnCurso = true;
                 tiempoRestante = pasos[pasoActual].duracion;
 
-                // Limpiar historial anterior para evaluar solo esta prueba
+                // 1. Limpiar historial
                 $.post('/PruebasSensores/Limpiar');
+
+                // 2. ENVIAR COMANDO "START" AL ARDUINO
+                $.post('/PruebasSensores/Iniciar');
 
                 $('#btnStart').hide();
                 $('#timerDisplay').addClass('running').show();
 
-                // Iniciar countdown
                 intervaloPrueba = setInterval(() => {
                     tiempoRestante--;
                     $('#timerDisplay').text(formatoTiempo(tiempoRestante));
-
                     if (tiempoRestante <= 0) {
                         finalizarPrueba();
                     }
                 }, 1000);
 
-                // Iniciar polling rápido para datos en vivo
                 intervaloPolling = setInterval(obtenerDatosEnVivo, 1000);
             }
 
@@ -579,8 +574,6 @@
                         alert("⚠️ Se perdió la conexión con el Arduino durante la prueba.");
                         return;
                     }
-
-                    // Actualizar métricas en vivo si existen
                     if (r.ultima) {
                         if ($('#liveRpm').length) $('#liveRpm').text(r.ultima.rpm ? r.ultima.rpm.toFixed(0) : '--');
                         if ($('#liveTemp').length) $('#liveTemp').text(r.ultima.temperatura ? r.ultima.temperatura.toFixed(1) : '--');
@@ -589,14 +582,17 @@
                 });
             }
 
+            // ✅ CORRECCIÓN 3: Envía el comando "STOP" al finalizar
             function finalizarPrueba() {
                 clearInterval(intervaloPrueba);
                 clearInterval(intervaloPolling);
                 pruebaEnCurso = false;
 
+                // ENVIAR COMANDO "STOP" AL ARDUINO
+                $.post('/PruebasSensores/Detener');
+
                 $('#timerDisplay').removeClass('running').addClass('finished').text("¡TIEMPO CULMINADO!");
 
-                // Evaluar resultado (obtenemos el último dato registrado)
                 $.get('/PruebasSensores/Ultimos', function(r) {
                     const paso = pasos[pasoActual];
                     const aprobado = paso.evaluar(r);
@@ -619,9 +615,13 @@
                 cargarPaso(pasoActual + 1);
             }
 
-            function mostrarResumenFinal() {
-                $('#stepTitle').text('Proceso de Pruebas Finalizado');
-                $('#stepInstructions').html('<li>Todas las pruebas secuenciales han sido completadas.</li><li>Revise los resultados en el sistema de gestión.</li><li>Puede retirar el producto de la estación de prueba.</li>');
+                        function mostrarResumenFinal() {
+                $('#stepTitle').text('🎉 Proceso de Pruebas Finalizado');
+                $('#stepInstructions').html(`
+                    <li>Todas las pruebas secuenciales han sido completadas exitosamente.</li>
+                    <li>Los resultados han sido registrados en el historial.</li>
+                    <li>Puede retirar el producto de la estación de prueba.</li>
+                `);
                 $('#liveDataGrid').hide();
                 $('#resultBadge').removeClass('fail').addClass('pass').html('<i class="bi bi-trophy-fill"></i> FLUJO DE TRABAJO COMPLETADO').show();
                 $('#timerDisplay').hide();
@@ -629,7 +629,6 @@
                 $('#btnStart').hide();
                 $('#btnReset').show();
 
-                // Actualizar pasos visualmente
                 $('.step-item').addClass('completed');
                 $('.step-circle').html('<i class="bi bi-check-lg"></i>');
             }
@@ -640,22 +639,6 @@
                     $('#liveDataGrid').show();
                     cargarPaso(0);
                 }
-            }
-
-            function verificarConexion() {
-                $.get('/PruebasSensores/Ultimos', function(r) {
-                    if (r.conectado) {
-                        $('#connStatus').removeClass('off').addClass('on');
-                        $('#connText').text('Arduino Conectado (' + r.puerto + ')');
-                    } else {
-                        $('#connStatus').removeClass('on').addClass('off');
-                        // ✅ CAMBIO CLAVE: Mostrar el mensaje de error real del servidor
-                        $('#connText').text(r.estado || 'Desconectado (Sin detalles)');
-                    }
-                }).fail(function() {
-                    $('#connStatus').removeClass('on').addClass('off');
-                    $('#connText').text('Error de Servidor al consultar');
-                });
             }
 
             function formatoTiempo(segundos) {
