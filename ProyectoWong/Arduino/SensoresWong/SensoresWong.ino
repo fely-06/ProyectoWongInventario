@@ -1,19 +1,16 @@
 #include <DHT.h>
 
-#define Type DHT11
-
+#define DHTTYPE DHT11
 const int dhtPin = 2;
 const int irPin = 3;
-DHT HT(dhtPin, Type);
+DHT dht(dhtPin, DHTTYPE);
 
-// Pon en true cuando el sensor infrarrojo (RPM) este conectado.
 const bool usarRPM = true;
-
-float humedad;
-float tempC;
+float humedad = 0;
+float tempC = 0;
 
 unsigned long tiempoAnteriorDHT = 0;
-const unsigned long intervaloDHT = 5000;
+const unsigned long intervaloDHT = 1000; // Lee cada 1 segundo durante la prueba
 
 const int ledRojo = 11;
 const int ledVerde = 10;
@@ -28,19 +25,51 @@ const unsigned long intervaloRPM = 1000;
 int estadoAnteriorIR = HIGH;
 float rpm = 0;
 
-// Ultimo resultado de cada prueba (para enviarlos juntos y manejar los LEDs)
 bool tempValida = false;
 bool pruebaTempPasada = false;
 bool rpmValida = false;
 bool pruebaRpmPasada = false;
 
+// NUEVO: Control de estado de la prueba
+bool enPrueba = false; 
+
 void setup() {
   Serial.begin(9600);
-  HT.begin();
-
+  dht.begin();
   pinMode(ledRojo, OUTPUT);
   pinMode(ledVerde, OUTPUT);
   pinMode(irPin, INPUT);
+  
+  digitalWrite(ledVerde, LOW);
+  digitalWrite(ledRojo, LOW);
+}
+
+void loop() {
+  // 1. ESCUCHAR COMANDOS DE LA PC
+  if (Serial.available() > 0) {
+    String comando = Serial.readStringUntil('\n');
+    comando.trim(); // Elimina caracteres ocultos como \r
+    
+    if (comando == "START") {
+      enPrueba = true;
+      contadorPulsos = 0;
+      tempValida = false;
+      rpmValida = false;
+      digitalWrite(ledVerde, HIGH); // LED verde = Midiendo
+      digitalWrite(ledRojo, LOW);
+    } 
+    else if (comando == "STOP") {
+      enPrueba = false;
+      digitalWrite(ledVerde, LOW);
+      digitalWrite(ledRojo, LOW);
+    }
+  }
+
+  // 2. SOLO MEDIR Y ENVIAR SI ESTÁ EN MODO PRUEBA
+  if (enPrueba) {
+    if (usarRPM) medirRPM();
+    pruebaDHT();
+  }
 }
 
 void mostrarResultado(bool paso) {
@@ -48,7 +77,6 @@ void mostrarResultado(bool paso) {
   digitalWrite(ledRojo,  paso ? LOW  : HIGH);
 }
 
-// Verde solo si pasan todas las pruebas que estan activas.
 void actualizarLeds() {
   bool paso = true;
   if (tempValida && !pruebaTempPasada) paso = false;
@@ -61,47 +89,43 @@ void imprimirBool(bool valida, bool valor) {
   else Serial.print(valor ? "true" : "false");
 }
 
-// Envia una linea JSON por el puerto serial. Visual Studio la lee y la muestra.
-// Ejemplo: {"temp":24.5,"hum":52.0,"rpm":null,"pruebaTemp":true,"pruebaRpm":null,"ms":15000}
 void enviarDatos() {
   Serial.print("{\"temp\":");
   if (tempValida) Serial.print(tempC, 1); else Serial.print("null");
-
+  
   Serial.print(",\"hum\":");
   if (tempValida) Serial.print(humedad, 1); else Serial.print("null");
-
+  
   Serial.print(",\"rpm\":");
   if (rpmValida) Serial.print(rpm, 0); else Serial.print("null");
-
+  
   Serial.print(",\"pruebaTemp\":");
   imprimirBool(tempValida, pruebaTempPasada);
-
+  
   Serial.print(",\"pruebaRpm\":");
   imprimirBool(rpmValida, pruebaRpmPasada);
-
-  Serial.print(",\"ms\":");
-  Serial.print(millis());
+  
   Serial.println("}");
 }
 
 void pruebaDHT() {
   unsigned long tiempoActual = millis();
-
   if (tiempoActual - tiempoAnteriorDHT >= intervaloDHT) {
     tiempoAnteriorDHT = tiempoActual;
-
-    humedad = HT.readHumidity();
-    tempC   = HT.readTemperature();
-
-    if (isnan(tempC) || isnan(humedad)) {
+    
+    float h = dht.readHumidity();
+    float t = dht.readTemperature();
+    
+    if (isnan(t) || isnan(h)) {
       tempValida = false;
       Serial.println("{\"error\":\"ERROR_SENSOR_DHT\"}");
       return;
     }
-
+    
     tempValida = true;
+    tempC = t;
+    humedad = h;
     pruebaTempPasada = (tempC >= tempMin && tempC <= tempMax);
-
     actualizarLeds();
     enviarDatos();
   }
@@ -109,28 +133,19 @@ void pruebaDHT() {
 
 void medirRPM() {
   int estadoIR = digitalRead(irPin);
-
   if (estadoIR == LOW && estadoAnteriorIR == HIGH) {
     contadorPulsos++;
   }
   estadoAnteriorIR = estadoIR;
-
+  
   unsigned long tiempoActual = millis();
   if (tiempoActual - tiempoAnteriorRPM >= intervaloRPM) {
     tiempoAnteriorRPM = tiempoActual;
-
-    rpm = contadorPulsos * 60.0;
+    rpm = contadorPulsos * 60.0; 
     contadorPulsos = 0;
-
     rpmValida = true;
     pruebaRpmPasada = (rpm >= rpmMin);
-
     actualizarLeds();
     enviarDatos();
   }
-}
-
-void loop() {
-  if (usarRPM) medirRPM();
-  pruebaDHT();
 }

@@ -4,13 +4,15 @@ using ProyectoWong.Models.Sensores;
 
 namespace ProyectoWong.Helpers
 {
-    // Lee el puerto serial del Arduino en segundo plano y guarda las lecturas en SensorDataStore.
-    // Configuración en appsettings.json, sección "Sensores".
     public class SensorSerialService : BackgroundService
     {
         private readonly SensorDataStore _store;
         private readonly IConfiguration _config;
         private readonly ILogger<SensorSerialService> _logger;
+
+        // Variable a nivel de clase para poder leer Y escribir
+        private SerialPort? _serialPort;
+        private readonly object _lock = new object();
 
         public SensorSerialService(SensorDataStore store, IConfiguration config, ILogger<SensorSerialService> logger)
         {
@@ -21,19 +23,18 @@ namespace ProyectoWong.Helpers
 
         protected override Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            // Task.Run: la lectura serial es bloqueante y no debe frenar el arranque del servidor.
             return Task.Run(() => Ciclo(stoppingToken), stoppingToken);
         }
 
         private void Ciclo(CancellationToken ct)
         {
             bool habilitado = _config.GetValue("Sensores:Habilitado", true);
-            string puerto = _config.GetValue("Sensores:PuertoCom", "COM3") ?? "COM3";
+            string puerto = _config.GetValue("Sensores:PuertoCom", "COM4") ?? "COM4";
             int baudRate = _config.GetValue("Sensores:BaudRate", 9600);
 
             if (!habilitado)
             {
-                _store.SetEstado("Lectura serial deshabilitada (Sensores:Habilitado = false)", false, puerto);
+                _store.SetEstado("Lectura serial deshabilitada", false, puerto);
                 return;
             }
 
@@ -43,15 +44,19 @@ namespace ProyectoWong.Helpers
             {
                 try
                 {
-                    using var serial = new SerialPort(puerto, baudRate)
+                    lock (_lock)
                     {
-                        ReadTimeout = 1000,
-                        NewLine = "\n",
-                        DtrEnable = true
-                    };
-                    serial.Open();
-                    _store.SetEstado("Conectado, esperando datos del Arduino...", true, puerto);
-                    _logger.LogInformation("Puerto serial {Puerto} abierto a {Baud} baudios.", puerto, baudRate);
+                        _serialPort = new SerialPort(puerto, baudRate)
+                        {
+                            ReadTimeout = 1000,
+                            NewLine = "\n",
+                            DtrEnable = true
+                        };
+                        _serialPort.Open();
+                    }
+
+                    _store.SetEstado("Conectado, esperando datos...", true, puerto);
+                    _logger.LogInformation("Puerto {Puerto} abierto a {Baud} baudios.", puerto, baudRate);
                     ultimoEstado = "";
 
                     while (!ct.IsCancellationRequested)
@@ -59,12 +64,14 @@ namespace ProyectoWong.Helpers
                         string linea;
                         try
                         {
-                            linea = serial.ReadLine();
+                            lock (_lock)
+                            {
+                                if (_serialPort == null || !_serialPort.IsOpen) break;
+                                linea = _serialPort.ReadLine();
+                            }
                         }
-                        catch (TimeoutException)
-                        {
-                            continue; // no llegó nada en 1 s, seguir esperando
-                        }
+                        catch (TimeoutException) { continue; }
+                        catch (InvalidOperationException) { break; }
 
                         ProcesarLinea(linea);
                         _store.SetEstado("Conectado, recibiendo datos", true, puerto);
@@ -74,24 +81,52 @@ namespace ProyectoWong.Helpers
                 {
                     string estado = $"No se pudo leer {puerto}: {ex.Message}";
                     _store.SetEstado(estado, false, puerto);
-
-                    // Evita llenar el log con el mismo error cada 5 segundos.
                     if (estado != ultimoEstado)
                     {
                         _logger.LogWarning("{Estado}", estado);
                         ultimoEstado = estado;
                     }
                 }
-
-                // Espera antes de reintentar (Arduino desconectado, puerto ocupado, etc.)
+                finally
+                {
+                    lock (_lock)
+                    {
+                        if (_serialPort != null && _serialPort.IsOpen)
+                        {
+                            _serialPort.Close();
+                            _serialPort.Dispose();
+                            _serialPort = null;
+                        }
+                    }
+                }
                 ct.WaitHandle.WaitOne(TimeSpan.FromSeconds(5));
+            }
+        }
+
+        // ➕ NUEVO MÉTODO PARA ENVIAR COMANDOS AL ARDUINO
+        public void EnviarComando(string comando)
+        {
+            lock (_lock)
+            {
+                if (_serialPort != null && _serialPort.IsOpen)
+                {
+                    try
+                    {
+                        _serialPort.WriteLine(comando);
+                        _logger.LogInformation("Comando enviado al Arduino: {Comando}", comando);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Error al enviar comando");
+                    }
+                }
             }
         }
 
         private void ProcesarLinea(string linea)
         {
             linea = linea.Trim();
-            if (linea.Length == 0 || linea[0] != '{') return; // ignora texto que no sea JSON
+            if (linea.Length == 0 || linea[0] != '{') return;
 
             var lectura = new LecturaSensor { FechaHora = DateTime.Now, Cruda = linea };
 
@@ -113,12 +148,7 @@ namespace ProyectoWong.Helpers
                     lectura.PruebaRpm = LeerBool(root, "pruebaRpm");
                 }
             }
-            catch (JsonException)
-            {
-                // Línea incompleta (pasa al abrir el puerto): se descarta.
-                _logger.LogDebug("Línea serial no válida: {Linea}", linea);
-                return;
-            }
+            catch (JsonException) { return; }
 
             _store.RegistrarLectura(lectura);
         }
@@ -129,12 +159,7 @@ namespace ProyectoWong.Helpers
         private static bool? LeerBool(JsonElement root, string nombre)
         {
             if (!root.TryGetProperty(nombre, out var v)) return null;
-            return v.ValueKind switch
-            {
-                JsonValueKind.True => true,
-                JsonValueKind.False => false,
-                _ => null
-            };
+            return v.ValueKind switch { JsonValueKind.True => true, JsonValueKind.False => false, _ => null };
         }
     }
 }

@@ -1,6 +1,6 @@
 ﻿@{
     Layout = null;
-    ViewBag.Title = "Pruebas de Sensores - SIV";
+    ViewBag.Title = "Asistente de Pruebas - SIV";
 }
 <!DOCTYPE html>
 <html lang="es">
@@ -8,11 +8,9 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewBag.Title</title>
-
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
-
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.css" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
 
@@ -26,7 +24,8 @@
                 --color-azul-claro: #ddecf1;
                 --color-texto: #4a5568;
                 --color-texto-claro: #718096;
-                --color-blanco-glass: rgba(255, 255, 255, 0.85);
+                --color-blanco-glass: rgba(255, 255, 255, 0.9);
+                --color-rojo: #dc2626;
             }
 
             body {
@@ -34,14 +33,18 @@
                 background: linear-gradient(135deg, var(--color-azul-claro) 0%, var(--color-amarillo) 50%, var(--color-aqua-claro) 100%);
                 min-height: 100vh;
                 margin: 0;
-                position: relative;
-                overflow-x: hidden;
                 color: var(--color-texto);
+                overflow-x: hidden;
             }
 
             @@keyframes float {
-                0%, 100% { transform: translateY(0px) scale(1); }
-                50% { transform: translateY(-20px) scale(1.05); }
+                0%, 100% {
+                    transform: translateY(0px);
+                }
+
+                50% {
+                    transform: translateY(-15px);
+                }
             }
 
             .bg-blob {
@@ -49,425 +52,617 @@
                 border-radius: 50%;
                 filter: blur(60px);
                 z-index: 0;
-                opacity: 0.6;
+                opacity: 0.5;
                 animation: float 8s ease-in-out infinite;
                 pointer-events: none;
             }
-            .blob-1 { width: 400px; height: 400px; background: var(--color-verde-claro); top: -100px; left: -100px; }
-            .blob-2 { width: 350px; height: 350px; background: var(--color-aqua); bottom: -80px; right: -80px; animation-delay: 2s; }
-            .blob-3 { width: 250px; height: 250px; background: var(--color-amarillo); top: 30%; right: 20%; animation-delay: 4s; }
+
+            .blob-1 {
+                width: 400px;
+                height: 400px;
+                background: var(--color-verde-claro);
+                top: -100px;
+                left: -100px;
+            }
+
+            .blob-2 {
+                width: 350px;
+                height: 350px;
+                background: var(--color-aqua);
+                bottom: -80px;
+                right: -80px;
+                animation-delay: 2s;
+            }
 
             .dashboard-wrapper {
                 display: flex;
                 min-height: 100vh;
-                padding: 1.5rem;
-                gap: 1.5rem;
+                padding: 2rem;
+                gap: 2rem;
                 position: relative;
                 z-index: 1;
+                max-width: 1400px;
+                margin: 0 auto;
             }
 
             .sidebar {
                 width: 260px;
                 background: var(--color-blanco-glass);
                 backdrop-filter: blur(12px);
-                -webkit-backdrop-filter: blur(12px);
                 border-radius: 24px;
                 padding: 2rem 1.5rem;
-                display: flex;
-                flex-direction: column;
-                box-shadow: 0 10px 30px rgba(132, 191, 147, 0.15), 0 0 0 2px rgba(255, 255, 255, 0.6);
+                box-shadow: 0 10px 30px rgba(132, 191, 147, 0.15);
                 flex-shrink: 0;
             }
 
-            .sidebar-logo {
-                color: var(--color-verde);
-                font-size: 1.8rem;
-                font-weight: 800;
+            .main-content {
+                flex-grow: 1;
                 display: flex;
-                align-items: center;
-                gap: 0.5rem;
-                margin-bottom: 2.5rem;
-                padding-left: 0.5rem;
-            }
-            .sidebar-logo i { color: var(--color-aqua); font-size: 2rem; }
-
-            .nav-menu { list-style: none; padding: 0; margin: 0; flex-grow: 1; }
-            .nav-item { margin-bottom: 0.75rem; }
-
-            .nav-link {
-                display: flex;
-                align-items: center;
-                gap: 0.75rem;
-                padding: 0.85rem 1.25rem;
-                border-radius: 16px;
-                color: var(--color-texto);
-                font-weight: 700;
-                font-size: 0.95rem;
-                text-decoration: none;
-                transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-                border: 2px solid transparent;
-            }
-            .nav-link i { font-size: 1.2rem; transition: transform 0.3s ease; }
-            .nav-link:hover {
-                background-color: var(--color-amarillo);
-                color: var(--color-verde);
-                transform: translateX(5px);
-            }
-            .nav-link:hover i { transform: scale(1.1); }
-            .nav-link.active {
-                background: linear-gradient(135deg, var(--color-verde) 0%, var(--color-aqua) 100%);
-                color: white;
-                box-shadow: 0 4px 15px rgba(154, 191, 23, 0.3);
-            }
-            .nav-link.active i { color: white; }
-
-            .sidebar-footer {
-                margin-top: auto;
-                padding-top: 1.5rem;
-                border-top: 2px solid var(--color-azul-claro);
+                flex-direction: column;
+                gap: 1.5rem;
             }
 
-            .btn-logout {
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                gap: 0.5rem;
-                width: 100%;
-                padding: 0.75rem;
-                border-radius: 16px;
-                border: 2px solid #fecaca;
-                background-color: #fef2f2;
-                color: #e11d48;
-                font-weight: 700;
-                text-decoration: none;
-                transition: all 0.3s ease;
-            }
-            .btn-logout:hover {
-                background-color: #e11d48;
-                color: white;
-                border-color: #e11d48;
-            }
-
-            .main-content { flex-grow: 1; display: flex; flex-direction: column; gap: 1.5rem; }
-
-            .top-bar {
+            .wizard-card {
                 background: var(--color-blanco-glass);
                 backdrop-filter: blur(12px);
                 border-radius: 24px;
-                padding: 1.25rem 2rem;
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                box-shadow: 0 10px 30px rgba(132, 191, 147, 0.15), 0 0 0 2px rgba(255, 255, 255, 0.6);
-            }
-
-            .welcome-text h2 { margin: 0; font-size: 1.5rem; font-weight: 800; color: var(--color-texto); }
-            .welcome-text p { margin: 0; font-size: 0.9rem; color: var(--color-texto-claro); font-weight: 600; }
-
-            .user-profile { display: flex; align-items: center; gap: 1rem; }
-            .user-avatar {
-                width: 45px; height: 45px; border-radius: 50%;
-                background: linear-gradient(135deg, var(--color-amarillo), var(--color-verde-claro));
-                display: flex; align-items: center; justify-content: center;
-                font-weight: 800; color: var(--color-verde); font-size: 1.2rem;
-                border: 2px solid white; box-shadow: 0 4px 10px rgba(0,0,0,0.05);
-            }
-
-            .content-card {
-                background: var(--color-blanco-glass);
-                backdrop-filter: blur(12px);
-                border-radius: 24px;
-                padding: 2rem;
-                box-shadow: 0 10px 30px rgba(132, 191, 147, 0.15), 0 0 0 2px rgba(255, 255, 255, 0.6);
+                padding: 2.5rem;
+                box-shadow: 0 10px 30px rgba(132, 191, 147, 0.15);
                 animation: slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+                flex-grow: 1;
+                display: flex;
+                flex-direction: column;
             }
 
             @@keyframes slideUp {
-                from { opacity: 0; transform: translateY(20px); }
-                to { opacity: 1; transform: translateY(0); }
+                from {
+                    opacity: 0;
+                    transform: translateY(20px);
+                }
+
+                to {
+                    opacity: 1;
+                    transform: translateY(0);
+                }
             }
 
-            .card-header-custom {
+            /* Progress Steps */
+            .progress-steps {
                 display: flex;
                 justify-content: space-between;
-                align-items: center;
-                margin-bottom: 1.5rem;
-                flex-wrap: wrap;
-                gap: 1rem;
-            }
-            .card-header-custom h3 {
-                margin: 0; font-size: 1.3rem; font-weight: 800; color: var(--color-verde);
-                display: flex; align-items: center; gap: 0.5rem;
+                margin-bottom: 2.5rem;
+                position: relative;
             }
 
-            .kpi-row { display: flex; gap: 1rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
-            .kpi-box {
-                flex: 1; min-width: 160px;
-                background: white; border-radius: 18px; padding: 1rem 1.25rem;
-                box-shadow: 0 4px 12px rgba(0,0,0,0.04);
-                border-left: 6px solid var(--color-aqua);
-            }
-            .kpi-box.warn { border-left-color: #f59e0b; }
-            .kpi-box.danger { border-left-color: #dc2626; }
-            .kpi-box .kpi-value { font-size: 1.6rem; font-weight: 800; color: var(--color-texto); }
-            .kpi-box .kpi-label { font-size: 0.8rem; font-weight: 700; color: var(--color-texto-claro); text-transform: uppercase; }
+                .progress-steps::before {
+                    content: '';
+                    position: absolute;
+                    top: 20px;
+                    left: 0;
+                    right: 0;
+                    height: 4px;
+                    background: #e2e8f0;
+                    z-index: 0;
+                    border-radius: 2px;
+                }
 
-            .btn-cute-secondary {
-                background: var(--color-azul-claro);
-                border: none; border-radius: 50px; padding: 0.6rem 1.25rem;
-                color: var(--color-texto); font-weight: 700; font-size: 0.9rem;
-                display: inline-flex; align-items: center; gap: 0.5rem;
-                text-decoration: none; transition: all 0.3s ease; cursor: pointer;
-            }
-            .btn-cute-secondary:hover { background: #c5e0ea; color: var(--color-texto); }
-
-            .form-select, .form-control {
-                border-radius: 12px;
-                border: 2px solid var(--color-azul-claro);
-                padding: 0.5rem 1rem;
-                font-size: 0.9rem;
-                background-color: rgba(255,255,255,0.8);
-            }
-            .form-select:focus, .form-control:focus {
-                border-color: var(--color-aqua);
-                box-shadow: 0 0 0 0.2rem rgba(132, 191, 147, 0.25);
-                background-color: #fff;
+            .step-item {
+                position: relative;
+                z-index: 1;
+                text-align: center;
+                flex: 1;
             }
 
-            .table-cute { width: 100%; border-collapse: separate; border-spacing: 0 0.75rem; }
-            .table-cute thead th {
-                background-color: var(--color-azul-claro); color: var(--color-texto);
-                font-weight: 700; font-size: 0.85rem; text-transform: uppercase;
-                letter-spacing: 0.05em; padding: 1rem 1.25rem; border: none;
-            }
-            .table-cute thead th:first-child { border-radius: 12px 0 0 12px; }
-            .table-cute thead th:last-child { border-radius: 0 12px 12px 0; }
-            .table-cute tbody tr { background-color: white; box-shadow: 0 2px 8px rgba(0,0,0,0.03); transition: all 0.2s ease; }
-            .table-cute tbody tr:hover { transform: scale(1.01); box-shadow: 0 4px 12px rgba(132, 191, 147, 0.2); }
-            .table-cute tbody td { padding: 1rem 1.25rem; vertical-align: middle; border: none; font-size: 0.95rem; color: var(--color-texto); }
-            .table-cute tbody td:first-child { border-radius: 12px 0 0 12px; }
-            .table-cute tbody td:last-child { border-radius: 0 12px 12px 0; }
-
-            .badge-cute { padding: 0.35rem 0.75rem; border-radius: 50px; font-size: 0.75rem; font-weight: 700; }
-            .badge-cute-success { background-color: var(--color-verde-claro); color: #3f4d12; }
-            .badge-cute-warning { background-color: #fef3c7; color: #92400e; }
-            .badge-cute-danger { background-color: #fee2e2; color: #991b1b; }
-            .badge-cute-info { background-color: var(--color-azul-claro); color: #1e5f74; }
-
-            .ubic-chip {
-                display: inline-block; background-color: #eef2ff; color: #3730a3;
-                border-radius: 8px; padding: 0.15rem 0.5rem; font-size: 0.78rem;
-                font-weight: 700; margin: 0.1rem;
-            }
-
-            .alert-cute { background-color: var(--color-azul-claro); color: var(--color-texto); border-radius: 12px; border: none; font-weight: 600; }
-
-            @@media (max-width: 768px) {
-                .dashboard-wrapper { flex-direction: column; padding: 1rem; }
-                .card-header-custom { flex-direction: column; gap: 1rem; align-items: flex-start; }
-            }
-
-            .sensor-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
-            .sensor-card {
+            .step-circle {
+                width: 44px;
+                height: 44px;
+                border-radius: 50%;
                 background: white;
-                border-radius: 20px;
-                padding: 1.25rem 1.5rem;
-                box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-                border-left: 6px solid var(--color-aqua);
+                border: 3px solid #e2e8f0;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                margin: 0 auto 0.5rem;
+                font-weight: 800;
+                color: var(--color-texto-claro);
+                transition: all 0.3s ease;
             }
-            .sensor-card.ok { border-left-color: var(--color-verde); }
-            .sensor-card.fail { border-left-color: #dc2626; }
-            .sensor-card .sensor-label { font-size: 0.8rem; font-weight: 700; color: var(--color-texto-claro); text-transform: uppercase; }
-            .sensor-card .sensor-value { font-size: 2.2rem; font-weight: 800; color: var(--color-texto); line-height: 1.2; }
-            .sensor-card .sensor-unit { font-size: 1rem; font-weight: 700; color: var(--color-texto-claro); }
-            .sensor-card .sensor-test { margin-top: 0.4rem; }
 
-            .conn-banner {
-                display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;
-                padding: 0.85rem 1.25rem; border-radius: 16px; margin-bottom: 1.5rem;
-                font-weight: 700; font-size: 0.9rem;
+            .step-item.active .step-circle {
+                border-color: var(--color-verde);
+                background: var(--color-verde);
+                color: white;
+                transform: scale(1.1);
+                box-shadow: 0 4px 12px rgba(154, 191, 23, 0.4);
             }
-            .conn-banner.on { background: #ecf6c9; color: #3f4d12; }
-            .conn-banner.off { background: #fee2e2; color: #991b1b; }
-            .conn-banner .conn-dot { width: 10px; height: 10px; border-radius: 50%; background: currentColor; }
-            .raw-line { font-family: Consolas, monospace; font-size: 0.8rem; color: var(--color-texto-claro); word-break: break-all; }
+
+            .step-item.completed .step-circle {
+                border-color: var(--color-aqua);
+                background: var(--color-aqua);
+                color: white;
+            }
+
+            .step-label {
+                font-size: 0.8rem;
+                font-weight: 700;
+                color: var(--color-texto-claro);
+            }
+
+            .step-item.active .step-label {
+                color: var(--color-verde);
+            }
+
+            /* Instruction Box */
+            .instruction-box {
+                background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+                border-left: 5px solid var(--color-aqua);
+                border-radius: 16px;
+                padding: 1.5rem;
+                margin-bottom: 2rem;
+            }
+
+                .instruction-box h4 {
+                    color: #0369a1;
+                    margin-top: 0;
+                    font-weight: 800;
+                    display: flex;
+                    align-items: center;
+                    gap: 0.5rem;
+                }
+
+                .instruction-box ul {
+                    margin-bottom: 0;
+                    padding-left: 1.5rem;
+                    color: #0c4a6e;
+                    font-weight: 600;
+                }
+
+                .instruction-box li {
+                    margin-bottom: 0.5rem;
+                }
+
+            /* Live Data Display */
+            .live-data-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+                gap: 1rem;
+                margin-bottom: 2rem;
+            }
+
+            .live-metric {
+                background: white;
+                border-radius: 16px;
+                padding: 1.25rem;
+                text-align: center;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+            }
+
+                .live-metric .label {
+                    font-size: 0.8rem;
+                    font-weight: 700;
+                    color: var(--color-texto-claro);
+                    text-transform: uppercase;
+                }
+
+                .live-metric .value {
+                    font-size: 2rem;
+                    font-weight: 800;
+                    color: var(--color-texto);
+                    margin: 0.5rem 0;
+                }
+
+                .live-metric .unit {
+                    font-size: 0.9rem;
+                    font-weight: 600;
+                    color: var(--color-texto-claro);
+                }
+
+            /* Timer & Actions */
+            .action-area {
+                text-align: center;
+                margin-top: auto;
+                padding-top: 2rem;
+                border-top: 2px dashed #e2e8f0;
+            }
+
+            .timer-display {
+                font-size: 3.5rem;
+                font-weight: 800;
+                color: var(--color-texto);
+                font-variant-numeric: tabular-nums;
+                margin-bottom: 1rem;
+                display: none;
+            }
+
+                .timer-display.running {
+                    color: var(--color-verde);
+                    display: block;
+                }
+
+                .timer-display.finished {
+                    color: var(--color-aqua);
+                    display: block;
+                }
+
+            .btn-wizard {
+                padding: 1rem 2.5rem;
+                border-radius: 50px;
+                border: none;
+                font-size: 1.1rem;
+                font-weight: 800;
+                cursor: pointer;
+                transition: all 0.3s ease;
+                display: inline-flex;
+                align-items: center;
+                gap: 0.75rem;
+            }
+
+            .btn-start {
+                background: var(--color-verde);
+                color: white;
+                box-shadow: 0 4px 15px rgba(154, 191, 23, 0.4);
+            }
+
+                .btn-start:hover {
+                    background: #8aaf0d;
+                    transform: translateY(-2px);
+                }
+
+            .btn-next {
+                background: var(--color-aqua);
+                color: white;
+                box-shadow: 0 4px 15px rgba(132, 191, 147, 0.4);
+                display: none;
+            }
+
+                .btn-next:hover {
+                    background: #6da87c;
+                    transform: translateY(-2px);
+                }
+
+            .btn-reset {
+                background: white;
+                color: var(--color-rojo);
+                border: 2px solid #fecaca;
+                display: none;
+            }
+
+                .btn-reset:hover {
+                    background: #fef2f2;
+                }
+
+            /* Result Badge */
+            .result-badge {
+                display: none;
+                padding: 1rem 2rem;
+                border-radius: 16px;
+                font-size: 1.2rem;
+                font-weight: 800;
+                margin-bottom: 1.5rem;
+                animation: slideUp 0.3s ease;
+            }
+
+                .result-badge.pass {
+                    background: #dcfce7;
+                    color: #166534;
+                    border: 2px solid #86efac;
+                    display: block;
+                }
+
+                .result-badge.fail {
+                    background: #fee2e2;
+                    color: #991b1b;
+                    border: 2px solid #fca5a5;
+                    display: block;
+                }
+
+            .conn-status {
+                position: absolute;
+                top: 2rem;
+                right: 2rem;
+                padding: 0.5rem 1rem;
+                border-radius: 50px;
+                font-size: 0.85rem;
+                font-weight: 700;
+                display: flex;
+                align-items: center;
+                gap: 0.5rem;
+            }
+
+                .conn-status.on {
+                    background: #dcfce7;
+                    color: #166534;
+                }
+
+                .conn-status.off {
+                    background: #fee2e2;
+                    color: #991b1b;
+                }
+
+            .conn-dot {
+                width: 8px;
+                height: 8px;
+                border-radius: 50%;
+                background: currentColor;
+            }
     </style>
 </head>
 <body>
     <div class="bg-blob blob-1"></div>
     <div class="bg-blob blob-2"></div>
-    <div class="bg-blob blob-3"></div>
 
     <div class="dashboard-wrapper">
         @await Html.PartialAsync("_Sidebar")
 
         <main class="main-content">
-            <div class="top-bar">
-                <div class="welcome-text">
-                    <p>Datos en vivo de los sensores conectados al Arduino.</p>
-                </div>
-                <div class="user-profile">
-                    <div style="text-align: right;">
-                        <div style="font-weight: 700; font-size: 0.95rem;">Admin SIV</div>
-                        <div style="font-size: 0.8rem; color: var(--color-texto-claro);">admin@siv.com</div>
-                    </div>
-                    <div class="user-avatar">A</div>
-                </div>
+            <div class="conn-status off" id="connStatus">
+                <span class="conn-dot"></span> <span id="connText">Desconectado</span>
             </div>
 
-            <div class="content-card">
-                <div class="card-header-custom">
-                    <h3><i class="bi bi-activity"></i> Pruebas de Sensores</h3>
-                    <div class="d-flex gap-2">
-                        <button class="btn-cute-secondary" onclick="limpiar()" title="Borrar historial"><i class="bi bi-trash"></i></button>
-                        <button class="btn-cute-secondary" onclick="cargar()" title="Actualizar"><i class="bi bi-arrow-clockwise"></i></button>
-                    </div>
+            <div class="wizard-card">
+                <!-- Progress Steps -->
+                <div class="progress-steps" id="progressSteps">
+                    <!-- Se genera dinámicamente con JS -->
                 </div>
 
-                <div id="banner" class="conn-banner off">
-                    <span class="conn-dot"></span>
-                    <span id="bannerTexto">Consultando estado del puerto serial...</span>
-                </div>
+                <!-- Dynamic Content -->
+                <div id="wizardContent">
+                    <div class="instruction-box">
+                        <h4><i class="bi bi-clipboard-check"></i> <span id="stepTitle">Cargando...</span></h4>
+                        <ul id="stepInstructions"></ul>
+                    </div>
 
-                <div class="sensor-grid">
-                    <div class="sensor-card" id="cardTemp">
-                        <div class="sensor-label"><i class="bi bi-thermometer-half"></i> Temperatura</div>
-                        <div><span class="sensor-value" id="valTemp">--</span> <span class="sensor-unit">°C</span></div>
-                        <div class="sensor-test" id="testTemp"></div>
+                    <div class="live-data-grid" id="liveDataGrid">
+                        <!-- Métricas en vivo se inyectan aquí -->
                     </div>
-                    <div class="sensor-card" id="cardHum">
-                        <div class="sensor-label"><i class="bi bi-droplet-half"></i> Humedad</div>
-                        <div><span class="sensor-value" id="valHum">--</span> <span class="sensor-unit">%</span></div>
-                    </div>
-                    <div class="sensor-card" id="cardRpm">
-                        <div class="sensor-label"><i class="bi bi-speedometer2"></i> Velocidad</div>
-                        <div><span class="sensor-value" id="valRpm">--</span> <span class="sensor-unit">RPM</span></div>
-                        <div class="sensor-test" id="testRpm"></div>
-                    </div>
-                    <div class="sensor-card">
-                        <div class="sensor-label"><i class="bi bi-clock-history"></i> Última lectura</div>
-                        <div class="sensor-value" style="font-size: 1.4rem;" id="valFecha">--</div>
-                    </div>
-                </div>
 
-                <h5 style="font-weight: 800;">Historial reciente</h5>
-                <div class="table-responsive">
-                    <table class="table-cute">
-                        <thead>
-                            <tr>
-                                <th>Hora</th>
-                                <th class="text-center">Temp (°C)</th>
-                                <th class="text-center">Humedad (%)</th>
-                                <th class="text-center">RPM</th>
-                                <th class="text-center">Prueba Temp</th>
-                                <th class="text-center">Prueba RPM</th>
-                                <th>Dato recibido</th>
-                            </tr>
-                        </thead>
-                        <tbody id="tablaBody">
-                            <tr><td colspan="7" class="text-center text-muted py-4">Esperando datos del Arduino...</td></tr>
-                        </tbody>
-                    </table>
+                    <div id="resultBadge" class="result-badge"></div>
+
+                    <div class="action-area">
+                        <div id="timerDisplay" class="timer-display">01:00</div>
+                        <button id="btnStart" class="btn-wizard btn-start" onclick="iniciarPrueba()">
+                            <i class="bi bi-play-circle-fill"></i> INICIAR PRUEBA
+                        </button>
+                        <button id="btnNext" class="btn-wizard btn-next" onclick="siguientePaso()">
+                            SIGUIENTE PRUEBA <i class="bi bi-arrow-right-circle-fill"></i>
+                        </button>
+                        <button id="btnReset" class="btn-wizard btn-reset" onclick="reiniciarTodo()">
+                            <i class="bi bi-arrow-counterclockwise"></i> REINICIAR TODO
+                        </button>
+                    </div>
                 </div>
             </div>
         </main>
     </div>
 
     <script src="~/lib/jquery/dist/jquery.js"></script>
-    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.js"></script>
-
     <script>
-        $(document).ready(function () {
-            cargar();
-            setInterval(cargar, 2000); // se actualiza cada 2 segundos
-        });
+            // Configuración de las Pruebas Secuenciales
+            const pasos = [
+                {
+                    id: 'rpm',
+                    titulo: 'Prueba 1: Velocidad (RPM)',
+                    instrucciones: [
+                        'Coloque el producto firmemente sobre la base de pruebas.',
+                        'Asegure las correas o soportes para evitar vibraciones externas.',
+                        'Verifique que el sensor infrarrojo esté alineado con la marca reflectante.'
+                    ],
+                    duracion: 60, // segundos
+                    metricas: ['rpm'],
+                    evaluar: (datos) => datos.ultima && datos.ultima.rpm >= 2000 // Lógica de aprobación
+                },
+                {
+                    id: 'temp',
+                    titulo: 'Prueba 2: Temperatura y Humedad',
+                    instrucciones: [
+                        'Asegúrese de que el producto haya estado encendido al menos 2 minutos.',
+                        'El sensor DHT11 debe estar a menos de 5 cm de la superficie de prueba.',
+                        'No obstruya las ranuras de ventilación del producto.'
+                    ],
+                    duracion: 60,
+                    metricas: ['temperatura', 'humedad'],
+                    evaluar: (datos) => datos.ultima && datos.ultima.temperatura >= 18 && datos.ultima.temperatura <= 28
+                },
+                {
+                    id: 'vibracion',
+                    titulo: 'Prueba 3: Vibración (Próximamente)',
+                    instrucciones: ['Configuración pendiente de hardware.', 'Esta prueba se habilitará en la siguiente versión.'],
+                    duracion: 30,
+                    metricas: [],
+                    evaluar: (datos) => true // Simulado por ahora
+                },
+                {
+                    id: 'corriente',
+                    titulo: 'Prueba 4: Corriente Consumida (Próximamente)',
+                    instrucciones: ['Configuración pendiente de hardware.', 'Esta prueba se habilitará en la siguiente versión.'],
+                    duracion: 30,
+                    metricas: [],
+                    evaluar: (datos) => true // Simulado por ahora
+                }
+            ];
 
-        function cargar() {
-            $.get('@Url.Action("Ultimos", "PruebasSensores")', function (r) {
-                pintarEstado(r);
-                pintarUltima(r.ultima);
-                pintarHistorial(r.historial || []);
-            }).fail(function () {
-                $('#banner').attr('class', 'conn-banner off');
-                $('#bannerTexto').text('No se pudo consultar al servidor.');
+            let pasoActual = 0;
+            let tiempoRestante = 0;
+            let intervaloPrueba = null;
+            let intervaloPolling = null;
+            let pruebaEnCurso = false;
+
+            $(document).ready(function() {
+                renderizarPasos();
+                cargarPaso(0);
+                setInterval(verificarConexion, 3000); // Monitoreo de fondo de la conexión
             });
-        }
 
-        function pintarEstado(r) {
-            var texto = (r.conectado ? 'Puerto ' + r.puerto + ': ' : '') + r.estado;
-            if (!r.conectado && r.puertosDisponibles && r.puertosDisponibles.length > 0) {
-                texto += ' | Puertos detectados: ' + r.puertosDisponibles.join(', ');
-            } else if (!r.conectado) {
-                texto += ' | No se detecta ningún puerto serial.';
+            function renderizarPasos() {
+                let html = '';
+                pasos.forEach((paso, index) => {
+                    let clase = index === pasoActual ? 'active' : (index < pasoActual ? 'completed' : '');
+                    let icono = index < pasoActual ? '<i class="bi bi-check-lg"></i>' : (index + 1);
+                    html += `
+                        <div class="step-item ${clase}">
+                            <div class="step-circle">${icono}</div>
+                            <div class="step-label">${paso.id.toUpperCase()}</div>
+                        </div>
+                    `;
+                });
+                $('#progressSteps').html(html);
             }
-            $('#banner').attr('class', 'conn-banner ' + (r.conectado ? 'on' : 'off'));
-            $('#bannerTexto').text(texto);
-        }
 
-        function fmt(v, dec) {
-            return (v === null || v === undefined) ? '--' : Number(v).toFixed(dec);
-        }
-
-        function badgePrueba(p) {
-            if (p === true) return '<span class="badge-cute badge-cute-success">Aprobado</span>';
-            if (p === false) return '<span class="badge-cute badge-cute-danger">Falla</span>';
-            return '<span class="badge-cute badge-cute-info">Sin medir</span>';
-        }
-
-        function claseCard(p) {
-            return 'sensor-card' + (p === true ? ' ok' : (p === false ? ' fail' : ''));
-        }
-
-        function pintarUltima(u) {
-            if (!u) return;
-            $('#valTemp').text(fmt(u.temperatura, 1));
-            $('#valHum').text(fmt(u.humedad, 1));
-            $('#valRpm').text(fmt(u.rpm, 0));
-            $('#testTemp').html(badgePrueba(u.pruebaTemperatura));
-            $('#testRpm').html(badgePrueba(u.pruebaRpm));
-            $('#cardTemp').attr('class', claseCard(u.pruebaTemperatura));
-            $('#cardRpm').attr('class', claseCard(u.pruebaRpm));
-            $('#valFecha').text(new Date(u.fechaHora).toLocaleTimeString());
-        }
-
-        function escHtml(s) {
-            return $('<div>').text(s == null ? '' : s).html();
-        }
-
-        function pintarHistorial(lista) {
-            if (lista.length === 0) {
-                $('#tablaBody').html('<tr><td colspan="7" class="text-center text-muted py-4">Esperando datos del Arduino...</td></tr>');
-                return;
-            }
-            var html = '';
-            lista.forEach(function (l) {
-                var hora = new Date(l.fechaHora).toLocaleTimeString();
-                if (l.error) {
-                    html += '<tr><td>' + hora + '</td><td colspan="5" class="text-center"><span class="badge-cute badge-cute-warning">' +
-                        escHtml(l.error) + '</span></td><td class="raw-line">' + escHtml(l.cruda) + '</td></tr>';
+            function cargarPaso(index) {
+                if (index >= pasos.length) {
+                    mostrarResumenFinal();
                     return;
                 }
-                html += '<tr>' +
-                    '<td>' + hora + '</td>' +
-                    '<td class="text-center">' + fmt(l.temperatura, 1) + '</td>' +
-                    '<td class="text-center">' + fmt(l.humedad, 1) + '</td>' +
-                    '<td class="text-center">' + fmt(l.rpm, 0) + '</td>' +
-                    '<td class="text-center">' + badgePrueba(l.pruebaTemperatura) + '</td>' +
-                    '<td class="text-center">' + badgePrueba(l.pruebaRpm) + '</td>' +
-                    '<td class="raw-line">' + escHtml(l.cruda) + '</td>' +
-                    '</tr>';
-            });
-            $('#tablaBody').html(html);
-        }
+                pasoActual = index;
+                const paso = pasos[index];
 
-        function limpiar() {
-            $.post('@Url.Action("Limpiar", "PruebasSensores")', function () {
-                $('#valTemp, #valHum, #valRpm, #valFecha').text('--');
-                $('#testTemp, #testRpm').empty();
-                $('#cardTemp, #cardRpm').attr('class', 'sensor-card');
-                cargar();
-            });
-        }
+                $('#stepTitle').text(paso.titulo);
+                $('#stepInstructions').html(paso.instrucciones.map(i => `<li>${i}</li>`).join(''));
+
+                // Configurar métricas en vivo
+                let metricasHtml = '';
+                if (paso.metricas.includes('rpm')) {
+                    metricasHtml += `<div class="live-metric"><div class="label">Velocidad</div><div class="value" id="liveRpm">--</div><div class="unit">RPM</div></div>`;
+                }
+                if (paso.metricas.includes('temperatura')) {
+                    metricasHtml += `<div class="live-metric"><div class="label">Temperatura</div><div class="value" id="liveTemp">--</div><div class="unit">°C</div></div>`;
+                }
+                if (paso.metricas.includes('humedad')) {
+                    metricasHtml += `<div class="live-metric"><div class="label">Humedad</div><div class="value" id="liveHum">--</div><div class="unit">%</div></div>`;
+                }
+                $('#liveDataGrid').html(metricasHtml);
+
+                // Resetear UI de controles
+                $('#resultBadge').removeClass('pass fail').hide().text('');
+                $('#timerDisplay').removeClass('running finished').text(formatoTiempo(paso.duracion));
+                $('#btnStart').show();
+                $('#btnNext').hide();
+                $('#btnReset').hide();
+
+                renderizarPasos();
+            }
+
+            function iniciarPrueba() {
+                if (!verificarConexion()) {
+                    alert("⚠️ No se detecta el Arduino conectado. Por favor, revise el puerto serial.");
+                    return;
+                }
+
+                pruebaEnCurso = true;
+                tiempoRestante = pasos[pasoActual].duracion;
+
+                // Limpiar historial anterior para evaluar solo esta prueba
+                $.post('/PruebasSensores/Limpiar');
+
+                $('#btnStart').hide();
+                $('#timerDisplay').addClass('running').show();
+
+                // Iniciar countdown
+                intervaloPrueba = setInterval(() => {
+                    tiempoRestante--;
+                    $('#timerDisplay').text(formatoTiempo(tiempoRestante));
+
+                    if (tiempoRestante <= 0) {
+                        finalizarPrueba();
+                    }
+                }, 1000);
+
+                // Iniciar polling rápido para datos en vivo
+                intervaloPolling = setInterval(obtenerDatosEnVivo, 1000);
+            }
+
+            function obtenerDatosEnVivo() {
+                $.get('/PruebasSensores/Ultimos', function(r) {
+                    if (!r.conectado) {
+                        clearInterval(intervaloPrueba);
+                        clearInterval(intervaloPolling);
+                        alert("⚠️ Se perdió la conexión con el Arduino durante la prueba.");
+                        return;
+                    }
+
+                    // Actualizar métricas en vivo si existen
+                    if (r.ultima) {
+                        if ($('#liveRpm').length) $('#liveRpm').text(r.ultima.rpm ? r.ultima.rpm.toFixed(0) : '--');
+                        if ($('#liveTemp').length) $('#liveTemp').text(r.ultima.temperatura ? r.ultima.temperatura.toFixed(1) : '--');
+                        if ($('#liveHum').length) $('#liveHum').text(r.ultima.humedad ? r.ultima.humedad.toFixed(1) : '--');
+                    }
+                });
+            }
+
+            function finalizarPrueba() {
+                clearInterval(intervaloPrueba);
+                clearInterval(intervaloPolling);
+                pruebaEnCurso = false;
+
+                $('#timerDisplay').removeClass('running').addClass('finished').text("¡TIEMPO CULMINADO!");
+
+                // Evaluar resultado (obtenemos el último dato registrado)
+                $.get('/PruebasSensores/Ultimos', function(r) {
+                    const paso = pasos[pasoActual];
+                    const aprobado = paso.evaluar(r);
+
+                    const badge = $('#resultBadge');
+                    if (aprobado) {
+                        badge.addClass('pass').html('<i class="bi bi-check-circle-fill"></i> PRUEBA APROBADA: El producto cumple con los parámetros.');
+                    } else {
+                        badge.addClass('fail').html('<i class="bi bi-x-circle-fill"></i> PRUEBA RECHAZADA: El producto NO cumple con los parámetros mínimos.');
+                    }
+
+                    $('#btnNext').show();
+                    if (pasoActual === pasos.length - 1) {
+                        $('#btnNext').html('VER RESUMEN FINAL <i class="bi bi-file-earmark-check-fill"></i>');
+                    }
+                });
+            }
+
+            function siguientePaso() {
+                cargarPaso(pasoActual + 1);
+            }
+
+            function mostrarResumenFinal() {
+                $('#stepTitle').text('Proceso de Pruebas Finalizado');
+                $('#stepInstructions').html('<li>Todas las pruebas secuenciales han sido completadas.</li><li>Revise los resultados en el sistema de gestión.</li><li>Puede retirar el producto de la estación de prueba.</li>');
+                $('#liveDataGrid').hide();
+                $('#resultBadge').removeClass('fail').addClass('pass').html('<i class="bi bi-trophy-fill"></i> FLUJO DE TRABAJO COMPLETADO').show();
+                $('#timerDisplay').hide();
+                $('#btnNext').hide();
+                $('#btnStart').hide();
+                $('#btnReset').show();
+
+                // Actualizar pasos visualmente
+                $('.step-item').addClass('completed');
+                $('.step-circle').html('<i class="bi bi-check-lg"></i>');
+            }
+
+            function reiniciarTodo() {
+                if(confirm("¿Está seguro de reiniciar todo el proceso de pruebas?")) {
+                    $.post('/PruebasSensores/Limpiar');
+                    $('#liveDataGrid').show();
+                    cargarPaso(0);
+                }
+            }
+
+            function verificarConexion() {
+                $.get('/PruebasSensores/Ultimos', function(r) {
+                    if (r.conectado) {
+                        $('#connStatus').removeClass('off').addClass('on');
+                        $('#connText').text('Arduino Conectado (' + r.puerto + ')');
+                    } else {
+                        $('#connStatus').removeClass('on').addClass('off');
+                        // ✅ CAMBIO CLAVE: Mostrar el mensaje de error real del servidor
+                        $('#connText').text(r.estado || 'Desconectado (Sin detalles)');
+                    }
+                }).fail(function() {
+                    $('#connStatus').removeClass('on').addClass('off');
+                    $('#connText').text('Error de Servidor al consultar');
+                });
+            }
+
+            function formatoTiempo(segundos) {
+                const m = Math.floor(segundos / 60).toString().padStart(2, '0');
+                const s = (segundos % 60).toString().padStart(2, '0');
+                return `${m}:${s}`;
+            }
     </script>
 </body>
 </html>
