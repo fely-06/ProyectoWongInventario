@@ -103,8 +103,9 @@ namespace ProyectoWong.Helpers
             }
         }
 
-        // ➕ NUEVO MÉTODO PARA ENVIAR COMANDOS AL ARDUINO
-        public void EnviarComando(string comando)
+        // Envia un comando al Arduino (START, STOP, OK, FAIL, RESET).
+        // Devuelve true solo si el comando realmente se escribio en el puerto serial.
+        public bool EnviarComando(string comando)
         {
             lock (_lock)
             {
@@ -114,12 +115,17 @@ namespace ProyectoWong.Helpers
                     {
                         _serialPort.WriteLine(comando);
                         _logger.LogInformation("Comando enviado al Arduino: {Comando}", comando);
+                        return true;
                     }
                     catch (Exception ex)
                     {
-                        _logger.LogError(ex, "Error al enviar comando");
+                        _logger.LogError(ex, "Error al enviar comando {Comando}", comando);
+                        return false;
                     }
                 }
+
+                _logger.LogWarning("No se pudo enviar {Comando}: el puerto serial no esta abierto.", comando);
+                return false;
             }
         }
 

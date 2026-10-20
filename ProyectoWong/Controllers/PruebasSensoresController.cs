@@ -44,16 +44,32 @@ namespace ProyectoWong.Controllers
         [HttpPost("PruebasSensores/Iniciar")]
         public IActionResult Iniciar()
         {
-            _serialService.EnviarComando("START");
-            return Json(new { success = true });
+            bool enviado = _serialService.EnviarComando("START");
+            return Json(new { success = enviado });
         }
 
         // 4. NUEVO: Envía la orden al Arduino para detenerse y evaluar
         [HttpPost("PruebasSensores/Detener")]
         public IActionResult Detener()
         {
-            _serialService.EnviarComando("STOP");
-            return Json(new { success = true });
+            bool enviado = _serialService.EnviarComando("STOP");
+            return Json(new { success = enviado });
+        }
+
+        // Resultado de la prueba: enciende el LED verde (aprobado) o el rojo (rechazado) y lo deja fijo.
+        [HttpPost("PruebasSensores/Resultado")]
+        public IActionResult Resultado(bool aprobado)
+        {
+            bool enviado = _serialService.EnviarComando(aprobado ? "OK" : "FAIL");
+            return Json(new { success = enviado });
+        }
+
+        // Apaga los LEDs y deja el Arduino en espera.
+        [HttpPost("PruebasSensores/Reiniciar")]
+        public IActionResult Reiniciar()
+        {
+            bool enviado = _serialService.EnviarComando("RESET");
+            return Json(new { success = enviado });
         }
     }
 }

@@ -1,0 +1,926 @@
+diff --git a/ProyectoWong/Arduino/SensoresWong/SensoresWong.ino b/ProyectoWong/Arduino/SensoresWong/SensoresWong.ino
+index a222ce3..6789ab0 100644
+--- a/ProyectoWong/Arduino/SensoresWong/SensoresWong.ino
++++ b/ProyectoWong/Arduino/SensoresWong/SensoresWong.ino
+@@ -2,15 +2,11 @@
+ 
+ #define Type DHT11
+ const int dhtPin = 2;
+-const int irPin = 3;
++const int irPin = 3;            // Pin 3 = interrupcion externa (INT1 en Arduino Uno/Nano)
+ DHT HT(dhtPin, Type);
+ 
+ const bool usarRPM = true;
+-float humedad;
+-float tempC;
+-
+-unsigned long tiempoAnteriorDHT = 0;
+-const unsigned long intervaloDHT = 1000; // 1 segundo durante la prueba
++const int pulsosPorVuelta = 1;  // marcas reflectantes por cada vuelta del ventilador
+ 
+ const int ledRojo = 11;
+ const int ledVerde = 10;
+@@ -19,10 +15,16 @@ const float tempMin = 18.0;
+ const float tempMax = 28.0;
+ const float rpmMin = 2000.0;
+ 
+-unsigned long contadorPulsos = 0;
+-unsigned long tiempoAnteriorRPM = 0;
+-const unsigned long intervaloRPM = 1000;
+-int estadoAnteriorIR = HIGH;
++// ---- Medicion ----
++const unsigned long intervaloMedicion = 1000;   // una lectura por segundo
++unsigned long tiempoAnteriorMedicion = 0;
++
++volatile unsigned long contadorPulsos = 0;      // se incrementa en la interrupcion
++volatile unsigned long ultimoPulsoUs = 0;
++const unsigned long antiReboteUs = 2000;        // ignora pulsos separados menos de 2 ms
++
++float humedad = 0;
++float tempC = 0;
+ float rpm = 0;
+ 
+ bool tempValida = false;
+@@ -30,58 +32,111 @@ bool pruebaTempPasada = false;
+ bool rpmValida = false;
+ bool pruebaRpmPasada = false;
+ 
+-// ✅ NUEVO: Controla si el Arduino debe medir o esperar
+-bool enPrueba = false; 
++// ---- Estado de la prueba y de los LEDs ----
++bool enPrueba = false;          // true mientras el PC pide medir
++int resultado = 0;              // 0 = sin resultado, 1 = aprobado (verde fijo), 2 = rechazado (rojo fijo)
++
++unsigned long ultimoParpadeo = 0;
++bool estadoParpadeo = false;
++
++// Se ejecuta en cada pulso del sensor infrarrojo (flanco de bajada)
++void contarPulso() {
++  unsigned long ahora = micros();
++  if (ahora - ultimoPulsoUs >= antiReboteUs) {
++    contadorPulsos++;
++    ultimoPulsoUs = ahora;
++  }
++}
++
++void apagarLeds() {
++  digitalWrite(ledVerde, LOW);
++  digitalWrite(ledRojo, LOW);
++}
++
++void mostrarResultado(bool paso) {
++  digitalWrite(ledVerde, paso ? HIGH : LOW);
++  digitalWrite(ledRojo,  paso ? LOW  : HIGH);
++}
+ 
+ void setup() {
+   Serial.begin(9600);
++  Serial.setTimeout(50);
+   HT.begin();
+   pinMode(ledRojo, OUTPUT);
+   pinMode(ledVerde, OUTPUT);
+   pinMode(irPin, INPUT);
+-  
+-  digitalWrite(ledVerde, LOW);
+-  digitalWrite(ledRojo, LOW);
++
++  // Autoprueba de LEDs al encender: verde, rojo y apagados
++  apagarLeds();
++  digitalWrite(ledVerde, HIGH); delay(300); digitalWrite(ledVerde, LOW);
++  digitalWrite(ledRojo, HIGH);  delay(300); digitalWrite(ledRojo, LOW);
++
++  attachInterrupt(digitalPinToInterrupt(irPin), contarPulso, FALLING);
+ }
+ 
+ void loop() {
+-  // 1. ESCUCHAR COMANDOS DE LA PC (START o STOP)
+-  if (Serial.available() > 0) {
+-    String comando = Serial.readStringUntil('\n');
+-    comando.trim(); 
+-    
+-    if (comando == "START") {
+-      enPrueba = true;
+-      contadorPulsos = 0;
+-      tempValida = false;
+-      rpmValida = false;
+-      digitalWrite(ledVerde, HIGH); // LED verde = Midiendo
+-      digitalWrite(ledRojo, LOW);
+-    } 
+-    else if (comando == "STOP") {
+-      enPrueba = false;
+-      digitalWrite(ledVerde, LOW);
+-      digitalWrite(ledRojo, LOW);
+-    }
+-  }
++  leerComandos();
+ 
+-  // 2. SOLO MEDIR Y ENVIAR SI ESTÁ EN MODO PRUEBA
+   if (enPrueba) {
+-    if (usarRPM) medirRPM();
+-    pruebaDHT();
++    parpadearVerde();   // LED verde parpadeando = midiendo
++    medir();
+   }
+ }
+ 
+-void mostrarResultado(bool paso) {
+-  digitalWrite(ledVerde, paso ? HIGH : LOW);
+-  digitalWrite(ledRojo,  paso ? LOW  : HIGH);
++// Comandos que envia el PC (una linea de texto cada uno):
++//   START -> empieza a medir (LEDs apagados, verde parpadea)
++//   STOP  -> deja de medir
++//   OK    -> prueba aprobada: LED verde fijo
++//   FAIL  -> prueba rechazada: LED rojo fijo
++//   RESET -> apaga todo y vuelve a espera
++void leerComandos() {
++  if (Serial.available() <= 0) return;
++
++  String comando = Serial.readStringUntil('\n');
++  comando.trim();
++  comando.toUpperCase();
++
++  if (comando == "START") {
++    enPrueba = true;
++    resultado = 0;
++    noInterrupts();
++    contadorPulsos = 0;
++    interrupts();
++    tempValida = false;
++    rpmValida = false;
++    tiempoAnteriorMedicion = millis();
++    apagarLeds();
++  }
++  else if (comando == "STOP") {
++    enPrueba = false;
++    // Si todavia no hay resultado, apaga el parpadeo. Si ya hay resultado, no lo toca.
++    if (resultado == 0) apagarLeds();
++  }
++  else if (comando == "OK") {
++    enPrueba = false;
++    resultado = 1;
++    mostrarResultado(true);
++  }
++  else if (comando == "FAIL") {
++    enPrueba = false;
++    resultado = 2;
++    mostrarResultado(false);
++  }
++  else if (comando == "RESET") {
++    enPrueba = false;
++    resultado = 0;
++    apagarLeds();
++  }
+ }
+ 
+-void actualizarLeds() {
+-  bool paso = true;
+-  if (tempValida && !pruebaTempPasada) paso = false;
+-  if (usarRPM && rpmValida && !pruebaRpmPasada) paso = false;
+-  mostrarResultado(paso);
++void parpadearVerde() {
++  unsigned long ahora = millis();
++  if (ahora - ultimoParpadeo >= 300) {
++    ultimoParpadeo = ahora;
++    estadoParpadeo = !estadoParpadeo;
++    digitalWrite(ledRojo, LOW);
++    digitalWrite(ledVerde, estadoParpadeo ? HIGH : LOW);
++  }
+ }
+ 
+ void imprimirBool(bool valida, bool valor) {
+@@ -92,60 +147,53 @@ void imprimirBool(bool valida, bool valor) {
+ void enviarDatos() {
+   Serial.print("{\"temp\":");
+   if (tempValida) Serial.print(tempC, 1); else Serial.print("null");
+-  
++
+   Serial.print(",\"hum\":");
+   if (tempValida) Serial.print(humedad, 1); else Serial.print("null");
+-  
++
+   Serial.print(",\"rpm\":");
+   if (rpmValida) Serial.print(rpm, 0); else Serial.print("null");
+-  
++
+   Serial.print(",\"pruebaTemp\":");
+   imprimirBool(tempValida, pruebaTempPasada);
+-  
++
+   Serial.print(",\"pruebaRpm\":");
+   imprimirBool(rpmValida, pruebaRpmPasada);
+-  
++
+   Serial.println("}");
+ }
+ 
+-void pruebaDHT() {
+-  unsigned long tiempoActual = millis();
+-  if (tiempoActual - tiempoAnteriorDHT >= intervaloDHT) {
+-    tiempoAnteriorDHT = tiempoActual;
+-    
+-    float h = HT.readHumidity();
+-    float t = HT.readTemperature();
+-    
+-    if (isnan(t) || isnan(h)) {
+-      tempValida = false;
+-      Serial.println("{\"error\":\"ERROR_SENSOR_DHT\"}");
+-      return;
+-    }
+-    
++// Una medicion completa por segundo: RPM (por interrupcion) + DHT11, y se envia un solo JSON.
++void medir() {
++  unsigned long ahora = millis();
++  unsigned long transcurrido = ahora - tiempoAnteriorMedicion;
++  if (transcurrido < intervaloMedicion) return;
++  tiempoAnteriorMedicion = ahora;
++
++  // RPM = pulsos contados en la ventana * 60000 / (ms de la ventana * pulsos por vuelta)
++  noInterrupts();
++  unsigned long pulsos = contadorPulsos;
++  contadorPulsos = 0;
++  interrupts();
++
++  if (usarRPM) {
++    rpm = (pulsos * 60000.0) / ((float)transcurrido * pulsosPorVuelta);
++    rpmValida = true;
++    pruebaRpmPasada = (rpm >= rpmMin);
++  }
++
++  float h = HT.readHumidity();
++  float t = HT.readTemperature();
++
++  if (isnan(t) || isnan(h)) {
++    tempValida = false;
++    Serial.println("{\"error\":\"ERROR_SENSOR_DHT\"}");
++  } else {
+     tempValida = true;
+     tempC = t;
+     humedad = h;
+     pruebaTempPasada = (tempC >= tempMin && tempC <= tempMax);
+-    actualizarLeds();
+-    enviarDatos();
+   }
+-}
+ 
+-void medirRPM() {
+-  int estadoIR = digitalRead(irPin);
+-  if (estadoIR == LOW && estadoAnteriorIR == HIGH) {
+-    contadorPulsos++;
+-  }
+-  estadoAnteriorIR = estadoIR;
+-  
+-  unsigned long tiempoActual = millis();
+-  if (tiempoActual - tiempoAnteriorRPM >= intervaloRPM) {
+-    tiempoAnteriorRPM = tiempoActual;
+-    rpm = contadorPulsos * 60.0; 
+-    contadorPulsos = 0;
+-    rpmValida = true;
+-    pruebaRpmPasada = (rpm >= rpmMin);
+-    actualizarLeds();
+-    enviarDatos();
+-  }
+-}
+\ No newline at end of file
++  enviarDatos();
++}
+diff --git a/ProyectoWong/Controllers/PruebasSensoresController.cs b/ProyectoWong/Controllers/PruebasSensoresController.cs
+index 85d9bac..207ca5a 100644
+--- a/ProyectoWong/Controllers/PruebasSensoresController.cs
++++ b/ProyectoWong/Controllers/PruebasSensoresController.cs
+@@ -44,16 +44,32 @@ namespace ProyectoWong.Controllers
+         [HttpPost("PruebasSensores/Iniciar")]
+         public IActionResult Iniciar()
+         {
+-            _serialService.EnviarComando("START");
+-            return Json(new { success = true });
++            bool enviado = _serialService.EnviarComando("START");
++            return Json(new { success = enviado });
+         }
+ 
+         // 4. NUEVO: Env�a la orden al Arduino para detenerse y evaluar
+         [HttpPost("PruebasSensores/Detener")]
+         public IActionResult Detener()
+         {
+-            _serialService.EnviarComando("STOP");
+-            return Json(new { success = true });
++            bool enviado = _serialService.EnviarComando("STOP");
++            return Json(new { success = enviado });
++        }
++
++        // Resultado de la prueba: enciende el LED verde (aprobado) o el rojo (rechazado) y lo deja fijo.
++        [HttpPost("PruebasSensores/Resultado")]
++        public IActionResult Resultado(bool aprobado)
++        {
++            bool enviado = _serialService.EnviarComando(aprobado ? "OK" : "FAIL");
++            return Json(new { success = enviado });
++        }
++
++        // Apaga los LEDs y deja el Arduino en espera.
++        [HttpPost("PruebasSensores/Reiniciar")]
++        public IActionResult Reiniciar()
++        {
++            bool enviado = _serialService.EnviarComando("RESET");
++            return Json(new { success = enviado });
+         }
+     }
+ }
+\ No newline at end of file
+diff --git a/ProyectoWong/Helpers/SensorSerialService.cs b/ProyectoWong/Helpers/SensorSerialService.cs
+index bcb8511..091a0e3 100644
+--- a/ProyectoWong/Helpers/SensorSerialService.cs
++++ b/ProyectoWong/Helpers/SensorSerialService.cs
+@@ -103,8 +103,9 @@ namespace ProyectoWong.Helpers
+             }
+         }
+ 
+-        // ➕ NUEVO MÉTODO PARA ENVIAR COMANDOS AL ARDUINO
+-        public void EnviarComando(string comando)
++        // Envia un comando al Arduino (START, STOP, OK, FAIL, RESET).
++        // Devuelve true solo si el comando realmente se escribio en el puerto serial.
++        public bool EnviarComando(string comando)
+         {
+             lock (_lock)
+             {
+@@ -114,12 +115,17 @@ namespace ProyectoWong.Helpers
+                     {
+                         _serialPort.WriteLine(comando);
+                         _logger.LogInformation("Comando enviado al Arduino: {Comando}", comando);
++                        return true;
+                     }
+                     catch (Exception ex)
+                     {
+-                        _logger.LogError(ex, "Error al enviar comando");
++                        _logger.LogError(ex, "Error al enviar comando {Comando}", comando);
++                        return false;
+                     }
+                 }
++
++                _logger.LogWarning("No se pudo enviar {Comando}: el puerto serial no esta abierto.", comando);
++                return false;
+             }
+         }
+ 
+diff --git a/ProyectoWong/Views/PruebasSensores/Index.cshtml b/ProyectoWong/Views/PruebasSensores/Index.cshtml
+index 6e9a45a..1faccc1 100644
+--- a/ProyectoWong/Views/PruebasSensores/Index.cshtml
++++ b/ProyectoWong/Views/PruebasSensores/Index.cshtml
+@@ -385,6 +385,124 @@
+                 border-radius: 50%;
+                 background: currentColor;
+             }
++
++            /* ---- Mejoras de diseño ---- */
++            .live-metric {
++                border: 2px solid transparent;
++                transition: all 0.3s ease;
++            }
++
++                .live-metric .limit {
++                    font-size: 0.75rem;
++                    font-weight: 700;
++                    color: var(--color-texto-claro);
++                    margin-top: 0.4rem;
++                }
++
++                .live-metric.ok {
++                    border-color: #86efac;
++                    background: #f0fdf4;
++                }
++
++                    .live-metric.ok .value {
++                        color: #166534;
++                    }
++
++                .live-metric.bad {
++                    border-color: #fca5a5;
++                    background: #fef2f2;
++                }
++
++                    .live-metric.bad .value {
++                        color: #991b1b;
++                    }
++
++            .timer-progress {
++                display: none;
++                height: 10px;
++                background: #e2e8f0;
++                border-radius: 999px;
++                overflow: hidden;
++                max-width: 420px;
++                margin: 0 auto 1.25rem;
++            }
++
++                .timer-progress.visible {
++                    display: block;
++                }
++
++                .timer-progress .bar {
++                    height: 100%;
++                    width: 0;
++                    background: linear-gradient(90deg, var(--color-aqua), var(--color-verde));
++                    border-radius: 999px;
++                    transition: width 1s linear;
++                }
++
++            .measuring {
++                display: none;
++                align-items: center;
++                justify-content: center;
++                gap: 0.6rem;
++                font-weight: 800;
++                color: var(--color-verde);
++                margin-bottom: 1rem;
++            }
++
++                .measuring.visible {
++                    display: flex;
++                }
++
++            .pulse-dot {
++                width: 12px;
++                height: 12px;
++                border-radius: 50%;
++                background: var(--color-verde);
++                animation: pulse 1.2s ease-in-out infinite;
++            }
++
++            @@keyframes pulse {
++                0%, 100% {
++                    transform: scale(0.8);
++                    opacity: 0.6;
++                }
++
++                50% {
++                    transform: scale(1.3);
++                    opacity: 1;
++                }
++            }
++
++            .step-item.failed .step-circle {
++                border-color: var(--color-rojo);
++                background: var(--color-rojo);
++                color: white;
++            }
++
++            .btn-repeat {
++                background: white;
++                color: #b45309;
++                border: 2px solid #fde68a;
++                display: none;
++            }
++
++                .btn-repeat:hover {
++                    background: #fffbeb;
++                }
++
++            .action-area .btn-wizard {
++                margin: 0.25rem;
++            }
++
++            .res-ok {
++                color: #166534;
++                font-weight: 800;
++            }
++
++            .res-bad {
++                color: #991b1b;
++                font-weight: 800;
++            }
+     </style>
+ </head>
+ <body>
+@@ -419,13 +537,18 @@
+                     <div id="resultBadge" class="result-badge"></div>
+ 
+                     <div class="action-area">
++                        <div id="measuring" class="measuring"><span class="pulse-dot"></span> Midiendo...</div>
+                         <div id="timerDisplay" class="timer-display">01:00</div>
++                        <div id="timerProgress" class="timer-progress"><div id="timerBar" class="bar"></div></div>
+                         <button id="btnStart" class="btn-wizard btn-start" onclick="iniciarPrueba()">
+                             <i class="bi bi-play-circle-fill"></i> INICIAR PRUEBA
+                         </button>
+                         <button id="btnNext" class="btn-wizard btn-next" onclick="siguientePaso()">
+                             SIGUIENTE PRUEBA <i class="bi bi-arrow-right-circle-fill"></i>
+                         </button>
++                        <button id="btnRepeat" class="btn-wizard btn-repeat" onclick="repetirPrueba()">
++                            <i class="bi bi-arrow-repeat"></i> REPETIR PRUEBA
++                        </button>
+                         <button id="btnReset" class="btn-wizard btn-reset" onclick="reiniciarTodo()">
+                             <i class="bi bi-arrow-counterclockwise"></i> REINICIAR TODO
+                         </button>
+@@ -435,9 +558,24 @@
+         </main>
+     </div>
+ 
+-    <script src="~/lib/jquery/dist/jquery.js"></script>
+     <script src="~/lib/jquery/dist/jquery.js"></script>
+     <script>
++            // Se promedian las ultimas N lecturas validas para decidir aprobado / rechazado
++            const MUESTRAS_EVALUACION = 5;
++
++            // Limites de aprobacion (un solo lugar: la pagina decide y le avisa al Arduino con OK / FAIL)
++            const LIMITES = {
++                rpm:         { min: 2000, max: null, unidad: 'RPM', decimales: 0, texto: 'Mín. 2000 RPM' },
++                temperatura: { min: 18,   max: 28,   unidad: '°C',  decimales: 1, texto: '18 – 28 °C' },
++                humedad:     null
++            };
++
++            const METRICAS = {
++                rpm:         { etiqueta: 'Velocidad',   unidad: 'RPM', id: 'liveRpm'  },
++                temperatura: { etiqueta: 'Temperatura', unidad: '°C',  id: 'liveTemp' },
++                humedad:     { etiqueta: 'Humedad',     unidad: '%',   id: 'liveHum'  }
++            };
++
+             const pasos = [
+                 {
+                     id: 'rpm',
+@@ -449,7 +587,7 @@
+                     ],
+                     duracion: 60,
+                     metricas: ['rpm'],
+-                    evaluar: (datos) => datos.ultima && datos.ultima.rpm >= 2000
++                    evalua: 'rpm'
+                 },
+                 {
+                     id: 'temp',
+@@ -461,7 +599,7 @@
+                     ],
+                     duracion: 60,
+                     metricas: ['temperatura', 'humedad'],
+-                    evaluar: (datos) => datos.ultima && datos.ultima.temperatura >= 18 && datos.ultima.temperatura <= 28
++                    evalua: 'temperatura'
+                 }
+             ];
+ 
+@@ -470,18 +608,66 @@
+             let intervaloPrueba = null;
+             let intervaloPolling = null;
+             let pruebaEnCurso = false;
++            let resultados = [];
++
++            const mostrar = ($el) => $el.css('display', 'inline-flex');
++            const ocultar = ($el) => $el.css('display', 'none');
++            const esNumero = (v) => typeof v === 'number' && isFinite(v);
+ 
+             $(document).ready(function() {
+                 renderizarPasos();
+                 cargarPaso(0);
++                verificarConexion();
+                 setInterval(verificarConexion, 3000);
+             });
+ 
++            // ---------- Calculos ----------
++            function ultimoValido(datos, campo) {
++                const l = (datos.historial || []).find(x => !x.error && esNumero(x[campo]));
++                return l ? l[campo] : null;
++            }
++
++            function promedioReciente(datos, campo) {
++                const valores = (datos.historial || [])
++                    .filter(l => !l.error && esNumero(l[campo]))
++                    .slice(0, MUESTRAS_EVALUACION)
++                    .map(l => l[campo]);
++                if (valores.length === 0) return null;
++                return valores.reduce((a, b) => a + b, 0) / valores.length;
++            }
++
++            // true = dentro de limites, false = fuera, null = sin limite o sin dato
++            function dentroDeLimites(campo, valor) {
++                const lim = LIMITES[campo];
++                if (!lim || !esNumero(valor)) return null;
++                if (lim.min !== null && valor < lim.min) return false;
++                if (lim.max !== null && valor > lim.max) return false;
++                return true;
++            }
++
++            function formatearValor(campo, valor) {
++                if (!esNumero(valor)) return '--';
++                const lim = LIMITES[campo];
++                return valor.toFixed(lim ? lim.decimales : 1);
++            }
++
++            function evaluarPaso(paso, datos) {
++                const campo = paso.evalua;
++                const valor = promedioReciente(datos, campo);
++                return { campo, valor, aprobado: dentroDeLimites(campo, valor) === true };
++            }
++
++            // ---------- Pantalla ----------
+             function renderizarPasos() {
+                 let html = '';
+                 pasos.forEach((paso, index) => {
++                    const r = resultados[index];
+                     let clase = index === pasoActual ? 'active' : (index < pasoActual ? 'completed' : '');
+                     let icono = index < pasoActual ? '<i class="bi bi-check-lg"></i>' : (index + 1);
++                    if (index < pasoActual && r && !r.aprobado) {
++                        clase += ' failed';
++                        icono = '<i class="bi bi-x-lg"></i>';
++                    }
+                     html += `<div class="step-item ${clase}"><div class="step-circle">${icono}</div><div class="step-label">${paso.id.toUpperCase()}</div></div>`;
+                 });
+                 $('#progressSteps').html(html);
+@@ -499,21 +685,47 @@
+                 $('#stepInstructions').html(paso.instrucciones.map(i => `<li>${i}</li>`).join(''));
+ 
+                 let metricasHtml = '';
+-                if (paso.metricas.includes('rpm')) metricasHtml += `<div class="live-metric"><div class="label">Velocidad</div><div class="value" id="liveRpm">--</div><div class="unit">RPM</div></div>`;
+-                if (paso.metricas.includes('temperatura')) metricasHtml += `<div class="live-metric"><div class="label">Temperatura</div><div class="value" id="liveTemp">--</div><div class="unit">°C</div></div>`;
+-                if (paso.metricas.includes('humedad')) metricasHtml += `<div class="live-metric"><div class="label">Humedad</div><div class="value" id="liveHum">--</div><div class="unit">%</div></div>`;
+-                $('#liveDataGrid').html(metricasHtml);
+-
+-                $('#resultBadge').removeClass('pass fail').hide().text('');
+-                $('#timerDisplay').removeClass('running finished').text(formatoTiempo(paso.duracion));
+-                $('#btnStart').show();
+-                $('#btnNext').hide();
+-                $('#btnReset').hide();
++                paso.metricas.forEach(m => {
++                    const info = METRICAS[m];
++                    const lim = LIMITES[m];
++                    metricasHtml += `<div class="live-metric" id="metric-${m}">
++                        <div class="label">${info.etiqueta}</div>
++                        <div class="value" id="${info.id}">--</div>
++                        <div class="unit">${info.unidad}</div>
++                        ${lim ? `<div class="limit">Requerido: ${lim.texto}</div>` : ''}
++                    </div>`;
++                });
++                $('#liveDataGrid').html(metricasHtml).show();
++
++                $('#resultBadge').removeClass('pass fail').css('display', 'none').text('');
++                $('#timerDisplay').removeClass('running finished').css('display', '').text(formatoTiempo(paso.duracion));
++                $('#timerBar').css('width', '0%');
++                $('#timerProgress').removeClass('visible');
++                $('#measuring').removeClass('visible');
++
++                mostrar($('#btnStart'));
++                ocultar($('#btnNext'));
++                ocultar($('#btnRepeat'));
++                ocultar($('#btnReset'));
++                $('#btnNext').html(index === pasos.length - 1
++                    ? 'VER RESUMEN FINAL <i class="bi bi-file-earmark-check-fill"></i>'
++                    : 'SIGUIENTE PRUEBA <i class="bi bi-arrow-right-circle-fill"></i>');
+ 
+                 renderizarPasos();
+             }
+ 
+-            // ✅ CORRECCIÓN 1: Función asíncrona que SÍ devuelve true/false y muestra el error real
++            function actualizarMetrica(campo, valor) {
++                const info = METRICAS[campo];
++                const $valor = $('#' + info.id);
++                const $caja = $('#metric-' + campo);
++                $valor.text(formatearValor(campo, valor));
++                $caja.removeClass('ok bad');
++                const dentro = dentroDeLimites(campo, valor);
++                if (dentro === true) $caja.addClass('ok');
++                else if (dentro === false) $caja.addClass('bad');
++            }
++
++            // ---------- Conexion ----------
+             async function verificarConexion() {
+                 try {
+                     const r = await $.get('/PruebasSensores/Ultimos');
+@@ -523,7 +735,7 @@
+                         return true;
+                     } else {
+                         $('#connStatus').removeClass('on').addClass('off');
+-                        // Muestra el mensaje de error exacto que envía el servidor (ej: "Access denied" o "COM4 no encontrado")
++                        // Muestra el mensaje de error exacto que envia el servidor (ej: "Access denied" o "COM4 no encontrado")
+                         $('#connText').text(r.estado || 'Desconectado (Sin detalles)');
+                         return false;
+                     }
+@@ -534,30 +746,44 @@
+                 }
+             }
+ 
+-            // ✅ CORRECCIÓN 2: Espera la respuesta real de verificarConexion y envía START
++            // ---------- Prueba ----------
+             async function iniciarPrueba() {
+-                const estaConectado = await verificarConexion();
++                if (pruebaEnCurso) return;
+ 
++                const estaConectado = await verificarConexion();
+                 if (!estaConectado) {
+                     alert("⚠️ No se detecta el Arduino conectado.\n\nDetalle del error: " + $('#connText').text());
+                     return;
+                 }
+ 
+-                pruebaEnCurso = true;
+-                tiempoRestante = pasos[pasoActual].duracion;
+-
+-                // 1. Limpiar historial
+-                $.post('/PruebasSensores/Limpiar');
++                try {
++                    await $.post('/PruebasSensores/Limpiar');
++                    const inicio = await $.post('/PruebasSensores/Iniciar');
++                    if (!inicio || !inicio.success) {
++                        alert("⚠️ No se pudo enviar la orden de inicio al Arduino. Revise la conexión e intente de nuevo.");
++                        return;
++                    }
++                } catch (e) {
++                    alert("⚠️ Error de servidor al iniciar la prueba.");
++                    return;
++                }
+ 
+-                // 2. ENVIAR COMANDO "START" AL ARDUINO
+-                $.post('/PruebasSensores/Iniciar');
++                pruebaEnCurso = true;
++                const paso = pasos[pasoActual];
++                tiempoRestante = paso.duracion;
+ 
+-                $('#btnStart').hide();
+-                $('#timerDisplay').addClass('running').show();
++                $('#resultBadge').removeClass('pass fail').css('display', 'none');
++                ocultar($('#btnStart'));
++                ocultar($('#btnRepeat'));
++                $('#timerDisplay').removeClass('finished').addClass('running').css('display', '').text(formatoTiempo(tiempoRestante));
++                $('#timerBar').css('width', '0%');
++                $('#timerProgress').addClass('visible');
++                $('#measuring').addClass('visible');
+ 
+                 intervaloPrueba = setInterval(() => {
+                     tiempoRestante--;
+-                    $('#timerDisplay').text(formatoTiempo(tiempoRestante));
++                    $('#timerDisplay').text(formatoTiempo(Math.max(tiempoRestante, 0)));
++                    $('#timerBar').css('width', ((paso.duracion - tiempoRestante) / paso.duracion * 100) + '%');
+                     if (tiempoRestante <= 0) {
+                         finalizarPrueba();
+                     }
+@@ -568,77 +794,126 @@
+ 
+             function obtenerDatosEnVivo() {
+                 $.get('/PruebasSensores/Ultimos', function(r) {
++                    if (!pruebaEnCurso) return;
+                     if (!r.conectado) {
+-                        clearInterval(intervaloPrueba);
+-                        clearInterval(intervaloPolling);
+-                        alert("⚠️ Se perdió la conexión con el Arduino durante la prueba.");
++                        abortarPrueba("⚠️ Se perdió la conexión con el Arduino durante la prueba.");
+                         return;
+                     }
+-                    if (r.ultima) {
+-                        if ($('#liveRpm').length) $('#liveRpm').text(r.ultima.rpm ? r.ultima.rpm.toFixed(0) : '--');
+-                        if ($('#liveTemp').length) $('#liveTemp').text(r.ultima.temperatura ? r.ultima.temperatura.toFixed(1) : '--');
+-                        if ($('#liveHum').length) $('#liveHum').text(r.ultima.humedad ? r.ultima.humedad.toFixed(1) : '--');
+-                    }
++                    pasos[pasoActual].metricas.forEach(m => actualizarMetrica(m, ultimoValido(r, m)));
+                 });
+             }
+ 
+-            // ✅ CORRECCIÓN 3: Envía el comando "STOP" al finalizar
+-            function finalizarPrueba() {
++            function abortarPrueba(mensaje) {
+                 clearInterval(intervaloPrueba);
+                 clearInterval(intervaloPolling);
+                 pruebaEnCurso = false;
+-
+-                // ENVIAR COMANDO "STOP" AL ARDUINO
+                 $.post('/PruebasSensores/Detener');
++                cargarPaso(pasoActual);
++                alert(mensaje);
++            }
+ 
++            async function finalizarPrueba() {
++                if (!pruebaEnCurso) return;
++                clearInterval(intervaloPrueba);
++                clearInterval(intervaloPolling);
++                pruebaEnCurso = false;
++
++                $('#timerProgress').removeClass('visible');
++                $('#measuring').removeClass('visible');
+                 $('#timerDisplay').removeClass('running').addClass('finished').text("¡TIEMPO CULMINADO!");
+ 
+-                $.get('/PruebasSensores/Ultimos', function(r) {
+-                    const paso = pasos[pasoActual];
+-                    const aprobado = paso.evaluar(r);
++                // 1. Detener la medicion en el Arduino
++                try { await $.post('/PruebasSensores/Detener'); } catch (e) { }
+ 
+-                    const badge = $('#resultBadge');
+-                    if (aprobado) {
+-                        badge.addClass('pass').html('<i class="bi bi-check-circle-fill"></i> PRUEBA APROBADA: El producto cumple con los parámetros.');
+-                    } else {
+-                        badge.addClass('fail').html('<i class="bi bi-x-circle-fill"></i> PRUEBA RECHAZADA: El producto NO cumple con los parámetros mínimos.');
+-                    }
++                // 2. Leer los datos y decidir aprobado / rechazado
++                let datos;
++                try {
++                    datos = await $.get('/PruebasSensores/Ultimos');
++                } catch (e) {
++                    alert("⚠️ No se pudieron leer los resultados del servidor.");
++                    mostrar($('#btnRepeat'));
++                    return;
++                }
+ 
+-                    $('#btnNext').show();
+-                    if (pasoActual === pasos.length - 1) {
+-                        $('#btnNext').html('VER RESUMEN FINAL <i class="bi bi-file-earmark-check-fill"></i>');
+-                    }
+-                });
++                const paso = pasos[pasoActual];
++                const ev = evaluarPaso(paso, datos);
++                const lim = LIMITES[ev.campo];
++                const medido = esNumero(ev.valor) ? `${formatearValor(ev.campo, ev.valor)} ${lim.unidad}` : 'sin lecturas válidas';
++
++                resultados[pasoActual] = { titulo: paso.titulo, medido: medido, requerido: lim.texto, aprobado: ev.aprobado };
++
++                const $badge = $('#resultBadge');
++                $badge.removeClass('pass fail').addClass(ev.aprobado ? 'pass' : 'fail').css('display', 'block');
++                if (ev.aprobado) {
++                    $badge.html(`<i class="bi bi-check-circle-fill"></i> PRUEBA APROBADA: promedio ${medido} (requerido: ${lim.texto}).`);
++                } else {
++                    $badge.html(`<i class="bi bi-x-circle-fill"></i> PRUEBA RECHAZADA: promedio ${medido} (requerido: ${lim.texto}).`);
++                }
++
++                // 3. Encender el LED verde (aprobado) o rojo (rechazado); queda fijo hasta la siguiente prueba
++                try {
++                    const led = await $.post('/PruebasSensores/Resultado', { aprobado: ev.aprobado });
++                    if (!led || !led.success) $badge.append(' <small>(No se pudo enviar el resultado al LED)</small>');
++                } catch (e) {
++                    $badge.append(' <small>(No se pudo enviar el resultado al LED)</small>');
++                }
++
++                mostrar($('#btnNext'));
++                if (!ev.aprobado) mostrar($('#btnRepeat'));
++            }
++
++            function repetirPrueba() {
++                delete resultados[pasoActual];
++                cargarPaso(pasoActual);
+             }
+ 
+             function siguientePaso() {
+                 cargarPaso(pasoActual + 1);
+             }
+ 
+-                        function mostrarResumenFinal() {
+-                $('#stepTitle').text('🎉 Proceso de Pruebas Finalizado');
+-                $('#stepInstructions').html(`
+-                    <li>Todas las pruebas secuenciales han sido completadas exitosamente.</li>
+-                    <li>Los resultados han sido registrados en el historial.</li>
+-                    <li>Puede retirar el producto de la estación de prueba.</li>
+-                `);
++            function mostrarResumenFinal() {
++                pasoActual = pasos.length;
++                const todoOk = pasos.every((p, i) => resultados[i] && resultados[i].aprobado);
++
++                $('#stepTitle').text('Resumen de pruebas');
++                $('#stepInstructions').html(pasos.map((p, i) => {
++                    const r = resultados[i];
++                    if (!r) return `<li>${p.titulo}: <span class="res-bad">sin resultado</span></li>`;
++                    return `<li>${r.titulo}: <b>${r.medido}</b> (requerido: ${r.requerido}) — <span class="${r.aprobado ? 'res-ok' : 'res-bad'}">${r.aprobado ? 'APROBADA' : 'RECHAZADA'}</span></li>`;
++                }).join(''));
++
+                 $('#liveDataGrid').hide();
+-                $('#resultBadge').removeClass('fail').addClass('pass').html('<i class="bi bi-trophy-fill"></i> FLUJO DE TRABAJO COMPLETADO').show();
+-                $('#timerDisplay').hide();
+-                $('#btnNext').hide();
+-                $('#btnStart').hide();
+-                $('#btnReset').show();
++                $('#timerDisplay').css('display', 'none');
++                $('#timerProgress').removeClass('visible');
++                $('#measuring').removeClass('visible');
++
++                $('#resultBadge').removeClass('pass fail').addClass(todoOk ? 'pass' : 'fail').css('display', 'block')
++                    .html(todoOk
++                        ? '<i class="bi bi-trophy-fill"></i> PRODUCTO APROBADO: cumple todas las pruebas.'
++                        : '<i class="bi bi-x-octagon-fill"></i> PRODUCTO RECHAZADO: no cumple una o más pruebas.');
++
++                ocultar($('#btnNext'));
++                ocultar($('#btnStart'));
++                ocultar($('#btnRepeat'));
++                mostrar($('#btnReset'));
+ 
+-                $('.step-item').addClass('completed');
+-                $('.step-circle').html('<i class="bi bi-check-lg"></i>');
++                renderizarPasos();
++
++                // El LED final refleja el resultado global
++                $.post('/PruebasSensores/Resultado', { aprobado: todoOk });
+             }
+ 
+-            function reiniciarTodo() {
+-                if(confirm("¿Está seguro de reiniciar todo el proceso de pruebas?")) {
+-                    $.post('/PruebasSensores/Limpiar');
+-                    $('#liveDataGrid').show();
+-                    cargarPaso(0);
+-                }
++            async function reiniciarTodo() {
++                if (!confirm("¿Está seguro de reiniciar todo el proceso de pruebas?")) return;
++                clearInterval(intervaloPrueba);
++                clearInterval(intervaloPolling);
++                pruebaEnCurso = false;
++                resultados = [];
++                try {
++                    await $.post('/PruebasSensores/Limpiar');
++                    await $.post('/PruebasSensores/Reiniciar');   // apaga los LEDs
++                } catch (e) { }
++                cargarPaso(0);
+             }
+ 
+             function formatoTiempo(segundos) {
+@@ -648,4 +923,4 @@
+             }
+     </script>
+ </body>
+-</html>
+\ No newline at end of file
++</html>
