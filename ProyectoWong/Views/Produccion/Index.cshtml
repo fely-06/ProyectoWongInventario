@@ -236,7 +236,7 @@
 
             .modal-title {
                 font-weight: 800;
-                color: var(--color-verde);
+                color: var(--color-texto-claro);
             }
 
             .modal-body {
@@ -564,32 +564,29 @@
                 // } else {
                 //     acciones = '<span class="text-muted small">Finalizada</span>';
                 // }
-                        let acciones = '';
-                        if (o.estado === 'Pendiente') {
-                            acciones = `<button class="btn-cute-secondary btn-cute-sm me-1" onclick="iniciarProduccion(${o.id})"><i class="bi bi-play-fill"></i> Iniciar</button>`;
-                        } else if (o.estado === 'EnProceso') {
-                            acciones = `
-                    <button class="btn-cute-secondary btn-cute-sm me-1" onclick="pausarProduccion(${o.id})"><i class="bi bi-pause-fill"></i> Pausar</button>
-                    <button class="btn-cute-primary btn-cute-sm" onclick="verSimulacion(${o.id})"><i class="bi bi-eye-fill"></i> Ver</button>`;
-                        } else if (o.estado === 'Pausada') {
-                            acciones = `
-                    <button class="btn-cute-secondary btn-cute-sm me-1" onclick="reanudarProduccion(${o.id})"><i class="bi bi-play-fill"></i> Reanudar</button>
-                    <button class="btn-cute-primary btn-cute-sm" onclick="verSimulacion(${o.id})"><i class="bi bi-eye-fill"></i> Ver</button>`;
-                        } else if (o.estado === 'Completada') {
-                            // 🔥 NUEVO: Botón para enviar a inspección visual
-                            acciones = `
-                    <button class="btn-cute-primary btn-cute-sm me-1" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);" onclick="enviarAInspeccion(${o.id})">
-                        <i class="bi bi-search"></i> Enviar a Inspección
-                    </button>`;
-                        } else if (o.estado === 'EnInspeccion') {
-                            acciones = `<span class="badge-cute badge-cute-info"><i class="bi bi-search"></i> En Inspección</span>`;
-                        } else if (o.estado === 'Aprobada') {
-                            acciones = `<span class="badge-cute badge-cute-success"><i class="bi bi-check-circle"></i> Aprobada</span>`;
-                        } else if (o.estado === 'Rechazada') {
-                            acciones = `<span class="badge-cute badge-cute-warning"><i class="bi bi-x-circle"></i> Rechazada</span>`;
-                        } else {
-                            acciones = '<span class="text-muted small">Finalizada</span>';
-                        }
+                let acciones = '';
+                if (o.estado === 'Pendiente') {
+                    acciones = `<button class="btn-cute-secondary btn-cute-sm me-1" onclick="iniciarProduccion(${o.id})"><i class="bi bi-play-fill"></i> Iniciar</button>`;
+                } else if (o.estado === 'EnProceso' || o.estado === 'Pausada') {
+                    acciones = `
+                        <button class="btn-cute-secondary btn-cute-sm me-1" onclick="${o.estado === 'EnProceso' ? 'pausarProduccion' : 'reanudarProduccion'}(${o.id})">
+                            <i class="bi bi-${o.estado === 'EnProceso' ? 'pause' : 'play'}-fill"></i> ${o.estado === 'EnProceso' ? 'Pausar' : 'Reanudar'}
+                        </button>
+                        <button class="btn-cute-primary btn-cute-sm me-1" onclick="verSimulacion(${o.id})"><i class="bi bi-eye-fill"></i> Ver</button>
+                        <!-- Botón de seguridad por si cierran el modal -->
+                        <button class="btn btn-sm btn-outline-success" onclick="completarManual(${o.id})" title="Forzar finalización y descuento de inventario"><i class="bi bi-check-lg"></i> Completar</button>`;
+                } else if (o.estado === 'EnInspeccion') {
+                    acciones = `
+                        <button class="btn-cute-primary btn-cute-sm me-1" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);" onclick="irAModuloInspeccion(${o.id})">
+                            <i class="bi bi-search"></i> Ir a Inspección
+                        </button>`;
+                } else if (o.estado === 'EnPruebasTecnicas') {
+                    acciones = `<span class="badge-cute badge-cute-info"><i class="bi bi-cpu"></i> En Pruebas Técnicas</span>`;
+                } else if (o.estado === 'Completada') {
+                    acciones = `<span class="badge-cute badge-cute-success"><i class="bi bi-check-circle-fill"></i> Completada</span>`;
+                } else {
+                    acciones = `<span class="badge-cute badge-cute-warning">${o.estado}</span>`;
+                }
                 tbody.append(`
                     <tr id="fila-op-${o.id}">
                         <td><strong>${o.numeroOP}</strong></td>
@@ -807,6 +804,35 @@
         toast.show();
         document.getElementById(id).addEventListener('hidden.bs.toast', (e) => e.target.remove());
     }
+
+    function completarManual(id) {
+    if(!confirm("¿Estás seguro de marcar esta producción como completada? Se descontarán los componentes del inventario.")) return;
+    
+    $.ajax({
+        url: '/Produccion/completar/' + id,
+        type: 'POST',
+        success: function(r) {
+            if (r.success) {
+                showToast('Producción completada e inventario actualizado', 'success');
+                cargarOrdenes();
+            } else {
+                showToast(r.mensaje, 'danger');
+            }
+        }
+    });
+}
+
+function irAModuloInspeccion(id) {
+    // Primero nos aseguramos que el estado sea el correcto (idempotente)
+    $.post('/MonitoreoVisual/EnviarAInspeccion/' + id, function(r) {
+        if (r.success) {
+            // Redirigir al módulo de inspección visual
+            window.location.href = '/MonitoreoVisual/Index';
+        } else {
+            showToast(r.mensaje, 'danger');
+        }
+    });
+}
            
 </script>
 </body>

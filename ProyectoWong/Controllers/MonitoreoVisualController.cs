@@ -18,6 +18,7 @@ namespace ProyectoWong.Controllers
         public IActionResult Index()
         {
             ViewBag.Title = "Inspección Visual - Mini Abanicos";
+            ViewBag.ActiveMenu = "MonitoreoVisual"; // Para que el sidebar se marque como activo
             return View();
         }
 
@@ -27,10 +28,11 @@ namespace ProyectoWong.Controllers
         {
             try
             {
+                // CAMBIO: Ahora buscamos órdenes en Inspección, en Pruebas Técnicas o Completadas
                 var query = _context.OrdenProduccion
                     .Include(o => o.Producto)
-                    .Where(o => o.Estado == "EnInspeccion" || o.Estado == "Aprobada" || o.Estado == "Rechazada")
-                    .OrderByDescending(o => o.FechaFin ?? o.FechaCreacion)
+                    .Where(o => o.Estado == "EnInspeccion" || o.Estado == "EnPruebasTecnicas" || o.Estado == "Completada")
+                    .OrderByDescending(o => o.FechaCreacion)
                     .AsQueryable();
 
                 if (filtro != "Todas")
@@ -67,23 +69,24 @@ namespace ProyectoWong.Controllers
             }
         }
 
-        // 3. Mover orden de "Completada" a "EnInspeccion" (llamado desde la vista de Producción)
+        // 3. Mover orden a "EnInspeccion" (Idempotente: si ya está ahí, no falla)
         [HttpPost("MonitoreoVisual/EnviarAInspeccion/{id}")]
         public async Task<IActionResult> EnviarAInspeccion(int id)
         {
             var orden = await _context.OrdenProduccion.FindAsync(id);
-            if (orden != null && orden.Estado == "Completada")
+
+            // Aceptamos EnProceso, Pausada, Completada (por código legacy) o EnInspeccion (si el auto-trigger ya actuó)
+            if (orden != null && (orden.Estado == "EnProceso" || orden.Estado == "Pausada" || orden.Estado == "Completada" || orden.Estado == "EnInspeccion"))
             {
-                orden.Estado = "EnInspeccion";
+                orden.Estado = "EnInspeccion"; // Asegura el estado correcto
                 await _context.SaveChangesAsync();
-                return Json(new { success = true, mensaje = "Orden enviada a inspección visual." });
+                return Json(new { success = true, mensaje = "Orden lista para inspección visual." });
             }
-            return Json(new { success = false, mensaje = "La orden no está completada o no existe." });
+
+            return Json(new { success = false, mensaje = $"La orden no puede ser enviada. Estado actual: {orden?.Estado}" });
         }
 
-        // 4. Registrar el resultado final de la inspección
-        // Recibe multipart/form-data porque ahora exige la foto tomada por cámara
-        // como evidencia del monitoreo visual (no se acepta sin foto).
+        // 4. Registrar el resultado de la inspección visual
         [HttpPost("MonitoreoVisual/RegistrarResultado")]
         [RequestFormLimits(MultipartBodyLengthLimit = 10_000_000)] // 10 MB
         [RequestSizeLimit(10_000_000)]
@@ -105,6 +108,12 @@ namespace ProyectoWong.Controllers
                 return Json(new { success = false, mensaje = "Orden no encontrada." });
             }
 
+            // Validación de seguridad: la suma no puede superar el total producido
+            if (cantidadAprobada + cantidadRechazada > orden.CantidadAProducir)
+            {
+                return Json(new { success = false, mensaje = "La suma de aprobados y rechazados no puede superar la cantidad total producida." });
+            }
+
             using (var memoryStream = new MemoryStream())
             {
                 await foto.CopyToAsync(memoryStream);
@@ -115,11 +124,16 @@ namespace ProyectoWong.Controllers
             orden.CantidadAprobada = cantidadAprobada;
             orden.CantidadRechazada = cantidadRechazada;
             orden.ObservacionesInspeccion = observaciones;
-            orden.Estado = cantidadRechazada > 0 ? "Rechazada" : "Aprobada";
-            orden.FechaFin = DateTime.Now;
+
+            // 🔥 CAMBIO CLAVE: No se marca como "Aprobada" o "Rechazada" final aún.
+            // Pasa a la siguiente etapa: Pruebas Técnicas (Sensores).
+            orden.Estado = "EnPruebasTecnicas";
+
+            // NOTA: No establecemos orden.FechaFin aquí. 
+            // La FechaFin real se establecerá en el módulo de Sensores cuando se pruebe la última unidad.
 
             await _context.SaveChangesAsync();
-            return Json(new { success = true, mensaje = "Inspección registrada correctamente." });
+            return Json(new { success = true, mensaje = "Inspección visual registrada. La orden pasa a Pruebas Técnicas." });
         }
 
         // 5. Sirve la foto de evidencia capturada por cámara para una orden

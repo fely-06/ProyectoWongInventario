@@ -700,7 +700,7 @@
                 verificarConexion();
                 setInterval(verificarConexion, 3000);
 
-                // Cargar órdenes de producción y绑定 evento
+                // Cargar órdenes de producción y evento
                 cargarOrdenesProduccion();
                 $('#selectOrdenProduccion').on('change', function () {
                     const id = parseInt($(this).val());
@@ -839,8 +839,8 @@
                         ordenesDisponibles = res.data;
                         let html = '<option value="">-- Seleccione una Orden --</option>';
                         res.data.forEach(op => {
-                            const estadoIcon = op.estado === 'En Pruebas' ? '🔄' : '✅';
-                            html += `<option value="${op.id}">${estadoIcon} OP: ${op.numeroOP} | ${op.producto} (OC: ${op.ordenCompra}) - ${op.aprobados + op.rechazados}/${op.cantidadTotal} probados</option>`;
+                            // Texto claro, sin emojis de check, mostrando los datos reales de la BD
+                            html += `<option value="${op.id}">📋 OP: ${op.numeroOP} | ${op.producto} (OC: ${op.ordenCompra}) | Aprob: ${op.aprobados} | Rech: ${op.rechazados} | Total: ${op.cantidadTotal}</option>`;
                         });
                         $('#selectOrdenProduccion').html(html);
                     } else {

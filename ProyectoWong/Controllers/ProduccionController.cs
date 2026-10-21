@@ -225,7 +225,7 @@ namespace ProyectoWong.Controllers
             }
         }
 
-        // 5. COMPLETAR LA PRODUCCIÓN (Descuenta componentes, suma producto final)
+        // 5. FINALIZAR FABRICACIÓN (Descuenta componentes, suma producto final y pasa a Inspección)
         [HttpPost("completar/{id}")]
         public async Task<IActionResult> Completar(int id)
         {
@@ -248,17 +248,17 @@ namespace ProyectoWong.Controllers
                     detalle.CantidadConsumida = detalle.CantidadRequerida;
                 }
 
-                // 2. Aumentar stock del producto terminado
+                // 2. Aumentar stock del producto terminado (ya fabricado, pendiente de calidad)
                 orden.Producto.Cantidad += orden.CantidadAProducir;
 
-                // 3. Actualizar estado y fechas
-                orden.Estado = "Completada";
-                orden.FechaFin = DateTime.Now;
+                // 3. Actualizar estado a Inspección Visual (NO a Completada aún)
+                orden.Estado = "EnInspeccion";
+                // Nota: Quitamos FechaFin aquí, se pondrá cuando pase las pruebas técnicas.
 
                 await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
 
-                return Json(Respuesta.OK("Producción completada e inventario actualizado"));
+                return Json(Respuesta.OK("Fabricación finalizada. Orden enviada a Inspección Visual e inventario actualizado."));
             }
             catch (Exception e)
             {
@@ -266,8 +266,7 @@ namespace ProyectoWong.Controllers
                 return Json(Respuesta.Error(e.Message));
             }
         }
-        
-        
+
     }
 
     // DTO para recibir los datos del frontend
