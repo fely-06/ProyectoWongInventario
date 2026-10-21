@@ -27,6 +27,11 @@ namespace ProyectoWong.Data
         public DbSet<EscalaDescuento> EscalasDescuento { get; set; }
         public DbSet<HistorialPruebaSensor> HistorialPruebasSensores { get; set; }
         public DbSet<DetalleLecturaSensor> DetalleLecturasSensores { get; set; }
+
+        // Scrap y Downtime
+        public DbSet<ProyectoWong.Models.Planta.Maquina> Maquinas { get; set; } = default!;
+        public DbSet<ProyectoWong.Models.Planta.RegistroScrap> RegistrosScrap { get; set; } = default!;
+        public DbSet<ProyectoWong.Models.Planta.RegistroDowntime> RegistrosDowntime { get; set; } = default!;
         
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -35,6 +40,26 @@ namespace ProyectoWong.Data
 
             // Usuarios
             modelBuilder.Entity<Usuarios>().HasKey(u => u.ExpUsuarioId);
+
+            // Scrap: no se borran en cascada (el borrado de una orden o máquina no debe llevarse el historial)
+            modelBuilder.Entity<ProyectoWong.Models.Planta.RegistroScrap>()
+                .HasOne(r => r.OrdenProduccion)
+                .WithMany()
+                .HasForeignKey(r => r.OrdenProduccionId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<ProyectoWong.Models.Planta.RegistroScrap>()
+                .HasOne(r => r.Maquina)
+                .WithMany()
+                .HasForeignKey(r => r.MaquinaId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Downtime
+            modelBuilder.Entity<ProyectoWong.Models.Planta.RegistroDowntime>()
+                .HasOne(r => r.Maquina)
+                .WithMany()
+                .HasForeignKey(r => r.MaquinaId)
+                .OnDelete(DeleteBehavior.Restrict);
 
             // Componente
             modelBuilder.Entity<Componente>().HasKey(c => c.Id);

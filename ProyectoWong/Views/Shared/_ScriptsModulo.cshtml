@@ -1,0 +1,64 @@
+@* Funciones comunes de las pantallas Register Scrap y Downtime (requiere jQuery y Bootstrap ya cargados). *@
+<script>
+    function showToast(mensaje, tipo) {
+        let container = document.getElementById('toast-container');
+        if (!container) {
+            container = document.createElement('div');
+            container.id = 'toast-container';
+            container.className = 'toast-container position-fixed bottom-0 end-0 p-3';
+            container.style.zIndex = '9999';
+            document.body.appendChild(container);
+        }
+        const bg = tipo === 'success' ? 'bg-success' : tipo === 'danger' ? 'bg-danger' : 'bg-warning';
+        const text = tipo === 'warning' ? 'text-dark' : 'text-white';
+        const id = 'toast-' + Date.now();
+
+        container.insertAdjacentHTML('beforeend', `
+            <div id="${id}" class="toast align-items-center ${bg} ${text} border-0 shadow-lg" role="alert" style="border-radius:16px;">
+                <div class="d-flex">
+                    <div class="toast-body fw-semibold">${escHtml(mensaje)}</div>
+                    <button type="button" class="btn-close ${tipo === 'warning' ? '' : 'btn-close-white'} me-2 m-auto" data-bs-dismiss="toast"></button>
+                </div>
+            </div>`);
+
+        const toast = new bootstrap.Toast(document.getElementById(id), { delay: 4000 });
+        toast.show();
+        document.getElementById(id).addEventListener('hidden.bs.toast', (e) => e.target.remove());
+    }
+
+    function escHtml(s) {
+        return $('<div>').text(s == null ? '' : s).html();
+    }
+
+    // 135.5 -> "2 h 15.5 min"; 12 -> "12 min"
+    function fmtMin(m) {
+        m = Number(m) || 0;
+        if (m < 60) return (Math.round(m * 10) / 10) + ' min';
+        const h = Math.floor(m / 60);
+        const r = Math.round((m - h * 60) * 10) / 10;
+        return h + ' h ' + r + ' min';
+    }
+
+    // minutos con segundos para el reloj de los paros en curso: 2.5 -> "2:30"
+    function fmtReloj(m) {
+        const total = Math.max(0, Math.round((Number(m) || 0) * 60));
+        const mm = Math.floor(total / 60);
+        const ss = total % 60;
+        return mm + ':' + (ss < 10 ? '0' : '') + ss;
+    }
+
+    function fmtFechaHora(iso) {
+        if (!iso) return '—';
+        return new Date(iso).toLocaleString('es-MX', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    }
+
+    function llenarSelect(selector, items, valueKey, textKey, placeholder) {
+        const $s = $(selector);
+        $s.empty();
+        if (placeholder) $s.append('<option value="">' + escHtml(placeholder) + '</option>');
+        (items || []).forEach(function (it) {
+            if (valueKey === null) $s.append('<option value="' + escHtml(it) + '">' + escHtml(it) + '</option>');
+            else $s.append('<option value="' + it[valueKey] + '">' + escHtml(it[textKey]) + '</option>');
+        });
+    }
+</script>

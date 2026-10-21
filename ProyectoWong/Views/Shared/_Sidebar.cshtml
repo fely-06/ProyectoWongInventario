@@ -58,6 +58,16 @@
                 <i class="bi bi-activity"></i> Pruebas de Sensores
             </a>
         </li>
+        <li class="nav-item">
+            <a class="nav-link @(activo == "Scrap" ? "active" : "")" asp-controller="Scrap" asp-action="Index">
+                <i class="bi bi-recycle"></i> Register Scrap
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link @(activo == "Downtime" ? "active" : "")" asp-controller="Downtime" asp-action="Index">
+                <i class="bi bi-hourglass-split"></i> Downtime
+            </a>
+        </li>
     </ul>
 
     <div class="sidebar-footer">

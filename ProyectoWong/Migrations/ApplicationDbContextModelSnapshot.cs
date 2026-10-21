@@ -97,6 +97,43 @@ namespace ProyectoWong.Migrations
                     b.ToTable("Componentes");
                 });
 
+            modelBuilder.Entity("ProyectoWong.Models.DetalleLecturaSensor", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Estado")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("FechaHora")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("HistorialId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("HistorialPruebaSensorId")
+                        .HasColumnType("int");
+
+                    b.Property<double?>("Humedad")
+                        .HasColumnType("float");
+
+                    b.Property<double?>("Rpm")
+                        .HasColumnType("float");
+
+                    b.Property<double?>("Temperatura")
+                        .HasColumnType("float");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("HistorialPruebaSensorId");
+
+                    b.ToTable("DetalleLecturasSensores");
+                });
+
             modelBuilder.Entity("ProyectoWong.Models.EscalaDescuento", b =>
                 {
                     b.Property<int>("Id")
@@ -119,6 +156,42 @@ namespace ProyectoWong.Migrations
                     b.HasIndex("ProductoId");
 
                     b.ToTable("EscalasDescuento");
+                });
+
+            modelBuilder.Entity("ProyectoWong.Models.HistorialPruebaSensor", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("DuracionSegundos")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("FechaFin")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("FechaInicio")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Observaciones")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<int>("OrdenProduccionId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ResultadoFinal")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OrdenProduccionId");
+
+                    b.ToTable("HistorialPruebasSensores");
                 });
 
             modelBuilder.Entity("ProyectoWong.Models.Produccion.OrdenProduccion", b =>
@@ -612,6 +685,13 @@ namespace ProyectoWong.Migrations
                     b.ToTable("Usuarios");
                 });
 
+            modelBuilder.Entity("ProyectoWong.Models.DetalleLecturaSensor", b =>
+                {
+                    b.HasOne("ProyectoWong.Models.HistorialPruebaSensor", null)
+                        .WithMany("Lecturas")
+                        .HasForeignKey("HistorialPruebaSensorId");
+                });
+
             modelBuilder.Entity("ProyectoWong.Models.EscalaDescuento", b =>
                 {
                     b.HasOne("ProyectoWong.Models.Producto", "Producto")
@@ -621,6 +701,17 @@ namespace ProyectoWong.Migrations
                         .IsRequired();
 
                     b.Navigation("Producto");
+                });
+
+            modelBuilder.Entity("ProyectoWong.Models.HistorialPruebaSensor", b =>
+                {
+                    b.HasOne("ProyectoWong.Models.Produccion.OrdenProduccion", "OrdenProduccion")
+                        .WithMany()
+                        .HasForeignKey("OrdenProduccionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("OrdenProduccion");
                 });
 
             modelBuilder.Entity("ProyectoWong.Models.Produccion.OrdenProduccion", b =>
@@ -801,6 +892,11 @@ namespace ProyectoWong.Migrations
                     b.Navigation("Componente");
 
                     b.Navigation("Recepcion");
+                });
+
+            modelBuilder.Entity("ProyectoWong.Models.HistorialPruebaSensor", b =>
+                {
+                    b.Navigation("Lecturas");
                 });
 
             modelBuilder.Entity("ProyectoWong.Models.Produccion.OrdenProduccion", b =>

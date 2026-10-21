@@ -1,0 +1,482 @@
+@{
+    Layout = null;
+    ViewBag.Title = "Downtime - SIV";
+}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewBag.Title</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
+
+    @await Html.PartialAsync("_EstilosModulo")
+</head>
+<body>
+    <div class="bg-blob blob-1"></div>
+    <div class="bg-blob blob-2"></div>
+    <div class="bg-blob blob-3"></div>
+
+    <div class="dashboard-wrapper">
+        @await Html.PartialAsync("_Sidebar")
+
+        <main class="main-content">
+            <div class="top-bar">
+                <div class="welcome-text">
+                    <h2>Downtime</h2>
+                    <p>Paros de máquina: duración, tiempo acumulado y causas de pérdida.</p>
+                </div>
+                <div class="user-profile">
+                    <div style="text-align: right;">
+                        <div style="font-weight: 700; font-size: 0.95rem;">Admin SIV</div>
+                        <div style="font-size: 0.8rem; color: var(--color-texto-claro);">admin@siv.com</div>
+                    </div>
+                    <div class="user-avatar">A</div>
+                </div>
+            </div>
+
+            <div class="content-card">
+                <div class="card-header-custom">
+                    <h3><i class="bi bi-hourglass-split"></i> Control de Paros</h3>
+                    <div class="d-flex gap-2 flex-wrap">
+                        <button class="btn-cute-secondary" onclick="abrirModalParo()"><i class="bi bi-pencil-square"></i> Registrar paro</button>
+                        <button class="btn-cute-primary" onclick="abrirModalSimular()"><i class="bi bi-play-fill"></i> Simular paro</button>
+                    </div>
+                </div>
+
+                <div class="kpi-row">
+                    <div class="kpi-box danger">
+                        <div class="kpi-value" id="kpiTotal">0 min</div>
+                        <div class="kpi-label">Tiempo total de paro</div>
+                    </div>
+                    <div class="kpi-box">
+                        <div class="kpi-value" id="kpiParos">0</div>
+                        <div class="kpi-label">Paros registrados</div>
+                    </div>
+                    <div class="kpi-box warn">
+                        <div class="kpi-value" id="kpiEnCurso">0</div>
+                        <div class="kpi-label">Máquinas detenidas ahora</div>
+                    </div>
+                    <div class="kpi-box">
+                        <div class="kpi-value" id="kpiCausa" style="font-size: 1.1rem;">—</div>
+                        <div class="kpi-label">Causa con más minutos perdidos <span id="kpiCausaMin"></span></div>
+                    </div>
+                </div>
+
+                <h5 class="section-title"><i class="bi bi-broadcast"></i> Simulación en vivo</h5>
+                <div id="panelVivo" class="mb-4"><div class="empty-note">Ninguna máquina detenida en este momento.</div></div>
+
+                <div class="row g-4 mb-4">
+                    <div class="col-xl-6">
+                        <div class="panel-soft">
+                            <h5 class="section-title"><i class="bi bi-cpu-fill"></i> Tiempo acumulado de paro por máquina</h5>
+                            <div id="listaMaquinas"><div class="empty-note">Sin datos todavía.</div></div>
+                        </div>
+                    </div>
+                    <div class="col-xl-6">
+                        <div class="panel-soft">
+                            <h5 class="section-title"><i class="bi bi-bar-chart-line-fill"></i> Minutos perdidos por causa</h5>
+                            <div id="listaCausas"><div class="empty-note">Sin datos todavía.</div></div>
+                        </div>
+                    </div>
+                </div>
+
+                <h5 class="section-title"><i class="bi bi-list-ul"></i> Historial de paros</h5>
+                <div class="table-responsive">
+                    <table class="table-cute">
+                        <thead>
+                            <tr>
+                                <th>Máquina</th>
+                                <th>Causa</th>
+                                <th>Inicio</th>
+                                <th>Fin</th>
+                                <th class="text-center">Duración</th>
+                                <th class="text-center">Estado</th>
+                                <th class="text-center">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tablaBody">
+                            <tr><td colspan="7" class="text-center text-muted py-4">Cargando...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- MODAL REGISTRAR / EDITAR PARO -->
+    <div class="modal fade" id="modalParo" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="bi bi-hourglass-split"></i> <span id="tituloParo">Registrar paro</span></h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label" for="pMaquina">Máquina</label>
+                        <select id="pMaquina" class="form-select"></select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="pCausa">Causa del paro</label>
+                        <select id="pCausa" class="form-select"></select>
+                    </div>
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label" for="pInicio">Hora de inicio</label>
+                            <input type="datetime-local" id="pInicio" class="form-control" oninput="calcularDuracion()" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" for="pFin">Hora de fin</label>
+                            <input type="datetime-local" id="pFin" class="form-control" oninput="calcularDuracion()" />
+                        </div>
+                    </div>
+                    <div class="hint-box mb-3">Duración calculada: <strong id="pDuracion">—</strong></div>
+                    <div class="mb-1">
+                        <label class="form-label" for="pObs">Observaciones (opcional)</label>
+                        <textarea id="pObs" class="form-control" rows="2" maxlength="300"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn-cute-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button class="btn-cute-primary" id="btnGuardarParo" onclick="guardarParo()"><i class="bi bi-save-fill"></i> Guardar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL SIMULAR PARO -->
+    <div class="modal fade" id="modalSimular" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header" style="background: linear-gradient(135deg, var(--color-verde) 0%, var(--color-aqua) 100%); color: white; border-radius: 24px 24px 0 0;">
+                    <h5 class="modal-title" style="color: white;"><i class="bi bi-play-circle-fill"></i> Simular paro de máquina</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label" for="sMaquina">Máquina</label>
+                        <select id="sMaquina" class="form-select"></select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="sCausa">Causa del paro</label>
+                        <select id="sCausa" class="form-select"></select>
+                    </div>
+                    <div class="mb-1">
+                        <label class="form-label" for="sDuracion">Duración simulada (minutos)</label>
+                        <input type="number" id="sDuracion" class="form-control" min="0.1" max="480" step="0.1" value="2" />
+                        <div class="form-text">La máquina queda detenida y el paro se cierra solo al cumplirse este tiempo, igual que la producción simulada. También puedes finalizarlo antes.</div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn-cute-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button class="btn-cute-primary" id="btnSimular" onclick="iniciarSimulacion()"><i class="bi bi-play-fill"></i> Iniciar paro</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL ELIMINAR -->
+    <div class="modal fade" id="modalEliminar" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered modal-sm">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="bi bi-trash3-fill"></i> Eliminar paro</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="mb-0" id="textoEliminar"></p>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn-cute-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button class="btn-cute-danger" onclick="confirmarEliminar()"><i class="bi bi-trash3"></i> Eliminar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.js"></script>
+    @await Html.PartialAsync("_ScriptsModulo")
+
+    <script>
+        let modalParo, modalSimular, modalEliminar;
+        let catalogos = { maquinas: [], causas: [] };
+        let registros = [];
+        let editandoId = 0;
+        let idAEliminar = 0;
+        let vivos = {};   // id -> { base: minutos al consultar, t: momento de la consulta, est: duración estimada }
+
+        $(function () {
+            modalParo = new bootstrap.Modal(document.getElementById('modalParo'));
+            modalSimular = new bootstrap.Modal(document.getElementById('modalSimular'));
+            modalEliminar = new bootstrap.Modal(document.getElementById('modalEliminar'));
+
+            cargarCatalogos();
+            cargarDatos();
+            setInterval(cargarDatos, 3000);    // igual que la simulación de Producción: consulta cada 3 s
+            setInterval(tickRelojes, 1000);    // el reloj de los paros en curso avanza cada segundo
+        });
+
+        function cargarCatalogos() {
+            $.get('/Downtime/catalogos', function (r) {
+                if (!r.success) { showToast(r.mensaje, 'danger'); return; }
+                catalogos = r.result;
+                ['#pMaquina', '#sMaquina'].forEach(function (s) { llenarSelect(s, catalogos.maquinas, 'id', 'nombre', 'Selecciona una máquina...'); });
+                ['#pCausa', '#sCausa'].forEach(function (s) { llenarSelect(s, catalogos.causas, null, null, 'Selecciona una causa...'); });
+            });
+        }
+
+        function cargarDatos() {
+            $.get('/Downtime/consultar', function (r) {
+                if (!r.success) {
+                    $('#tablaBody').html('<tr><td colspan="7" class="text-center text-muted py-4">' + escHtml(r.mensaje) + '</td></tr>');
+                    return;
+                }
+                registros = r.result.registros;
+                pintarKpis(r.result.resumen);
+                pintarVivos(registros);
+                pintarMaquinas(r.result.porMaquina);
+                pintarCausas(r.result.porCausa);
+                pintarTabla(registros);
+            });
+        }
+
+        // ---------- KPIs ----------
+        function pintarKpis(s) {
+            $('#kpiTotal').text(fmtMin(s.totalMinutos));
+            $('#kpiParos').text(s.totalParos);
+            $('#kpiEnCurso').text(s.enCurso);
+            $('#kpiCausa').text(s.causaTop);
+            $('#kpiCausaMin').text(s.causaTopMinutos > 0 ? '(' + fmtMin(s.causaTopMinutos) + ')' : '');
+        }
+
+        // ---------- Simulación en vivo ----------
+        function pintarVivos(lista) {
+            const activos = lista.filter(function (x) { return x.enCurso; });
+            vivos = {};
+            if (activos.length === 0) {
+                $('#panelVivo').html('<div class="empty-note">Ninguna máquina detenida en este momento.</div>');
+                return;
+            }
+            let html = '<div class="live-grid">';
+            activos.forEach(function (x) {
+                vivos[x.id] = { base: x.minutos, t: Date.now(), est: x.simulado ? x.duracionEstimadaMinutos : 0 };
+                html += '<div class="live-card">' +
+                    '<div class="live-machine"><span class="pulse-dot"></span>' + escHtml(x.maquina) + '</div>' +
+                    '<div class="live-cause">' + escHtml(x.causa) + '</div>' +
+                    '<div class="live-time" id="reloj-' + x.id + '">' + fmtReloj(x.minutos) + '</div>';
+                if (x.simulado) {
+                    html += '<div class="bar-track"><div class="bar-fill top" id="prog-' + x.id + '" style="width:' + x.progreso + '%"></div></div>' +
+                        '<div style="font-size:.78rem;color:var(--color-texto-claro);font-weight:600;margin-top:.3rem;">Se cierra solo a los ' + fmtMin(x.duracionEstimadaMinutos) + '</div>';
+                }
+                html += '<div class="mt-2"><button class="btn-cute-secondary btn-cute-sm" onclick="finalizarSimulacion(' + x.id + ')"><i class="bi bi-stop-fill"></i> Finalizar ahora</button></div>' +
+                    '</div>';
+            });
+            html += '</div>';
+            $('#panelVivo').html(html);
+        }
+
+        function tickRelojes() {
+            Object.keys(vivos).forEach(function (id) {
+                const v = vivos[id];
+                const min = v.base + (Date.now() - v.t) / 60000;
+                $('#reloj-' + id).text(fmtReloj(min));
+                if (v.est > 0) $('#prog-' + id).css('width', Math.min(100, min / v.est * 100) + '%');
+            });
+        }
+
+        // ---------- Acumulado por máquina y por causa ----------
+        function pintarMaquinas(lista) {
+            if (!lista || lista.length === 0) { $('#listaMaquinas').html('<div class="empty-note">Sin máquinas.</div>'); return; }
+            const max = Math.max.apply(null, lista.map(function (m) { return m.minutos; }).concat([0]));
+            let html = '';
+            lista.forEach(function (m) {
+                const ancho = max > 0 ? (m.minutos / max * 100) : 0;
+                html += '<div class="bar-row">' +
+                    '<div class="bar-head"><span>' + (m.enParo ? '<span class="pulse-dot"></span>' : '') + escHtml(m.maquina) + '</span><span>' + fmtMin(m.minutos) + '</span></div>' +
+                    '<small style="color:var(--color-texto-claro);font-weight:600;">' + m.paros + (m.paros === 1 ? ' paro' : ' paros') + '</small>' +
+                    '<div class="bar-track"><div class="bar-fill" style="width:' + ancho + '%"></div></div>' +
+                    '</div>';
+            });
+            $('#listaMaquinas').html(html);
+        }
+
+        function pintarCausas(lista) {
+            if (!lista || lista.length === 0) { $('#listaCausas').html('<div class="empty-note">Sin datos todavía.</div>'); return; }
+            const max = Math.max.apply(null, lista.map(function (c) { return c.minutos; }).concat([0]));
+            let html = '';
+            lista.forEach(function (c, i) {
+                const ancho = max > 0 ? (c.minutos / max * 100) : 0;
+                const top = (i === 0 && c.minutos > 0);
+                html += '<div class="bar-row">' +
+                    '<div class="bar-head"><span>' + (top ? '<i class="bi bi-exclamation-triangle-fill text-danger"></i> ' : '') + escHtml(c.causa) +
+                    (top ? ' <span class="badge-cute badge-cute-danger">Mayor pérdida</span>' : '') + '</span><span>' + fmtMin(c.minutos) + '</span></div>' +
+                    '<small style="color:var(--color-texto-claro);font-weight:600;">' + c.paros + (c.paros === 1 ? ' paro' : ' paros') + ' · ' + c.porcentaje + ' % del total</small>' +
+                    '<div class="bar-track"><div class="bar-fill ' + (top ? 'top' : '') + '" style="width:' + ancho + '%"></div></div>' +
+                    '</div>';
+            });
+            $('#listaCausas').html(html);
+        }
+
+        // ---------- Tabla ----------
+        function pintarTabla(lista) {
+            if (!lista || lista.length === 0) {
+                $('#tablaBody').html('<tr><td colspan="7" class="text-center text-muted py-4">Aún no hay paros registrados.</td></tr>');
+                return;
+            }
+            let html = '';
+            lista.forEach(function (x) {
+                const estado = x.enCurso
+                    ? '<span class="badge-cute badge-cute-danger"><span class="pulse-dot" style="width:7px;height:7px;"></span>En curso</span>'
+                    : '<span class="badge-cute badge-cute-success">Finalizado</span>';
+                html += '<tr>' +
+                    '<td><strong>' + escHtml(x.maquina) + '</strong>' + (x.simulado ? ' <i class="bi bi-cpu" title="Paro simulado" style="color:var(--color-aqua);"></i>' : '') + '</td>' +
+                    '<td>' + escHtml(x.causa) + (x.observaciones ? '<div style="font-size:.78rem;color:var(--color-texto-claro);">' + escHtml(x.observaciones) + '</div>' : '') + '</td>' +
+                    '<td>' + escHtml(fmtFechaHora(x.horaInicio)) + '</td>' +
+                    '<td>' + (x.horaFin ? escHtml(fmtFechaHora(x.horaFin)) : '—') + '</td>' +
+                    '<td class="text-center"><strong>' + fmtMin(x.minutos) + '</strong></td>' +
+                    '<td class="text-center">' + estado + '</td>' +
+                    '<td><div class="row-actions">' +
+                    '<button class="btn-cute-secondary btn-cute-sm" title="Editar" ' + (x.enCurso ? 'disabled' : '') + ' onclick="abrirModalParo(' + x.id + ')"><i class="bi bi-pencil-fill"></i></button>' +
+                    '<button class="btn-cute-danger" title="Eliminar" onclick="pedirEliminar(' + x.id + ')"><i class="bi bi-trash3"></i></button>' +
+                    '</div></td>' +
+                    '</tr>';
+            });
+            $('#tablaBody').html(html);
+        }
+
+        // ---------- Registrar / editar paro manual ----------
+        function toLocalInput(d) {
+            const p = function (n) { return String(n).padStart(2, '0'); };
+            return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()) + 'T' + p(d.getHours()) + ':' + p(d.getMinutes());
+        }
+
+        function abrirModalParo(id) {
+            const x = id ? registros.find(function (r) { return r.id === id; }) : null;
+            editandoId = x ? x.id : 0;
+            $('#tituloParo').text(x ? 'Editar paro' : 'Registrar paro');
+
+            const ahora = new Date();
+            $('#pFin').attr('max', toLocalInput(ahora));
+            $('#pInicio').attr('max', toLocalInput(ahora));
+
+            if (x) {
+                $('#pMaquina').val(x.maquinaId);
+                $('#pCausa').val(x.causa);
+                $('#pInicio').val(toLocalInput(new Date(x.horaInicio)));
+                $('#pFin').val(toLocalInput(new Date(x.horaFin)));
+                $('#pObs').val(x.observaciones || '');
+            } else {
+                $('#pMaquina').val('');
+                $('#pCausa').val('');
+                $('#pInicio').val(toLocalInput(new Date(ahora.getTime() - 30 * 60000)));
+                $('#pFin').val(toLocalInput(ahora));
+                $('#pObs').val('');
+            }
+            calcularDuracion();
+            modalParo.show();
+        }
+
+        function calcularDuracion() {
+            const ini = new Date($('#pInicio').val());
+            const fin = new Date($('#pFin').val());
+            const $d = $('#pDuracion');
+            if (isNaN(ini) || isNaN(fin)) { $d.text('—').css('color', ''); return; }
+            const min = (fin - ini) / 60000;
+            if (min <= 0) { $d.text('La hora de fin debe ser posterior al inicio').css('color', '#dc2626'); return; }
+            $d.text(fmtMin(min)).css('color', '');
+        }
+
+        function guardarParo() {
+            const data = {
+                Id: editandoId,
+                MaquinaId: parseInt($('#pMaquina').val()),
+                Causa: $('#pCausa').val(),
+                HoraInicio: $('#pInicio').val(),
+                HoraFin: $('#pFin').val(),
+                Observaciones: $('#pObs').val()
+            };
+
+            if (!data.MaquinaId) { showToast('Selecciona la máquina.', 'warning'); return; }
+            if (!data.Causa) { showToast('Selecciona la causa del paro.', 'warning'); return; }
+            if (!data.HoraInicio || !data.HoraFin) { showToast('Indica la hora de inicio y la hora de fin.', 'warning'); return; }
+            if (new Date(data.HoraFin) <= new Date(data.HoraInicio)) { showToast('La hora de fin debe ser posterior a la hora de inicio.', 'warning'); return; }
+
+            $('#btnGuardarParo').prop('disabled', true);
+            $.ajax({
+                url: '/Downtime/guardar', type: 'POST', contentType: 'application/json', data: JSON.stringify(data),
+                success: function (r) {
+                    if (!r.success) { showToast(r.mensaje, 'danger'); return; }
+                    showToast(r.mensaje, 'success');
+                    modalParo.hide();
+                    cargarDatos();
+                },
+                error: function () { showToast('Error de comunicación con el servidor.', 'danger'); },
+                complete: function () { $('#btnGuardarParo').prop('disabled', false); }
+            });
+        }
+
+        // ---------- Simulación ----------
+        function abrirModalSimular() {
+            $('#sMaquina').val('');
+            $('#sCausa').val('');
+            $('#sDuracion').val(2);
+            modalSimular.show();
+        }
+
+        function iniciarSimulacion() {
+            const data = {
+                MaquinaId: parseInt($('#sMaquina').val()),
+                Causa: $('#sCausa').val(),
+                DuracionMinutos: parseFloat($('#sDuracion').val())
+            };
+            if (!data.MaquinaId) { showToast('Selecciona la máquina.', 'warning'); return; }
+            if (!data.Causa) { showToast('Selecciona la causa del paro.', 'warning'); return; }
+            if (!(data.DuracionMinutos > 0)) { showToast('La duración simulada debe ser mayor que cero.', 'warning'); return; }
+
+            $('#btnSimular').prop('disabled', true);
+            $.ajax({
+                url: '/Downtime/simular/iniciar', type: 'POST', contentType: 'application/json', data: JSON.stringify(data),
+                success: function (r) {
+                    if (!r.success) { showToast(r.mensaje, 'danger'); return; }
+                    showToast(r.mensaje, 'warning');
+                    modalSimular.hide();
+                    cargarDatos();
+                },
+                error: function () { showToast('Error de comunicación con el servidor.', 'danger'); },
+                complete: function () { $('#btnSimular').prop('disabled', false); }
+            });
+        }
+
+        function finalizarSimulacion(id) {
+            $.post('/Downtime/simular/finalizar/' + id, function (r) {
+                showToast(r.mensaje, r.success ? 'success' : 'danger');
+                cargarDatos();
+            });
+        }
+
+        // ---------- Eliminar ----------
+        function pedirEliminar(id) {
+            const x = registros.find(function (r) { return r.id === id; });
+            if (!x) return;
+            idAEliminar = id;
+            $('#textoEliminar').text('¿Eliminar el paro de ' + x.maquina + ' (' + x.causa + ', ' + fmtMin(x.minutos) + ')?');
+            modalEliminar.show();
+        }
+
+        function confirmarEliminar() {
+            $.post('/Downtime/eliminar/' + idAEliminar, function (r) {
+                modalEliminar.hide();
+                showToast(r.mensaje, r.success ? 'success' : 'danger');
+                cargarDatos();
+            });
+        }
+    </script>
+</body>
+</html>

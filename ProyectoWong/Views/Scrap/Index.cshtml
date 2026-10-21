@@ -1,0 +1,374 @@
+@{
+    Layout = null;
+    ViewBag.Title = "Register Scrap - SIV";
+}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewBag.Title</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
+
+    @await Html.PartialAsync("_EstilosModulo")
+</head>
+<body>
+    <div class="bg-blob blob-1"></div>
+    <div class="bg-blob blob-2"></div>
+    <div class="bg-blob blob-3"></div>
+
+    <div class="dashboard-wrapper">
+        @await Html.PartialAsync("_Sidebar")
+
+        <main class="main-content">
+            <div class="top-bar">
+                <div class="welcome-text">
+                    <h2>Register Scrap</h2>
+                    <p>Piezas rechazadas por orden de producción y máquina.</p>
+                </div>
+                <div class="user-profile">
+                    <div style="text-align: right;">
+                        <div style="font-weight: 700; font-size: 0.95rem;">Admin SIV</div>
+                        <div style="font-size: 0.8rem; color: var(--color-texto-claro);">admin@siv.com</div>
+                    </div>
+                    <div class="user-avatar">A</div>
+                </div>
+            </div>
+
+            <div class="content-card">
+                <div class="card-header-custom">
+                    <h3><i class="bi bi-recycle"></i> Registros de Scrap</h3>
+                    <div class="d-flex gap-2">
+                        <button class="btn-cute-secondary" onclick="recargarTodo()" title="Actualizar"><i class="bi bi-arrow-clockwise"></i></button>
+                        <button class="btn-cute-primary" onclick="abrirModalNuevo()"><i class="bi bi-plus-lg"></i> Registrar Scrap</button>
+                    </div>
+                </div>
+
+                <div class="kpi-row">
+                    <div class="kpi-box danger">
+                        <div class="kpi-value" id="kpiPiezas">0</div>
+                        <div class="kpi-label">Piezas de scrap</div>
+                    </div>
+                    <div class="kpi-box">
+                        <div class="kpi-value" id="kpiEventos">0</div>
+                        <div class="kpi-label">Eventos registrados</div>
+                    </div>
+                    <div class="kpi-box warn">
+                        <div class="kpi-value" id="kpiPct">0 %</div>
+                        <div class="kpi-label">% de scrap (sobre las órdenes)</div>
+                    </div>
+                    <div class="kpi-box">
+                        <div class="kpi-value" id="kpiDefecto" style="font-size: 1.1rem;">—</div>
+                        <div class="kpi-label">Defecto más frecuente</div>
+                    </div>
+                </div>
+
+                <div class="row g-4">
+                    <div class="col-xl-8">
+                        <div class="table-responsive">
+                            <table class="table-cute">
+                                <thead>
+                                    <tr>
+                                        <th>Fecha</th>
+                                        <th>Orden</th>
+                                        <th>Máquina</th>
+                                        <th>Motivo de rechazo</th>
+                                        <th class="text-center">Cantidad</th>
+                                        <th class="text-center" title="Cantidad de este evento entre las piezas de la orden">% evento</th>
+                                        <th class="text-center" title="Scrap acumulado de la orden entre sus piezas">% orden</th>
+                                        <th class="text-center">Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tablaBody">
+                                    <tr><td colspan="8" class="text-center text-muted py-4">Cargando...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="col-xl-4">
+                        <div class="panel-soft">
+                            <h5 class="section-title"><i class="bi bi-bar-chart-line-fill"></i> Defectos más frecuentes</h5>
+                            <div id="listaDefectos"><div class="empty-note">Sin datos todavía.</div></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- MODAL REGISTRAR / EDITAR -->
+    <div class="modal fade" id="modalScrap" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="bi bi-recycle"></i> <span id="tituloModal">Registrar Scrap</span></h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label" for="fOrden">Orden de producción</label>
+                        <select id="fOrden" class="form-select" onchange="mostrarPista()"></select>
+                    </div>
+
+                    <div id="pistaOrden" class="hint-box mb-3 d-none"></div>
+
+                    <div class="mb-3">
+                        <label class="form-label" for="fMaquina">Máquina</label>
+                        <select id="fMaquina" class="form-select"></select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="fMotivo">Motivo de rechazo</label>
+                        <select id="fMotivo" class="form-select"></select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="fCantidad">Cantidad de piezas</label>
+                        <input type="number" id="fCantidad" class="form-control" min="1" step="1" placeholder="Mayor que cero" />
+                    </div>
+                    <div class="mb-1">
+                        <label class="form-label" for="fObs">Observaciones (opcional)</label>
+                        <textarea id="fObs" class="form-control" rows="2" maxlength="300"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn-cute-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button class="btn-cute-primary" id="btnGuardar" onclick="guardar()"><i class="bi bi-save-fill"></i> Guardar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL ELIMINAR -->
+    <div class="modal fade" id="modalEliminar" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered modal-sm">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="bi bi-trash3-fill"></i> Eliminar registro</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="mb-0" id="textoEliminar"></p>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn-cute-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button class="btn-cute-danger" onclick="confirmarEliminar()"><i class="bi bi-trash3"></i> Eliminar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.js"></script>
+    @await Html.PartialAsync("_ScriptsModulo")
+
+    <script>
+        let modalScrap, modalEliminar;
+        let catalogos = { ordenes: [], maquinas: [], motivos: [] };
+        let registros = [];
+        let editando = null;     // registro que se está editando (null = nuevo)
+        let idAEliminar = 0;
+
+        $(function () {
+            modalScrap = new bootstrap.Modal(document.getElementById('modalScrap'));
+            modalEliminar = new bootstrap.Modal(document.getElementById('modalEliminar'));
+            recargarTodo();
+        });
+
+        function recargarTodo() {
+            cargarCatalogos();
+            cargarRegistros();
+        }
+
+        // ---------- Catálogos (órdenes, máquinas, motivos) ----------
+        function cargarCatalogos() {
+            $.get('/Scrap/catalogos', function (r) {
+                if (!r.success) { showToast(r.mensaje, 'danger'); return; }
+                catalogos = r.result;
+
+                const ordenSel = $('#fOrden').val();
+                const items = catalogos.ordenes.map(function (o) {
+                    return { id: o.id, texto: o.numeroOP + ' · ' + o.producto + ' (' + o.cantidadAProducir + ' uds)' };
+                });
+                llenarSelect('#fOrden', items, 'id', 'texto', 'Selecciona una orden...');
+                llenarSelect('#fMaquina', catalogos.maquinas, 'id', 'nombre', 'Selecciona una máquina...');
+                llenarSelect('#fMotivo', catalogos.motivos, null, null, 'Selecciona un motivo...');
+                if (ordenSel) $('#fOrden').val(ordenSel);
+            });
+        }
+
+        // ---------- Tabla, KPIs y defectos ----------
+        function cargarRegistros() {
+            $.get('/Scrap/consultar', function (r) {
+                if (!r.success) {
+                    $('#tablaBody').html('<tr><td colspan="8" class="text-center text-muted py-4">' + escHtml(r.mensaje) + '</td></tr>');
+                    return;
+                }
+                registros = r.result.registros;
+                pintarKpis(r.result.resumen);
+                pintarTabla(registros);
+                pintarDefectos(r.result.defectos);
+            });
+        }
+
+        function pintarKpis(s) {
+            $('#kpiPiezas').text(s.totalPiezas);
+            $('#kpiEventos').text(s.totalEventos);
+            $('#kpiPct').text(s.porcentajeGlobal + ' %');
+            $('#kpiDefecto').text(s.defectoPrincipal);
+        }
+
+        function badgePct(p) {
+            const clase = p >= 10 ? 'badge-cute-danger' : (p >= 5 ? 'badge-cute-warning' : 'badge-cute-success');
+            return '<span class="badge-cute ' + clase + '">' + p + ' %</span>';
+        }
+
+        function pintarTabla(lista) {
+            if (!lista || lista.length === 0) {
+                $('#tablaBody').html('<tr><td colspan="8" class="text-center text-muted py-4">Aún no hay registros de scrap.</td></tr>');
+                return;
+            }
+            let html = '';
+            lista.forEach(function (x) {
+                html += '<tr>' +
+                    '<td>' + escHtml(new Date(x.fecha).toLocaleString('es-MX', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })) + '</td>' +
+                    '<td><strong>' + escHtml(x.numeroOP) + '</strong><div style="font-size:.78rem;color:var(--color-texto-claro);">' + escHtml(x.producto) + '</div></td>' +
+                    '<td>' + escHtml(x.maquina) + '</td>' +
+                    '<td>' + escHtml(x.motivoRechazo) + (x.observaciones ? '<div style="font-size:.78rem;color:var(--color-texto-claro);">' + escHtml(x.observaciones) + '</div>' : '') + '</td>' +
+                    '<td class="text-center"><strong>' + x.cantidad + '</strong></td>' +
+                    '<td class="text-center">' + x.porcentajeEvento + ' %</td>' +
+                    '<td class="text-center">' + badgePct(x.porcentajeOrden) + '</td>' +
+                    '<td><div class="row-actions">' +
+                    '<button class="btn-cute-secondary btn-cute-sm" title="Editar" onclick="abrirModalEditar(' + x.id + ')"><i class="bi bi-pencil-fill"></i></button>' +
+                    '<button class="btn-cute-danger" title="Eliminar" onclick="pedirEliminar(' + x.id + ')"><i class="bi bi-trash3"></i></button>' +
+                    '</div></td>' +
+                    '</tr>';
+            });
+            $('#tablaBody').html(html);
+        }
+
+        function pintarDefectos(defectos) {
+            if (!defectos || defectos.length === 0) {
+                $('#listaDefectos').html('<div class="empty-note">Sin datos todavía.</div>');
+                return;
+            }
+            let html = '';
+            defectos.forEach(function (d, i) {
+                html += '<div class="bar-row">' +
+                    '<div class="bar-head"><span>' + (i === 0 ? '<i class="bi bi-exclamation-triangle-fill text-danger"></i> ' : '') + escHtml(d.motivo) + '</span><span>' + d.porcentaje + ' %</span></div>' +
+                    '<small style="color:var(--color-texto-claro);font-weight:600;">' + d.eventos + (d.eventos === 1 ? ' evento' : ' eventos') + ' · ' + d.piezas + ' pzas</small>' +
+                    '<div class="bar-track"><div class="bar-fill ' + (i === 0 ? 'top' : '') + '" style="width:' + d.porcentaje + '%"></div></div>' +
+                    '</div>';
+            });
+            $('#listaDefectos').html(html);
+        }
+
+        // ---------- Modal registrar / editar ----------
+        function abrirModalNuevo() {
+            editando = null;
+            $('#tituloModal').text('Registrar Scrap');
+            $('#fOrden').val('');
+            $('#fMaquina').val('');
+            $('#fMotivo').val('');
+            $('#fCantidad').val('').removeClass('is-invalid');
+            $('#fObs').val('');
+            mostrarPista();
+            modalScrap.show();
+        }
+
+        function abrirModalEditar(id) {
+            const x = registros.find(function (r) { return r.id === id; });
+            if (!x) return;
+            editando = x;
+            $('#tituloModal').text('Editar Scrap');
+            $('#fOrden').val(x.ordenProduccionId);
+            $('#fMaquina').val(x.maquinaId);
+            $('#fMotivo').val(x.motivoRechazo);
+            $('#fCantidad').val(x.cantidad).removeClass('is-invalid');
+            $('#fObs').val(x.observaciones || '');
+            mostrarPista();
+            modalScrap.show();
+        }
+
+        // Muestra cuántas piezas rechazadas tiene la orden (inspección/pruebas) y cuántas ya están en scrap
+        function mostrarPista() {
+            const id = parseInt($('#fOrden').val());
+            const o = catalogos.ordenes.find(function (x) { return x.id === id; });
+            const $p = $('#pistaOrden');
+            if (!o) { $p.addClass('d-none').empty(); return; }
+
+            // al editar, lo que ya tenía este registro no cuenta como "ya registrado"
+            const propio = (editando && editando.ordenProduccionId === o.id) ? editando.cantidad : 0;
+            const registrado = o.scrapRegistrado - propio;
+            const pendiente = Math.max(0, o.rechazadas - registrado);
+            const maximo = Math.max(0, o.cantidadAProducir - registrado);
+
+            $('#fCantidad').attr('max', maximo);
+            $p.removeClass('d-none').html(
+                'Rechazadas en inspección/pruebas: <strong>' + o.rechazadas + '</strong> · ' +
+                'Scrap ya registrado: <strong>' + registrado + '</strong> · ' +
+                'Pendiente: <strong>' + pendiente + '</strong>' +
+                (pendiente > 0 ? ' <a href="#" onclick="usarPendiente(' + pendiente + '); return false;">Usar ' + pendiente + '</a>' : '') +
+                '<br><small>Máximo registrable en esta orden: ' + maximo + '</small>'
+            );
+        }
+
+        function usarPendiente(n) { $('#fCantidad').val(n).removeClass('is-invalid'); }
+
+        function guardar() {
+            const data = {
+                Id: editando ? editando.id : 0,
+                OrdenProduccionId: parseInt($('#fOrden').val()),
+                MaquinaId: parseInt($('#fMaquina').val()),
+                MotivoRechazo: $('#fMotivo').val(),
+                Cantidad: parseInt($('#fCantidad').val()),
+                Observaciones: $('#fObs').val()
+            };
+
+            if (!data.OrdenProduccionId) { showToast('Selecciona la orden de producción.', 'warning'); return; }
+            if (!data.MaquinaId) { showToast('Selecciona la máquina.', 'warning'); return; }
+            if (!data.MotivoRechazo) { showToast('Selecciona el motivo de rechazo.', 'warning'); return; }
+            if (!data.Cantidad || data.Cantidad <= 0) {
+                $('#fCantidad').addClass('is-invalid');
+                showToast('La cantidad debe ser mayor que cero.', 'warning');
+                return;
+            }
+
+            $('#btnGuardar').prop('disabled', true);
+            $.ajax({
+                url: '/Scrap/guardar', type: 'POST', contentType: 'application/json', data: JSON.stringify(data),
+                success: function (r) {
+                    if (!r.success) { showToast(r.mensaje, 'danger'); return; }
+                    showToast(r.mensaje, 'success');
+                    modalScrap.hide();
+                    recargarTodo();
+                },
+                error: function () { showToast('Error de comunicación con el servidor.', 'danger'); },
+                complete: function () { $('#btnGuardar').prop('disabled', false); }
+            });
+        }
+
+        // ---------- Eliminar ----------
+        function pedirEliminar(id) {
+            const x = registros.find(function (r) { return r.id === id; });
+            if (!x) return;
+            idAEliminar = id;
+            $('#textoEliminar').text('¿Eliminar el scrap de ' + x.cantidad + ' pza(s) de la orden ' + x.numeroOP + ' (' + x.motivoRechazo + ')?');
+            modalEliminar.show();
+        }
+
+        function confirmarEliminar() {
+            $.post('/Scrap/eliminar/' + idAEliminar, function (r) {
+                modalEliminar.hide();
+                if (!r.success) { showToast(r.mensaje, 'danger'); return; }
+                showToast(r.mensaje, 'success');
+                recargarTodo();
+            });
+        }
+    </script>
+</body>
+</html>
