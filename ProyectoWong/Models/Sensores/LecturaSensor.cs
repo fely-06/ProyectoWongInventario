@@ -11,5 +11,6 @@ namespace ProyectoWong.Models.Sensores
         public bool? PruebaRpm { get; set; }
         public string? Error { get; set; }          // ej. "ERROR_SENSOR_DHT"
         public string Cruda { get; set; } = "";     // línea tal cual llegó del Arduino
+        public string Estado { get; set; } = "OK";
     }
 }

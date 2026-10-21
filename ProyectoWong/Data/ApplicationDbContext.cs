@@ -25,6 +25,9 @@ namespace ProyectoWong.Data
         public DbSet<Producto> Productos { get; set; }
         public DbSet<ProductoComponente> ProductoComponentes { get; set; }
         public DbSet<EscalaDescuento> EscalasDescuento { get; set; }
+        public DbSet<HistorialPruebaSensor> HistorialPruebasSensores { get; set; }
+        public DbSet<DetalleLecturaSensor> DetalleLecturasSensores { get; set; }
+        
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -117,6 +120,10 @@ namespace ProyectoWong.Data
                 .WithMany(rd => rd.Pallets)
                 .HasForeignKey(p => p.RecepcionDetalleId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            
+
+            
         }
     }
 }

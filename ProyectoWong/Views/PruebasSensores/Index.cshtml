@@ -235,6 +235,8 @@
                 padding: 1.25rem;
                 text-align: center;
                 box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+                border: 2px solid transparent;
+                transition: all 0.3s ease;
             }
 
                 .live-metric .label {
@@ -256,6 +258,55 @@
                     font-weight: 600;
                     color: var(--color-texto-claro);
                 }
+
+                .live-metric .limit {
+                    font-size: 0.75rem;
+                    font-weight: 700;
+                    color: var(--color-texto-claro);
+                    margin-top: 0.4rem;
+                }
+
+                .live-metric.ok {
+                    border-color: #86efac;
+                    background: #f0fdf4;
+                }
+
+                    .live-metric.ok .value {
+                        color: #166534;
+                    }
+
+                .live-metric.bad {
+                    border-color: #dc2626 !important;
+                    background: #fef2f2 !important;
+                    animation: pulse-red 1s infinite;
+                }
+
+                    .live-metric.bad .value {
+                        color: #991b1b;
+                    }
+
+                        .live-metric.bad .value::after {
+                            content: " ¡ALERTA!";
+                            font-size: 0.7rem;
+                            color: #dc2626;
+                            display: block;
+                            font-weight: 900;
+                            margin-top: 5px;
+                        }
+
+            @@keyframes pulse-red {
+                0% {
+                    box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.4);
+                }
+
+                70% {
+                    box-shadow: 0 0 0 10px rgba(220, 38, 38, 0);
+                }
+
+                100% {
+                    box-shadow: 0 0 0 0 rgba(220, 38, 38, 0);
+                }
+            }
 
             /* Timer & Actions */
             .action-area {
@@ -386,37 +437,6 @@
                 background: currentColor;
             }
 
-            /* ---- Mejoras de diseño ---- */
-            .live-metric {
-                border: 2px solid transparent;
-                transition: all 0.3s ease;
-            }
-
-                .live-metric .limit {
-                    font-size: 0.75rem;
-                    font-weight: 700;
-                    color: var(--color-texto-claro);
-                    margin-top: 0.4rem;
-                }
-
-                .live-metric.ok {
-                    border-color: #86efac;
-                    background: #f0fdf4;
-                }
-
-                    .live-metric.ok .value {
-                        color: #166534;
-                    }
-
-                .live-metric.bad {
-                    border-color: #fca5a5;
-                    background: #fef2f2;
-                }
-
-                    .live-metric.bad .value {
-                        color: #991b1b;
-                    }
-
             .timer-progress {
                 display: none;
                 height: 10px;
@@ -503,6 +523,29 @@
                 color: #991b1b;
                 font-weight: 800;
             }
+
+            /* Dropdown de Orden de Producción */
+            #selectOrdenProduccion option {
+                padding: 10px;
+            }
+
+                #selectOrdenProduccion option:disabled {
+                    color: #999;
+                }
+
+            .op-progress-card {
+                background: #f8f9fa;
+                border-radius: 12px;
+            }
+
+            #selectOrdenProduccion option {
+                padding: 10px;
+            }
+
+                #selectOrdenProduccion option[value=""] {
+                    color: #999;
+                    font-style: italic;
+                }
     </style>
 </head>
 <body>
@@ -518,10 +561,47 @@
             </div>
 
             <div class="wizard-card">
-                <!-- Progress Steps -->
-                <div class="progress-steps" id="progressSteps">
-                    <!-- Se genera dinámicamente con JS -->
+                <!-- Captura de Orden de Producción -->
+                <div class="mb-4 p-3 bg-white rounded-4 shadow-sm border" id="productInfoBox">
+                    <label class="form-label fw-bold text-muted small text-uppercase">Seleccionar Orden de Producción</label>
+                    <div class="input-group mb-2">
+                        <span class="input-group-text bg-light border-end-0"><i class="bi bi-clipboard-data"></i></span>
+                        <select id="selectOrdenProduccion" class="form-select border-start-0 fw-bold" required>
+                            <option value="">Cargando órdenes...</option>
+                        </select>
+                    </div>
+
+                    <!-- Tarjeta de progreso de la Orden -->
+                    <div id="opProgressCard" class="d-none mt-3 p-3 rounded-3 op-progress-card">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <small class="fw-bold text-muted">PROGRESO DE LA ORDEN</small>
+                            <small class="fw-bold text-primary" id="opNumero">OP-000</small>
+                        </div>
+                        <div class="row text-center g-2">
+                            <div class="col-4">
+                                <div class="small text-muted">Total</div>
+                                <div class="fw-bold fs-5" id="opTotal">0</div>
+                            </div>
+                            <div class="col-4">
+                                <div class="small text-success">Aprobados</div>
+                                <div class="fw-bold fs-5 text-success" id="opAprobados">0</div>
+                            </div>
+                            <div class="col-4">
+                                <div class="small text-danger">Rechazados</div>
+                                <div class="fw-bold fs-5 text-danger" id="opRechazados">0</div>
+                            </div>
+                        </div>
+                        <div class="progress mt-2" style="height: 6px;">
+                            <div id="opProgressBar" class="progress-bar bg-success" role="progressbar" style="width: 0%"></div>
+                        </div>
+                        <div class="mt-2 text-center">
+                            <small class="text-muted">Orden de Compra vinculada: <strong id="opOC">N/A</strong></small>
+                        </div>
+                    </div>
                 </div>
+
+                <!-- Progress Steps -->
+                <div class="progress-steps" id="progressSteps"></div>
 
                 <!-- Dynamic Content -->
                 <div id="wizardContent">
@@ -530,9 +610,7 @@
                         <ul id="stepInstructions"></ul>
                     </div>
 
-                    <div class="live-data-grid" id="liveDataGrid">
-                        <!-- Métricas en vivo se inyectan aquí -->
-                    </div>
+                    <div class="live-data-grid" id="liveDataGrid"></div>
 
                     <div id="resultBadge" class="result-badge"></div>
 
@@ -560,10 +638,8 @@
 
     <script src="~/lib/jquery/dist/jquery.js"></script>
     <script>
-            // Se promedian las ultimas N lecturas validas para decidir aprobado / rechazado
             const MUESTRAS_EVALUACION = 5;
 
-            // Limites de aprobacion (un solo lugar: la pagina decide y le avisa al Arduino con OK / FAIL)
             const LIMITES = {
                 rpm:         { min: 2000, max: null, unidad: 'RPM', decimales: 0, texto: 'Mín. 2000 RPM' },
                 temperatura: { min: 18,   max: 28,   unidad: '°C',  decimales: 1, texto: '18 – 28 °C' },
@@ -610,18 +686,30 @@
             let pruebaEnCurso = false;
             let resultados = [];
 
+            // Variables para Órdenes de Producción
+            let ordenesDisponibles = [];
+            let opSeleccionada = null;
+
             const mostrar = ($el) => $el.css('display', 'inline-flex');
             const ocultar = ($el) => $el.css('display', 'none');
             const esNumero = (v) => typeof v === 'number' && isFinite(v);
 
-            $(document).ready(function() {
+            $(document).ready(function () {
                 renderizarPasos();
                 cargarPaso(0);
                 verificarConexion();
                 setInterval(verificarConexion, 3000);
+
+                // Cargar órdenes de producción y绑定 evento
+                cargarOrdenesProduccion();
+                $('#selectOrdenProduccion').on('change', function () {
+                    const id = parseInt($(this).val());
+                    opSeleccionada = ordenesDisponibles.find(o => o.id === id) || null;
+                    actualizarTarjetaOP();
+                });
             });
 
-            // ---------- Calculos ----------
+            // ---------- Cálculos ----------
             function ultimoValido(datos, campo) {
                 const l = (datos.historial || []).find(x => !x.error && esNumero(x[campo]));
                 return l ? l[campo] : null;
@@ -636,7 +724,6 @@
                 return valores.reduce((a, b) => a + b, 0) / valores.length;
             }
 
-            // true = dentro de limites, false = fuera, null = sin limite o sin dato
             function dentroDeLimites(campo, valor) {
                 const lim = LIMITES[campo];
                 if (!lim || !esNumero(valor)) return null;
@@ -725,7 +812,7 @@
                 else if (dentro === false) $caja.addClass('bad');
             }
 
-            // ---------- Conexion ----------
+            // ---------- Conexión ----------
             async function verificarConexion() {
                 try {
                     const r = await $.get('/PruebasSensores/Ultimos');
@@ -735,7 +822,6 @@
                         return true;
                     } else {
                         $('#connStatus').removeClass('on').addClass('off');
-                        // Muestra el mensaje de error exacto que envia el servidor (ej: "Access denied" o "COM4 no encontrado")
                         $('#connText').text(r.estado || 'Desconectado (Sin detalles)');
                         return false;
                     }
@@ -746,9 +832,53 @@
                 }
             }
 
+            async function cargarOrdenesProduccion() {
+                try {
+                    const res = await $.get('/PruebasSensores/OrdenesActivas');
+                    if (res.success && res.data && res.data.length > 0) {
+                        ordenesDisponibles = res.data;
+                        let html = '<option value="">-- Seleccione una Orden --</option>';
+                        res.data.forEach(op => {
+                            const estadoIcon = op.estado === 'En Pruebas' ? '🔄' : '✅';
+                            html += `<option value="${op.id}">${estadoIcon} OP: ${op.numeroOP} | ${op.producto} (OC: ${op.ordenCompra}) - ${op.aprobados + op.rechazados}/${op.cantidadTotal} probados</option>`;
+                        });
+                        $('#selectOrdenProduccion').html(html);
+                    } else {
+                        $('#selectOrdenProduccion').html('<option value="">No hay órdenes pendientes de prueba</option>');
+                    }
+                } catch (e) {
+                    console.error("Error cargando OPs", e);
+                    $('#selectOrdenProduccion').html('<option value="">Error al cargar órdenes</option>');
+                }
+            }
+
+            function actualizarTarjetaOP() {
+                if (!opSeleccionada) {
+                    $('#opProgressCard').addClass('d-none');
+                    return;
+                }
+
+                $('#opProgressCard').removeClass('d-none');
+                $('#opNumero').text(opSeleccionada.numeroOP);
+                $('#opTotal').text(opSeleccionada.cantidadTotal);
+                $('#opAprobados').text(opSeleccionada.aprobados);
+                $('#opRechazados').text(opSeleccionada.rechazados);
+                $('#opOC').text(opSeleccionada.ordenCompra);
+
+                const porcentaje = opSeleccionada.cantidadTotal > 0
+                    ? (opSeleccionada.aprobados / opSeleccionada.cantidadTotal) * 100
+                    : 0;
+                $('#opProgressBar').css('width', Math.min(porcentaje, 100) + '%');
+            }
+
             // ---------- Prueba ----------
             async function iniciarPrueba() {
                 if (pruebaEnCurso) return;
+
+                if (!opSeleccionada) {
+                    alert("⚠️ DEBES SELECCIONAR UNA ORDEN DE PRODUCCIÓN ANTES DE INICIAR.");
+                    return;
+                }
 
                 const estaConectado = await verificarConexion();
                 if (!estaConectado) {
@@ -760,7 +890,7 @@
                     await $.post('/PruebasSensores/Limpiar');
                     const inicio = await $.post('/PruebasSensores/Iniciar');
                     if (!inicio || !inicio.success) {
-                        alert("⚠️ No se pudo enviar la orden de inicio al Arduino. Revise la conexión e intente de nuevo.");
+                        alert("️ No se pudo enviar la orden de inicio al Arduino. Revise la conexión e intente de nuevo.");
                         return;
                     }
                 } catch (e) {
@@ -793,10 +923,10 @@
             }
 
             function obtenerDatosEnVivo() {
-                $.get('/PruebasSensores/Ultimos', function(r) {
+                $.get('/PruebasSensores/Ultimos', function (r) {
                     if (!pruebaEnCurso) return;
                     if (!r.conectado) {
-                        abortarPrueba("⚠️ Se perdió la conexión con el Arduino durante la prueba.");
+                        abortarPrueba("️ Se perdió la conexión con el Arduino durante la prueba.");
                         return;
                     }
                     pasos[pasoActual].metricas.forEach(m => actualizarMetrica(m, ultimoValido(r, m)));
@@ -822,10 +952,8 @@
                 $('#measuring').removeClass('visible');
                 $('#timerDisplay').removeClass('running').addClass('finished').text("¡TIEMPO CULMINADO!");
 
-                // 1. Detener la medicion en el Arduino
                 try { await $.post('/PruebasSensores/Detener'); } catch (e) { }
 
-                // 2. Leer los datos y decidir aprobado / rechazado
                 let datos;
                 try {
                     datos = await $.get('/PruebasSensores/Ultimos');
@@ -840,7 +968,13 @@
                 const lim = LIMITES[ev.campo];
                 const medido = esNumero(ev.valor) ? `${formatearValor(ev.campo, ev.valor)} ${lim.unidad}` : 'sin lecturas válidas';
 
-                resultados[pasoActual] = { titulo: paso.titulo, medido: medido, requerido: lim.texto, aprobado: ev.aprobado };
+                resultados[pasoActual] = {
+                    titulo: paso.titulo,
+                    medido: medido,
+                    requerido: lim.texto,
+                    aprobado: ev.aprobado,
+                    duracion: paso.duracion
+                };
 
                 const $badge = $('#resultBadge');
                 $badge.removeClass('pass fail').addClass(ev.aprobado ? 'pass' : 'fail').css('display', 'block');
@@ -850,7 +984,6 @@
                     $badge.html(`<i class="bi bi-x-circle-fill"></i> PRUEBA RECHAZADA: promedio ${medido} (requerido: ${lim.texto}).`);
                 }
 
-                // 3. Encender el LED verde (aprobado) o rojo (rechazado); queda fijo hasta la siguiente prueba
                 try {
                     const led = await $.post('/PruebasSensores/Resultado', { aprobado: ev.aprobado });
                     if (!led || !led.success) $badge.append(' <small>(No se pudo enviar el resultado al LED)</small>');
@@ -871,15 +1004,23 @@
                 cargarPaso(pasoActual + 1);
             }
 
-            function mostrarResumenFinal() {
+                        async function mostrarResumenFinal() {
                 pasoActual = pasos.length;
                 const todoOk = pasos.every((p, i) => resultados[i] && resultados[i].aprobado);
 
-                $('#stepTitle').text('Resumen de pruebas');
+                if (!opSeleccionada) {
+                    alert("️ DEBES SELECCIONAR UNA ORDEN DE PRODUCCIÓN ANTES DE FINALIZAR.");
+                    pasoActual = 0;
+                    cargarPaso(0);
+                    return;
+                }
+
+                $('#productInfoBox').hide();
+                $('#stepTitle').text('Resumen Final de Pruebas');
                 $('#stepInstructions').html(pasos.map((p, i) => {
                     const r = resultados[i];
                     if (!r) return `<li>${p.titulo}: <span class="res-bad">sin resultado</span></li>`;
-                    return `<li>${r.titulo}: <b>${r.medido}</b> (requerido: ${r.requerido}) — <span class="${r.aprobado ? 'res-ok' : 'res-bad'}">${r.aprobado ? 'APROBADA' : 'RECHAZADA'}</span></li>`;
+                    return `<li>${r.titulo}: <b>${r.medido}</b> (Req: ${r.requerido}) — <span class="${r.aprobado ? 'res-ok' : 'res-bad'} fw-bold">${r.aprobado ? '✅ APROBADA' : '❌ RECHAZADA'}</span></li>`;
                 }).join(''));
 
                 $('#liveDataGrid').hide();
@@ -889,18 +1030,69 @@
 
                 $('#resultBadge').removeClass('pass fail').addClass(todoOk ? 'pass' : 'fail').css('display', 'block')
                     .html(todoOk
-                        ? '<i class="bi bi-trophy-fill"></i> PRODUCTO APROBADO: cumple todas las pruebas.'
-                        : '<i class="bi bi-x-octagon-fill"></i> PRODUCTO RECHAZADO: no cumple una o más pruebas.');
+                        ? '<i class="bi bi-trophy-fill"></i> PRODUCTO APROBADO: Cumple todas las especificaciones.'
+                        : '<i class="bi bi-x-octagon-fill"></i> PRODUCTO RECHAZADO: No cumple una o más pruebas.');
 
                 ocultar($('#btnNext'));
                 ocultar($('#btnStart'));
                 ocultar($('#btnRepeat'));
                 mostrar($('#btnReset'));
-
                 renderizarPasos();
 
-                // El LED final refleja el resultado global
                 $.post('/PruebasSensores/Resultado', { aprobado: todoOk });
+
+                // === GUARDAR EN BD LIGADO A LA ORDEN DE PRODUCCIÓN ===
+                $('#resultBadge').append('<br><small class="text-muted"><i class="bi bi-hourglass-split"></i> Guardando y actualizando contadores de la OP...</small>');
+
+                const duracionTotal = resultados.reduce((acc, curr) => acc + (curr.duracion || 0), 0);
+
+                try {
+                    const respuestaBD = await $.ajax({
+                        url: '/PruebasSensores/GuardarPrueba',
+                        type: 'POST',
+                        contentType: 'application/json',
+                        data: JSON.stringify({
+                            OrdenProduccionId: opSeleccionada.id,
+                            EsAprobado: todoOk,
+                            Observaciones: todoOk ? 'Pruebas completadas exitosamente' : 'Fallo en límites establecidos',
+                            DuracionSegundos: duracionTotal
+                        })
+                    });
+
+                    if (respuestaBD.success) {
+                        opSeleccionada.aprobados = respuestaBD.nuevosContadores.aprobados;
+                        opSeleccionada.rechazados = respuestaBD.nuevosContadores.rechazados;
+                        actualizarTarjetaOP();
+
+                        $('#resultBadge small').html(`<i class="bi bi-check-circle-fill text-success"></i> Registro guardado. Contadores actualizados (Aprobados: ${opSeleccionada.aprobados} / Rechazados: ${opSeleccionada.rechazados}).`);
+
+                        // === VERIFICAR SI LA OP ESTÁ COMPLETA ===
+                        const respuestaCompletar = await $.ajax({
+                            url: '/PruebasSensores/CompletarOP',
+                            type: 'POST',
+                            contentType: 'application/json',
+                            data: JSON.stringify({
+                                OrdenProduccionId: opSeleccionada.id
+                            })
+                        });
+
+                        if (respuestaCompletar.success) {
+                            $('#resultBadge').append(`<br><small class="text-info"><i class="bi bi-info-circle"></i> ${respuestaCompletar.mensaje}</small>`);
+
+                            // Si la OP está completada, recargar la lista de OPs disponibles
+                            if (respuestaCompletar.mensaje.includes("completada")) {
+                                setTimeout(() => {
+                                    alert("✅ La Orden de Producción ha sido completada exitosamente.\n\nAprobados: " + respuestaCompletar.totalAprobados + "\nRechazados: " + respuestaCompletar.totalRechazados);
+                                    cargarOrdenesProduccion(); // Recargar dropdown
+                                }, 2000);
+                            }
+                        }
+                    } else {
+                        $('#resultBadge small').html(`<i class="bi bi-exclamation-triangle-fill text-warning"></i> Error: ${respuestaBD.error}`);
+                    }
+                } catch (error) {
+                    $('#resultBadge small').html(`<i class="bi bi-exclamation-triangle-fill text-danger"></i> Error de conexión al guardar en BD.`);
+                }
             }
 
             async function reiniciarTodo() {
@@ -911,8 +1103,9 @@
                 resultados = [];
                 try {
                     await $.post('/PruebasSensores/Limpiar');
-                    await $.post('/PruebasSensores/Reiniciar');   // apaga los LEDs
+                    await $.post('/PruebasSensores/Reiniciar');
                 } catch (e) { }
+                $('#productInfoBox').show();
                 cargarPaso(0);
             }
 
