@@ -718,15 +718,15 @@
             $('#simModalIconoWrap').addClass('spin');
         }
 
-        // 🔥 SEGURO DE VIDA: Si llega a 100% pero el servidor no lo ha marcado como Completada, ¡FORZAMOS!
-        if (pct >= 100 && data.estadoSimulacion !== 'Completada') {
-            console.warn("⚠️ Progreso al 100% pero estado no es 'Completada'. Forzando actualización desde frontend...");
+        // 🔥 SEGURO DE VIDA: Si llega a 100% pero el servidor aún no termina la fabricación, ¡FORZAMOS!
+        if (pct >= 100 && !data.fabricada) {
+            console.warn("⚠️ Progreso al 100% pero la fabricación no se ha cerrado. Forzando actualización desde frontend...");
             forzarCompletado(data.ordenId);
             return; // Salimos para no seguir consultando
         }
 
-        // Si el backend ya la marcó como completada, el frontend solo celebra y cierra
-        if (data.estadoSimulacion === 'Completada') {
+        // Si el backend ya terminó la fabricación (pasa a inspección), el frontend solo celebra y cierra
+        if (data.fabricada) {
             detenerMonitoreo(); 
             $('#simModalEstadoTexto').text('✅ Producción Completada').css('color', 'var(--color-verde)');
             $('#simModalIconoWrap').removeClass('spin');

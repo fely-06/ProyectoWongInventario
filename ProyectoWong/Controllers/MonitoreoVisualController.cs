@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ProyectoWong.Data;
+using ProyectoWong.Helpers;
 using ProyectoWong.Models.Produccion;
 
 namespace ProyectoWong.Controllers
@@ -75,12 +76,15 @@ namespace ProyectoWong.Controllers
         {
             var orden = await _context.OrdenProduccion.FindAsync(id);
 
-            // Aceptamos EnProceso, Pausada, Completada (por código legacy) o EnInspeccion (si el auto-trigger ya actuó)
-            if (orden != null && (orden.Estado == "EnProceso" || orden.Estado == "Pausada" || orden.Estado == "Completada" || orden.Estado == "EnInspeccion"))
-            {
-                orden.Estado = "EnInspeccion"; // Asegura el estado correcto
-                await _context.SaveChangesAsync();
+            // Si ya está en inspección (el auto-trigger ya actuó), no hay nada que hacer
+            if (orden?.Estado == "EnInspeccion")
                 return Json(new { success = true, mensaje = "Orden lista para inspección visual." });
+
+            // Si aún se está fabricando, se cierra la fabricación primero para que el inventario se mueva
+            if (orden != null && (orden.Estado == "EnProceso" || orden.Estado == "Pausada"))
+            {
+                await ProduccionFlujo.FinalizarFabricacionAsync(_context, id);
+                return Json(new { success = true, mensaje = "Fabricación finalizada e inventario actualizado. Orden lista para inspección visual." });
             }
 
             return Json(new { success = false, mensaje = $"La orden no puede ser enviada. Estado actual: {orden?.Estado}" });

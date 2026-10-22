@@ -87,12 +87,15 @@ namespace ProyectoWong.Controllers
             {
                 minutosTrabajados = (orden.FechaPausa.Value - orden.FechaInicio.Value).TotalMinutes - orden.TiempoPausadoMinutos;
             }
-            else if (orden.Estado == "Completada")
+            bool fabricada = ProduccionFlujo.EstadosFabricada.Contains(orden.Estado);
+            if (fabricada)
             {
                 minutosTrabajados = orden.DuracionEstimadaMinutos;
             }
 
-            double progreso = Math.Min(100, Math.Max(0, (minutosTrabajados / orden.DuracionEstimadaMinutos) * 100));
+            double progreso = orden.DuracionEstimadaMinutos > 0
+                ? Math.Min(100, Math.Max(0, (minutosTrabajados / orden.DuracionEstimadaMinutos) * 100))
+                : (fabricada ? 100 : 0);
             tiempoRestanteMin = Math.Max(0, orden.DuracionEstimadaMinutos - minutosTrabajados);
 
             int totalPasos = 7;
@@ -108,7 +111,8 @@ namespace ProyectoWong.Controllers
                 progreso = Math.Round(progreso, 1),
                 pasoActual,
                 estadoSimulacion = orden.Estado,
-                tiempoRestanteTexto = orden.Estado == "Completada" ? "Finalizado" : $"{(int)tiempoRestanteMin}m {Math.Round((tiempoRestanteMin % 1) * 60)}s"
+                fabricada,
+                tiempoRestanteTexto = fabricada ? "Finalizado" : $"{(int)tiempoRestanteMin}m {Math.Round((tiempoRestanteMin % 1) * 60)}s"
             }));
         }
         // 2. OBTENER PRODUCTOS (Para el select del modal)
@@ -229,40 +233,28 @@ namespace ProyectoWong.Controllers
         [HttpPost("completar/{id}")]
         public async Task<IActionResult> Completar(int id)
         {
-            using var transaction = await _context.Database.BeginTransactionAsync();
             try
             {
-                var orden = await _context.OrdenProduccion
-                    .Include(o => o.Producto)
-                    .Include(o => o.Detalles).ThenInclude(d => d.Componente)
-                    .FirstOrDefaultAsync(o => o.Id == id);
+                var estado = await _context.OrdenProduccion
+                    .Where(o => o.Id == id)
+                    .Select(o => o.Estado)
+                    .FirstOrDefaultAsync();
 
-                if (orden == null) return Json(Respuesta.Error("Orden no encontrada"));
-                if (orden.Estado != "Pendiente" && orden.Estado != "EnProceso" && orden.Estado != "Pausada")
+                if (estado == null) return Json(Respuesta.Error("Orden no encontrada"));
+
+                // Si el servicio en segundo plano ya la terminó, no es un error: el inventario ya se movió.
+                if (ProduccionFlujo.EstadosFabricada.Contains(estado))
+                    return Json(Respuesta.OK("La fabricación de esta orden ya estaba finalizada."));
+
+                // Descuenta componentes, suma producto terminado y pasa a Inspección Visual.
+                // FechaFin se pondrá cuando pase las pruebas técnicas.
+                if (!await ProduccionFlujo.FinalizarFabricacionAsync(_context, id))
                     return Json(Respuesta.Error("La orden no puede ser completada en su estado actual"));
-
-                // 1. Descontar componentes del inventario
-                foreach (var detalle in orden.Detalles)
-                {
-                    detalle.Componente.Cantidad -= detalle.CantidadRequerida;
-                    detalle.CantidadConsumida = detalle.CantidadRequerida;
-                }
-
-                // 2. Aumentar stock del producto terminado (ya fabricado, pendiente de calidad)
-                orden.Producto.Cantidad += orden.CantidadAProducir;
-
-                // 3. Actualizar estado a Inspección Visual (NO a Completada aún)
-                orden.Estado = "EnInspeccion";
-                // Nota: Quitamos FechaFin aquí, se pondrá cuando pase las pruebas técnicas.
-
-                await _context.SaveChangesAsync();
-                await transaction.CommitAsync();
 
                 return Json(Respuesta.OK("Fabricación finalizada. Orden enviada a Inspección Visual e inventario actualizado."));
             }
             catch (Exception e)
             {
-                await transaction.RollbackAsync();
                 return Json(Respuesta.Error(e.Message));
             }
         }
