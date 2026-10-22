@@ -19,7 +19,7 @@ namespace ProyectoWong.Controllers
         public IActionResult Index()
         {
             ViewBag.Title = "Inspección Visual - Mini Abanicos";
-            ViewBag.ActiveMenu = "MonitoreoVisual"; // Para que el sidebar se marque como activo
+            ViewBag.ActiveMenu = "Monitoreo"; // Para que el sidebar se marque como activo
             return View();
         }
 

@@ -1,0 +1,244 @@
+@{
+    Layout = null;
+    ViewBag.Title = "Proveedores - SIV";
+}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewBag.Title</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
+
+    @await Html.PartialAsync("_EstilosModulo")
+</head>
+<body>
+    <div class="bg-blob blob-1"></div>
+    <div class="bg-blob blob-2"></div>
+    <div class="bg-blob blob-3"></div>
+
+    <div class="dashboard-wrapper">
+        @await Html.PartialAsync("_Sidebar")
+
+        <main class="main-content">
+            <div class="top-bar">
+                <div class="welcome-text">
+                    <h2>Proveedores</h2>
+                    <p>Catálogo de proveedores para las órdenes de compra.</p>
+                </div>
+                <div class="user-profile">
+                    <div style="text-align: right;">
+                        <div style="font-weight: 700; font-size: 0.95rem;">Admin SIV</div>
+                        <div style="font-size: 0.8rem; color: var(--color-texto-claro);">admin@siv.com</div>
+                    </div>
+                    <div class="user-avatar">A</div>
+                </div>
+            </div>
+
+            <div class="content-card">
+                <div class="card-header-custom">
+                    <h3><i class="bi bi-truck"></i> Proveedores activos</h3>
+                    <div class="d-flex gap-2">
+                        <input type="search" id="fBuscar" class="form-control" placeholder="Buscar..." oninput="pintarTabla()" style="min-width: 220px;" />
+                        <button class="btn-cute-secondary" onclick="cargarProveedores()" title="Actualizar"><i class="bi bi-arrow-clockwise"></i></button>
+                        <button class="btn-cute-primary" onclick="abrirModalNuevo()"><i class="bi bi-plus-lg"></i> Nuevo Proveedor</button>
+                    </div>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table-cute">
+                        <thead>
+                            <tr>
+                                <th>Nombre</th>
+                                <th>Teléfono</th>
+                                <th>Correo</th>
+                                <th class="text-center">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tablaBody">
+                            <tr><td colspan="4" class="text-center text-muted py-4">Cargando...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- MODAL REGISTRAR / EDITAR -->
+    <div class="modal fade" id="modalProveedor" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="bi bi-truck"></i> <span id="tituloModal">Nuevo Proveedor</span></h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label" for="fNombre">Nombre</label>
+                        <input type="text" id="fNombre" class="form-control" maxlength="150" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="fTelefono">Teléfono (10 dígitos, opcional)</label>
+                        <input type="tel" id="fTelefono" class="form-control" maxlength="10" inputmode="numeric" />
+                    </div>
+                    <div class="mb-1">
+                        <label class="form-label" for="fCorreo">Correo (opcional)</label>
+                        <input type="email" id="fCorreo" class="form-control" />
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn-cute-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button class="btn-cute-primary" id="btnGuardar" onclick="guardar()"><i class="bi bi-save-fill"></i> Guardar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL DESACTIVAR -->
+    <div class="modal fade" id="modalEliminar" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered modal-sm">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="bi bi-trash3-fill"></i> Desactivar proveedor</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="mb-0" id="textoEliminar"></p>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn-cute-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button class="btn-cute-danger" onclick="confirmarEliminar()"><i class="bi bi-trash3"></i> Desactivar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.js"></script>
+    @await Html.PartialAsync("_ScriptsModulo")
+
+    <script>
+        let modalProveedor, modalEliminar;
+        let proveedores = [];
+        let editandoId = 0;      // 0 = nuevo
+        let idAEliminar = 0;
+
+        $(function () {
+            modalProveedor = new bootstrap.Modal(document.getElementById('modalProveedor'));
+            modalEliminar = new bootstrap.Modal(document.getElementById('modalEliminar'));
+            cargarProveedores();
+        });
+
+        function cargarProveedores() {
+            $.get('/Proveedor/consultar-proveedores', function (r) {
+                if (!r.success) {
+                    $('#tablaBody').html('<tr><td colspan="4" class="text-center text-muted py-4">' + escHtml(r.mensaje) + '</td></tr>');
+                    return;
+                }
+                proveedores = r.result;
+                pintarTabla();
+            });
+        }
+
+        function pintarTabla() {
+            const filtro = ($('#fBuscar').val() || '').toLowerCase();
+            const lista = proveedores.filter(function (p) {
+                return !filtro || [p.nombre, p.telefono, p.correo].some(function (v) { return (v || '').toLowerCase().includes(filtro); });
+            });
+
+            if (lista.length === 0) {
+                $('#tablaBody').html('<tr><td colspan="4" class="text-center text-muted py-4">' +
+                    (proveedores.length === 0 ? 'Aún no hay proveedores registrados.' : 'Ningún proveedor coincide con la búsqueda.') + '</td></tr>');
+                return;
+            }
+            let html = '';
+            lista.forEach(function (p) {
+                html += '<tr>' +
+                    '<td><strong>' + escHtml(p.nombre) + '</strong></td>' +
+                    '<td>' + (p.telefono ? escHtml(p.telefono) : '—') + '</td>' +
+                    '<td>' + (p.correo ? escHtml(p.correo) : '—') + '</td>' +
+                    '<td><div class="row-actions">' +
+                    '<button class="btn-cute-secondary btn-cute-sm" title="Editar" onclick="abrirModalEditar(' + p.id + ')"><i class="bi bi-pencil-fill"></i></button>' +
+                    '<button class="btn-cute-danger" title="Desactivar" onclick="pedirEliminar(' + p.id + ')"><i class="bi bi-trash3"></i></button>' +
+                    '</div></td>' +
+                    '</tr>';
+            });
+            $('#tablaBody').html(html);
+        }
+
+        // ---------- Modal registrar / editar ----------
+        function abrirModalNuevo() {
+            editandoId = 0;
+            $('#tituloModal').text('Nuevo Proveedor');
+            $('#fNombre, #fTelefono, #fCorreo').val('').removeClass('is-invalid');
+            modalProveedor.show();
+        }
+
+        function abrirModalEditar(id) {
+            $.get('/Proveedor/obtener-proveedor/' + id, function (r) {
+                if (!r.success) { showToast(r.mensaje, 'danger'); return; }
+                const p = r.result;
+                editandoId = p.id;
+                $('#tituloModal').text('Editar Proveedor');
+                $('#fNombre').val(p.nombre);
+                $('#fTelefono').val(p.telefono || '');
+                $('#fCorreo').val(p.correo || '');
+                $('#fNombre, #fTelefono, #fCorreo').removeClass('is-invalid');
+                modalProveedor.show();
+            });
+        }
+
+        function guardar() {
+            const nombre = $('#fNombre').val().trim();
+            const telefono = $('#fTelefono').val().trim();
+            const correo = $('#fCorreo').val().trim();
+
+            if (!nombre) { $('#fNombre').addClass('is-invalid'); showToast('El nombre es obligatorio.', 'warning'); return; }
+            if (telefono && !/^\d{10}$/.test(telefono)) { $('#fTelefono').addClass('is-invalid'); showToast('El teléfono debe tener exactamente 10 dígitos.', 'warning'); return; }
+
+            $('#btnGuardar').prop('disabled', true);
+            $.ajax({
+                url: '/Proveedor/guardar-proveedor',
+                type: 'POST',
+                data: { Id: editandoId, Nombre: nombre, Telefono: telefono || null, Correo: correo || null, Activo: true },
+                success: function (r) {
+                    if (!r.success) { showToast(r.mensaje, 'danger'); return; }
+                    showToast(r.mensaje, 'success');
+                    modalProveedor.hide();
+                    cargarProveedores();
+                },
+                error: function () { showToast('Error de comunicación con el servidor.', 'danger'); },
+                complete: function () { $('#btnGuardar').prop('disabled', false); }
+            });
+        }
+
+        // ---------- Desactivar ----------
+        function pedirEliminar(id) {
+            const p = proveedores.find(function (x) { return x.id === id; });
+            if (!p) return;
+            idAEliminar = id;
+            $('#textoEliminar').text('¿Desactivar al proveedor ' + p.nombre + '? Ya no aparecerá en las órdenes de compra.');
+            modalEliminar.show();
+        }
+
+        function confirmarEliminar() {
+            $.ajax({
+                url: '/Proveedor/eliminar-proveedor/' + idAEliminar,
+                type: 'DELETE',
+                success: function (r) {
+                    modalEliminar.hide();
+                    if (!r.success) { showToast(r.mensaje, 'danger'); return; }
+                    showToast(r.mensaje, 'success');
+                    cargarProveedores();
+                },
+                error: function () { showToast('Error de comunicación con el servidor.', 'danger'); }
+            });
+        }
+    </script>
+</body>
+</html>

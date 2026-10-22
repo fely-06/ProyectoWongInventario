@@ -6,6 +6,7 @@ namespace ProyectoWong.Controllers
     {
         public IActionResult Index()
         {
+            ViewBag.ActiveMenu = "Monitoreo";
             return View();
         }
 

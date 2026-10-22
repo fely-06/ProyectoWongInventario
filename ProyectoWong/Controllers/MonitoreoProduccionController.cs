@@ -16,6 +16,7 @@ namespace ProyectoWong.Controllers
         public IActionResult Index(string filtro = "Todas")
         {
             ViewBag.FiltroActual = filtro;
+            ViewBag.ActiveMenu = "Monitoreo";
             return View();
         }
 
