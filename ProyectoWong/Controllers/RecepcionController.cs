@@ -350,8 +350,8 @@ namespace ProyectoWong.Controllers
                 // 1. Traer la recepción, la OC y los detalles con sus pallets y movimientos
                 var recepcion = await _context.Recepciones
                     .Include(r => r.OrdenCompra)
-                    .Include(r => r.Detalles)
-                        .ThenInclude(d => d.Pallets)
+                    .Include(r => r.Detalles!)
+                        .ThenInclude(d => d.Pallets!)
                             .ThenInclude(p => p.Movimientos)
                     .FirstOrDefaultAsync(r => r.Id == recepcionId);
 
@@ -385,7 +385,7 @@ namespace ProyectoWong.Controllers
                     foreach (var detalleOC in detallesOC)
                     {
                         int totalAprobado = await _context.RecepcionDetalles
-                            .Where(rd => rd.Recepcion.OrdenCompraId == recepcion.OrdenCompra.Id
+                            .Where(rd => rd.Recepcion!.OrdenCompraId == recepcion.OrdenCompra!.Id
                                       && rd.ComponenteId == detalleOC.ComponenteId
                                       && rd.Estado == "Aprobado")
                             .SumAsync(rd => rd.CantidadRecibida);
@@ -413,7 +413,7 @@ namespace ProyectoWong.Controllers
                             foreach (var pc in producto.Componentes)
                             {
                                 int totalAprobado = await _context.RecepcionDetalles
-                                    .Where(rd => rd.Recepcion.OrdenCompraId == recepcion.OrdenCompra.Id
+                                    .Where(rd => rd.Recepcion!.OrdenCompraId == recepcion.OrdenCompra!.Id
                                               && rd.ComponenteId == pc.ComponenteId
                                               && rd.Estado == "Aprobado")
                                     .SumAsync(rd => rd.CantidadRecibida);

@@ -106,8 +106,8 @@ namespace ProyectoWong.Controllers
             {
                 ordenId = orden.Id,
                 numeroOP = orden.NumeroOP,
-                productoNombre = orden.Producto.Nombre,
-                productoImagen = orden.Producto.ImagenUrl ?? "/Producto.png",
+                productoNombre = orden.Producto?.Nombre ?? "—",
+                productoImagen = orden.Producto?.ImagenUrl ?? "/Producto.png",
                 progreso = Math.Round(progreso, 1),
                 pasoActual,
                 estadoSimulacion = orden.Estado,
@@ -138,7 +138,7 @@ namespace ProyectoWong.Controllers
                 {
                     id = o.Id,
                     numeroOP = o.NumeroOP,
-                    producto = o.Producto.Nombre,
+                    producto = o.Producto!.Nombre,
                     cantidad = o.CantidadAProducir,
                     estado = o.Estado,
                     fechaCreacion = o.FechaCreacion,

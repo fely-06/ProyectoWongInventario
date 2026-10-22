@@ -13,7 +13,7 @@ namespace ProyectoWong.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
     [Migration("20260922003906_visualfoto")]
-    partial class visualfoto
+    partial class VisualFoto
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)

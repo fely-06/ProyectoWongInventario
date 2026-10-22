@@ -26,7 +26,7 @@ namespace ProyectoWong.Controllers
             try
             {
                 var oc = await _context.OrdenesCompra
-                    .Include(o => o.Detalles).ThenInclude(d => d.Componente)
+                    .Include(o => o.Detalles!).ThenInclude(d => d.Componente)
                     .Include(o => o.ProveedorNavigation)
                     .FirstOrDefaultAsync(o => o.NumeroOC == numero);
 
@@ -35,7 +35,7 @@ namespace ProyectoWong.Controllers
 
                 // Obtener cantidades ya recibidas y APROBADAS históricamente para esta OC
                 var recibidosAprobados = await _context.RecepcionDetalles
-                    .Where(rd => rd.Recepcion.OrdenCompraId == oc.Id && rd.Estado == "Aprobado")
+                    .Where(rd => rd.Recepcion!.OrdenCompraId == oc.Id && rd.Estado == "Aprobado")
                     .GroupBy(rd => rd.ComponenteId)
                     .Select(g => new { ComponenteId = g.Key, Total = g.Sum(x => x.CantidadRecibida) })
                     .ToListAsync();
@@ -45,11 +45,11 @@ namespace ProyectoWong.Controllers
                     id = oc.Id,
                     numeroOC = oc.NumeroOC,
                     estado = oc.Estado,
-                    detalles = oc.Detalles.Select(d => new
+                    detalles = (oc.Detalles ?? []).Select(d => new
                     {
                         componenteId = d.ComponenteId,
-                        componenteNombre = d.Componente.Nombre,
-                        numeroPieza = d.Componente.NumeroPieza,
+                        componenteNombre = d.Componente?.Nombre ?? "—",
+                        numeroPieza = d.Componente?.NumeroPieza ?? "",
                         cantidadEsperada = d.CantidadEsperada,
                         // NUEVO: Enviamos el histórico real al frontend
                         cantidadYaRecibida = recibidosAprobados.FirstOrDefault(r => r.ComponenteId == d.ComponenteId)?.Total ?? 0
@@ -70,7 +70,7 @@ namespace ProyectoWong.Controllers
             try
             {
                 var ordenes = await _context.OrdenesCompra
-                    .Include(o => o.Detalles)
+                    .Include(o => o.Detalles!)
                         .ThenInclude(d => d.Componente)
                     .Include(o => o.ProveedorNavigation)
                     .OrderByDescending(o => o.FechaCreacion)
@@ -82,8 +82,8 @@ namespace ProyectoWong.Controllers
                         estado = o.Estado,
                         fechaEsperada = o.FechaEsperada,
                         fechaCreacion = o.FechaCreacion,
-                        totalComponentes = o.Detalles.Sum(d => d.CantidadEsperada),
-                        totalDetalles = o.Detalles.Count
+                        totalComponentes = o.Detalles!.Sum(d => d.CantidadEsperada),
+                        totalDetalles = o.Detalles!.Count
                     })
                     .ToListAsync();
 
@@ -157,14 +157,14 @@ namespace ProyectoWong.Controllers
                     return new
                     {
                         componenteId = pc.ComponenteId,
-                        numeroPieza = pc.Componente.NumeroPieza,
-                        nombre = pc.Componente.Nombre,
+                        numeroPieza = pc.Componente?.NumeroPieza ?? "",
+                        nombre = pc.Componente?.Nombre ?? "—",
                         cantidadPorUnidad = pc.CantidadRequerida,
                         cantidadRequerida = cantidadRequerida,   // Total que pide la receta
                         stockDisponible = stockDisponible,       // Lo que hay en almacén
                         cantidadFaltante = cantidadFaltante,     // Lo que realmente hay que comprar
                         stockSuficiente = cantidadFaltante == 0,  // True si no hay que comprar nada
-                        precio = pc.Componente.Precio
+                        precio = pc.Componente?.Precio ?? 0
 
                     };
                 }).ToList();

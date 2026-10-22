@@ -5,7 +5,7 @@
 namespace ProyectoWong.Migrations
 {
     /// <inheritdoc />
-    public partial class visualfoto : Migration
+    public partial class VisualFoto : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
