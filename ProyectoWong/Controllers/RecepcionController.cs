@@ -241,6 +241,16 @@ namespace ProyectoWong.Controllers
                 if (string.IsNullOrWhiteSpace(model.CodigoPallet))
                     return Json(Respuesta.Error("El código de pallet es obligatorio"));
 
+                // Un lote se almacena en un solo pallet: si ya existe, se reimprime su etiqueta
+                // en lugar de crear otro (cada pallet sumaría al stock la cantidad completa del lote).
+                var existente = await _context.Pallets.FirstOrDefaultAsync(p => p.RecepcionDetalleId == model.RecepcionDetalleId);
+                if (existente != null)
+                {
+                    existente.FechaImpresionEtiqueta = DateTime.Now;
+                    await _context.SaveChangesAsync();
+                    return Json(Respuesta.OK("Este lote ya tenía pallet, se reimprimió su etiqueta", new { palletId = existente.Id, codigoPallet = existente.CodigoPallet }));
+                }
+
                 var pallet = new Pallet
                 {
                     RecepcionDetalleId = model.RecepcionDetalleId,
@@ -289,7 +299,9 @@ namespace ProyectoWong.Controllers
                 if (ubicacion == null)
                     return Json(Respuesta.Error("Ubicación no encontrada"));
 
-                bool esPrimeraUbicacion = pallet.Movimientos == null || !pallet.Movimientos.Any();
+                // El stock entra una sola vez por lote, aunque existan pallets antiguos duplicados
+                bool esPrimeraUbicacion = !await _context.MovimientosInventario
+                    .AnyAsync(m => m.Pallet != null && m.Pallet.RecepcionDetalleId == pallet.RecepcionDetalleId);
 
                 var movimiento = new MovimientoInventario
                 {
