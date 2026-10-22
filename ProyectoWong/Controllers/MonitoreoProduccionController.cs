@@ -1,19 +1,19 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ProyectoWong.Data;
+using ProyectoWong.Helpers;
 using ProyectoWong.Models.Monitoreo;
 
 namespace ProyectoWong.Controllers
 {
+    [Route("MonitoreoProduccion")]
     public class MonitoreoProduccionController : Controller
     {
         private readonly ApplicationDbContext _context;
         public MonitoreoProduccionController(ApplicationDbContext context) => _context = context;
 
-        private static readonly string[] LineasEjemplo = { "Línea 1", "Línea 2", "Línea 3" };
-
         // Vista principal
-        public IActionResult Index(string filtro = "Todas")
+        public IActionResult Index(string filtro = "EnProceso")
         {
             ViewBag.FiltroActual = filtro;
             ViewBag.ActiveMenu = "Monitoreo";
@@ -22,7 +22,7 @@ namespace ProyectoWong.Controllers
 
         // Endpoint JSON para el polling en tiempo real (cada 5 seg)
         [HttpGet("ObtenerDatosMonitoreo")]
-        public async Task<IActionResult> ObtenerDatosMonitoreo(string filtro="En Proceso")
+        public async Task<IActionResult> ObtenerDatosMonitoreo(string filtro = "EnProceso")
         {
             try
             {
@@ -56,7 +56,7 @@ namespace ProyectoWong.Controllers
                     {
                         minutosTrabajados = (o.FechaPausa.Value - o.FechaInicio.Value).TotalMinutes - o.TiempoPausadoMinutos;
                     }
-                    else if (o.Estado == "Completada")
+                    else if (ProduccionFlujo.EstadosFabricada.Contains(o.Estado))
                     {
                         minutosTrabajados = duracion;
                     }
@@ -66,7 +66,7 @@ namespace ProyectoWong.Controllers
 
                     double progreso = Math.Min(100, Math.Max(0, (minutosTrabajados / duracion) * 100));
 
-                    string tiempoTexto = o.Estado == "Completada" ? "Finalizado" :
+                    string tiempoTexto = ProduccionFlujo.EstadosFabricada.Contains(o.Estado) ? "Finalizado" :
                                          $"{FormatearTiempo(minutosTrabajados)} / {FormatearTiempo(duracion)}";
 
                     return new ProcesoOrdenViewModel
@@ -98,88 +98,5 @@ namespace ProyectoWong.Controllers
             int secs = (int)((minutosTotales - mins) * 60);
             return $"{mins:D2}:{secs:D2}";
         }
-        // 1. Endpoint para el Tablero Visual (Polling cada 5 seg)
-        [HttpGet("ObtenerDatosInspeccionVisual")]
-        public async Task<IActionResult> ObtenerDatosInspeccionVisual(string filtro = "EnInspeccion")
-        {
-            try
-            {
-                var query = _context.OrdenProduccion
-                    .Include(o => o.Producto)
-                    .Where(o => o.Estado == "EnInspeccion" || o.Estado == "Aprobada" || o.Estado == "Rechazada")
-                    .OrderByDescending(o => o.FechaFin)
-                    .AsQueryable();
-
-                if (filtro != "Todas")
-                {
-                    query = query.Where(o => o.Estado == filtro);
-                }
-
-                var ordenes = await query.ToListAsync();
-
-                var resultado = ordenes.Select(o => new
-                {
-                    Id = o.Id,
-                    NumeroOrden = o.NumeroOP,
-                    Producto = o.Producto?.Nombre ?? "Mini Abanico",
-                    CantidadTotal = o.CantidadAProducir,
-                    CantidadAprobada = o.CantidadAprobada,
-                    CantidadRechazada = o.CantidadRechazada,
-                    PorcentajeCalidad = o.CantidadAProducir > 0 ? (int)Math.Round((double)o.CantidadAprobada / o.CantidadAProducir * 100) : 0,
-                    EstadoInspeccion = o.Estado,
-                    DefectoPrincipal = string.IsNullOrEmpty(o.ObservacionesInspeccion) ? "Sin novedad" : o.ObservacionesInspeccion,
-                    LineaProduccion = $"Línea {(o.Id % 3) + 1}"
-                }).ToList();
-
-                return Json(new { success = true, data = resultado });
-            }
-            catch (Exception ex)
-            {
-                return Json(new { success = false, message = ex.Message, data = new List<object>() });
-            }
-        }
-
-        // 2. Mover orden de "Completada" a "EnInspeccion"
-        [HttpPost("EnviarAInspeccion/{id}")]
-        public async Task<IActionResult> EnviarAInspeccion(int id)
-        {
-            var orden = await _context.OrdenProduccion.FindAsync(id);
-            if (orden != null && orden.Estado == "Completada")
-            {
-                orden.Estado = "EnInspeccion";
-                await _context.SaveChangesAsync();
-                return Json(new { success = true, mensaje = "Orden enviada a la zona de inspección visual." });
-            }
-            return Json(new { success = false, mensaje = "La orden no está completada o no existe." });
-        }
-
-        // 3. Registrar el resultado final de la inspección
-        [HttpPost("RegistrarResultadoInspeccion")]
-        public async Task<IActionResult> RegistrarResultadoInspeccion([FromBody] InspeccionRequest request)
-        {
-            var orden = await _context.OrdenProduccion.FindAsync(request.Id);
-            if (orden != null)
-            {
-                orden.CantidadAprobada = request.CantidadAprobada;
-                orden.CantidadRechazada = request.CantidadRechazada;
-                orden.ObservacionesInspeccion = request.Observaciones;
-                orden.Estado = request.CantidadRechazada > 0 ? "Rechazada" : "Aprobada";
-                orden.FechaFin = DateTime.Now; // Asegura la fecha de cierre real
-
-                await _context.SaveChangesAsync();
-                return Json(new { success = true, mensaje = "Inspección registrada correctamente." });
-            }
-            return Json(new { success = false, mensaje = "Orden no encontrada." });
-        }
-
-        // Clase auxiliar para recibir los datos del formulario
-        public class InspeccionRequest
-        {
-            public int Id { get; set; }
-            public int CantidadAprobada { get; set; }
-            public int CantidadRechazada { get; set; }
-            public string? Observaciones { get; set; }
-        }
-
     }
 }

@@ -312,6 +312,8 @@
                     <button class="btn-filtro" data-filtro="Pendiente">Pendientes</button>
                     <button class="btn-filtro active" data-filtro="EnProceso">En Proceso</button>
                     <button class="btn-filtro" data-filtro="Pausada">Pausadas</button>
+                    <button class="btn-filtro" data-filtro="EnInspeccion">En Inspección</button>
+                    <button class="btn-filtro" data-filtro="EnPruebasTecnicas">En Pruebas</button>
                     <button class="btn-filtro" data-filtro="Completada">Completadas</button>
                 </div>
 
@@ -339,7 +341,7 @@
 
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script>
-            let filtroActual = 'En Proceso';
+            let filtroActual = 'EnProceso';
             let intervaloMonitoreo = null;
 
             $(function() {
@@ -365,7 +367,7 @@
                 console.log("📡 Consultando datos con filtro:", filtroActual);
 
                 $.ajax({
-                    url: '/ObtenerDatosMonitoreo',
+                    url: '/MonitoreoProduccion/ObtenerDatosMonitoreo',
                     type: 'GET',
                     data: { filtro: filtroActual },
                     success: function(r) {
