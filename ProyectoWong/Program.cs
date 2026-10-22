@@ -1,10 +1,42 @@
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Authorization;
 using Microsoft.EntityFrameworkCore;
 using ProyectoWong.Data;
 using ProyectoWong.Helpers;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddControllersWithViews();
+builder.Services.AddControllersWithViews(options =>
+{
+    // Todas las pantallas y endpoints requieren sesión, salvo los marcados con [AllowAnonymous] (Login).
+    options.Filters.Add(new AuthorizeFilter());
+    // Los POST/PUT/DELETE deben traer el token antiforgery (lo agrega _Sidebar a cada petición AJAX).
+    options.Filters.Add(new AutoValidateAntiforgeryTokenAttribute());
+});
+
+builder.Services.AddAntiforgery(options => options.HeaderName = "RequestVerificationToken");
+
+builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+    .AddCookie(options =>
+    {
+        options.LoginPath = "/Login";
+        options.LogoutPath = "/Login/Logout";
+        options.ExpireTimeSpan = TimeSpan.FromHours(8);
+        options.SlidingExpiration = true;
+        options.Cookie.HttpOnly = true;
+        options.Cookie.SameSite = SameSiteMode.Strict;
+
+        // Las llamadas AJAX con la sesión vencida reciben 401 en lugar de la página de login
+        options.Events.OnRedirectToLogin = context =>
+        {
+            if (context.Request.Headers.XRequestedWith == "XMLHttpRequest")
+                context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+            else
+                context.Response.Redirect(context.RedirectUri);
+            return Task.CompletedTask;
+        };
+    });
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
@@ -28,7 +60,7 @@ var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-    ProyectoWong.Helpers.DbSeeder.SeedAdminUser(db);
+    ProyectoWong.Helpers.DbSeeder.SeedAdminUser(db, app.Configuration);
     ProyectoWong.Helpers.DbSeeder.SeedVentiladorPortatil(db);
 
     // Máquinas para Scrap y Downtime. Si aún no se aplican las migraciones no debe tumbar la app.
@@ -36,15 +68,19 @@ using (var scope = app.Services.CreateScope())
     catch (Exception ex) { Console.WriteLine($"⚠ No se pudieron cargar las máquinas (¿falta correr dotnet ef database update?): {ex.Message}"); }
 }
 
-if (!app.Environment.IsDevelopment())
+if (app.Environment.IsDevelopment())
+{
+    app.UseDeveloperExceptionPage();
+}
+else
 {
     app.UseExceptionHandler("/Home/Error");
     app.UseHsts();
 }
 
-app.UseDeveloperExceptionPage();
 app.UseHttpsRedirection();
 app.UseRouting();
+app.UseAuthentication();
 app.UseAuthorization();
 app.MapStaticAssets();
 

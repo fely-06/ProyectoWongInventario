@@ -472,7 +472,7 @@
         }
 
         function editar(id) {
-            $.get('@Url.Action("ObtenerUsuario", "Usuario")/' + id, function (r) {
+            $.get('/Usuario/obtener/' + id, function (r) {
                 if (!r.success || !r.result) { 
                     showToast('No se pudo cargar el usuario', 'danger'); 
                     return; 
@@ -537,7 +537,7 @@
         function eliminar(id) {
             if (!confirm('¿Desactivar este usuario? (Borrado lógico)')) return;
             $.ajax({ 
-                url: '@Url.Action("EliminarUsuario", "Usuario")/' + id,
+                url: '/Usuario/eliminar/' + id,
                 type: 'DELETE',
                 success: function (r) { 
                     showToast(r.mensaje, r.success ? 'success' : 'danger'); 

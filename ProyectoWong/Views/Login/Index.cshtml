@@ -257,7 +257,7 @@
         <div asp-validation-summary="ModelOnly" class="alert py-2 error-msg text-center" role="alert"></div>
 
         @* 2. Usamos asp-action para que apunte al método [HttpPost] Login del mismo controlador *@
-        <form asp-action="Login" method="post" novalidate>
+        <form asp-action="Login" asp-route-returnUrl="@ViewBag.ReturnUrl" method="post" novalidate>
 
             <div class="mb-3">
                 <label asp-for="Username" class="form-label">Usuario o Correo</label>
@@ -285,10 +285,10 @@
         </form>
     </div>
 
-    <script src="~/Scripts/bootstrap.bundle.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <!-- Scripts de validación de jQuery (necesarios para que la validación funcione en el navegador) -->
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/jquery-validation/dist/jquery.validate.min.js"></script>
-    <script src="~/lib/jquery-validation-unobtrusive/jquery.validate.unobtrusive.min.js"></script>
+    <script src="~/lib/jquery-validation-unobtrusive/dist/jquery.validate.unobtrusive.min.js"></script>
 </body>
 </html>

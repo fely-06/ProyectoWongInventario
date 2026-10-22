@@ -6,22 +6,34 @@ namespace ProyectoWong.Helpers
     public static class DbSeeder
     {
         // Si la tabla Usuarios está vacía, crea un admin por defecto.
-        public static void SeedAdminUser(ApplicationDbContext context)
+        // Correo y contraseña salen de la configuración (AdminInicial:Email / AdminInicial:Password,
+        // p. ej. con dotnet user-secrets). Si no hay contraseña configurada se genera una
+        // aleatoria y se muestra una sola vez en la consola.
+        public static void SeedAdminUser(ApplicationDbContext context, IConfiguration config)
         {
             if (context.Usuarios.Any())
                 return; // ya hay usuarios, no hacer nada
 
+            string email = config["AdminInicial:Email"] ?? "admin@wong.com";
+            string? password = config["AdminInicial:Password"];
+            bool generada = string.IsNullOrWhiteSpace(password);
+            if (generada)
+                password = Convert.ToBase64String(System.Security.Cryptography.RandomNumberGenerator.GetBytes(9));
+
             var admin = new Usuarios
             {
                 NombreCompleto = "Administrador",
-                Email = "admin@wong.com",
+                Email = email,
                 Activo = true,
                 FechaAlta = DateTime.Now,
-                PasswordHash = BCrypt.Net.BCrypt.HashPassword("12345")
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword(password)
             };
 
             context.Usuarios.Add(admin);
             context.SaveChanges();
+
+            if (generada)
+                Console.WriteLine($"🔑 [SERVIDOR] Usuario administrador creado: {email} / {password}  (cámbiala desde el módulo Usuarios)");
         }
 
         // Si el producto "Mini Ventilador Portátil V1" no existe, crea sus 4

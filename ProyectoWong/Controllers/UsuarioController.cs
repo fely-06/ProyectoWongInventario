@@ -6,6 +6,7 @@ using ProyectoWong.Models;
 
 namespace ProyectoWong.Controllers
 {
+    [Route("Usuario")]
     public class UsuarioController : Controller
     {
         private readonly ApplicationDbContext _context;

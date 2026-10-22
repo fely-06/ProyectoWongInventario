@@ -1,7 +1,19 @@
+@inject Microsoft.AspNetCore.Antiforgery.IAntiforgery Antiforgery
 @{
-    var activeMenu = ViewBag.ActiveMenu as string ?? "";
-     string activo = ViewBag.ActiveMenu ?? "Inicio";
+    string activo = ViewBag.ActiveMenu ?? "Inicio";
+    var tokenAntiforgery = Antiforgery.GetAndStoreTokens(Context).RequestToken;
 }
+<script>
+    // Todas las pantallas con menú lateral mandan el token antiforgery en sus peticiones AJAX
+    // (los POST/DELETE lo exigen) y regresan al login si la sesión venció.
+    document.addEventListener('DOMContentLoaded', function () {
+        if (!window.jQuery) return;
+        jQuery.ajaxSetup({ headers: { 'RequestVerificationToken': '@tokenAntiforgery' } });
+        jQuery(document).ajaxError(function (e, xhr) {
+            if (xhr.status === 401) window.location.href = '/Login?returnUrl=' + encodeURIComponent(location.pathname);
+        });
+    });
+</script>
 <aside class="sidebar">
     <div class="sidebar-logo">
         <i class="bi bi-cpu-fill"></i> SIV Tester
