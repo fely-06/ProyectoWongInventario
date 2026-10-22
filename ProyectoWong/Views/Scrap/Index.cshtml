@@ -60,7 +60,7 @@
                     </div>
                     <div class="kpi-box warn">
                         <div class="kpi-value" id="kpiPct">0 %</div>
-                        <div class="kpi-label">% de scrap (sobre las órdenes)</div>
+                        <div class="kpi-label">% de scrap (sobre <span id="kpiProducidas">0</span> pzas producidas)</div>
                     </div>
                     <div class="kpi-box">
                         <div class="kpi-value" id="kpiDefecto" style="font-size: 1.1rem;">—</div>
@@ -219,6 +219,7 @@
             $('#kpiPiezas').text(s.totalPiezas);
             $('#kpiEventos').text(s.totalEventos);
             $('#kpiPct').text(s.porcentajeGlobal + ' %');
+            $('#kpiProducidas').text(s.piezasProducidas);
             $('#kpiDefecto').text(s.defectoPrincipal);
         }
 

@@ -112,9 +112,13 @@ namespace ProyectoWong.Controllers
                 var acumuladoPorOrden = lista
                     .GroupBy(x => x.OrdenProduccionId)
                     .ToDictionary(g => g.Key, g => g.Sum(x => x.Cantidad));
-                int piezasOrdenes = lista
-                    .GroupBy(x => x.OrdenProduccionId)
-                    .Sum(g => g.First().CantidadOrden);
+                // Piezas producidas: todas las órdenes que ya terminaron fabricación (tengan scrap o no)
+                // más las que aún se fabrican pero ya tienen scrap registrado.
+                var ordenesConScrap = acumuladoPorOrden.Keys.ToList();
+                int piezasOrdenes = await _context.OrdenProduccion
+                    .AsNoTracking()
+                    .Where(o => ProduccionFlujo.EstadosFabricada.Contains(o.Estado) || ordenesConScrap.Contains(o.Id))
+                    .SumAsync(o => (int?)o.CantidadAProducir) ?? 0;
 
                 int totalPiezas = lista.Sum(x => x.Cantidad);
                 double pctGlobal = piezasOrdenes > 0 ? Math.Round(totalPiezas * 100.0 / piezasOrdenes, 2) : 0;
@@ -162,6 +166,7 @@ namespace ProyectoWong.Controllers
                         totalPiezas,
                         totalEventos = lista.Count,
                         porcentajeGlobal = pctGlobal,
+                        piezasProducidas = piezasOrdenes,
                         defectoPrincipal = defectos.FirstOrDefault()?.motivo ?? "—"
                     }
                 }));
