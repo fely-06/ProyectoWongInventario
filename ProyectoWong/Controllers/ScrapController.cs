@@ -35,7 +35,7 @@ namespace ProyectoWong.Controllers
                         numeroOP = o.NumeroOP,
                         producto = o.Producto != null ? o.Producto.Nombre : "—",
                         cantidadAProducir = o.CantidadAProducir,
-                        rechazadas = o.CantidadRechazada
+                        rechazadas = o.CantidadRechazada + o.PruebasRechazadas
                     })
                     .ToListAsync();
 

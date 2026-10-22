@@ -38,6 +38,11 @@ namespace ProyectoWong.Models.Produccion
         public int CantidadRechazada { get; set; } = 0;
         public string? ObservacionesInspeccion { get; set; }
 
+        // --- Campos para Pruebas Técnicas (sensores) ---
+        // Solo se prueban las piezas aprobadas en la inspección visual (CantidadAprobada).
+        public int PruebasAprobadas { get; set; } = 0;
+        public int PruebasRechazadas { get; set; } = 0;
+
         // --- Evidencia fotográfica de la inspección visual (requisito de monitoreo visual) ---
         public byte[]? FotoInspeccion { get; set; }
         public DateTime? FechaFotoInspeccion { get; set; }

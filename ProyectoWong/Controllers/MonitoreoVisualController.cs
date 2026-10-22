@@ -112,6 +112,11 @@ namespace ProyectoWong.Controllers
                 return Json(new { success = false, mensaje = "Orden no encontrada." });
             }
 
+            if (orden.Estado != "EnInspeccion")
+            {
+                return Json(new { success = false, mensaje = $"La orden no está en inspección visual. Estado actual: {orden.Estado}" });
+            }
+
             // Validación de seguridad: la suma no puede superar el total producido
             if (cantidadAprobada + cantidadRechazada > orden.CantidadAProducir)
             {
@@ -132,6 +137,17 @@ namespace ProyectoWong.Controllers
             // 🔥 CAMBIO CLAVE: No se marca como "Aprobada" o "Rechazada" final aún.
             // Pasa a la siguiente etapa: Pruebas Técnicas (Sensores).
             orden.Estado = "EnPruebasTecnicas";
+            orden.PruebasAprobadas = 0;
+            orden.PruebasRechazadas = 0;
+
+            // Si ninguna pieza pasó la inspección visual, no hay nada que probar con sensores
+            if (cantidadAprobada == 0)
+            {
+                orden.Estado = "Completada";
+                orden.FechaFin = DateTime.Now;
+                await _context.SaveChangesAsync();
+                return Json(new { success = true, mensaje = "Inspección visual registrada. Ninguna pieza fue aprobada, la orden se cierra." });
+            }
 
             // NOTA: No establecemos orden.FechaFin aquí. 
             // La FechaFin real se establecerá en el módulo de Sensores cuando se pruebe la última unidad.

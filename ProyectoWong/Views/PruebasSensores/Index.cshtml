@@ -579,7 +579,7 @@
                         </div>
                         <div class="row text-center g-2">
                             <div class="col-4">
-                                <div class="small text-muted">Total</div>
+                                <div class="small text-muted">A probar</div>
                                 <div class="fw-bold fs-5" id="opTotal">0</div>
                             </div>
                             <div class="col-4">
@@ -840,7 +840,7 @@
                         let html = '<option value="">-- Seleccione una Orden --</option>';
                         res.data.forEach(op => {
                             // Texto claro, sin emojis de check, mostrando los datos reales de la BD
-                            html += `<option value="${op.id}">📋 OP: ${op.numeroOP} | ${op.producto} (OC: ${op.ordenCompra}) | Aprob: ${op.aprobados} | Rech: ${op.rechazados} | Total: ${op.cantidadTotal}</option>`;
+                            html += `<option value="${op.id}">📋 OP: ${op.numeroOP} | ${op.producto} (OC: ${op.ordenCompra}) | Aprob: ${op.aprobados} | Rech: ${op.rechazados} | A probar: ${op.cantidadTotal}</option>`;
                         });
                         $('#selectOrdenProduccion').html(html);
                     } else {
@@ -866,7 +866,7 @@
                 $('#opOC').text(opSeleccionada.ordenCompra);
 
                 const porcentaje = opSeleccionada.cantidadTotal > 0
-                    ? (opSeleccionada.aprobados / opSeleccionada.cantidadTotal) * 100
+                    ? ((opSeleccionada.aprobados + opSeleccionada.rechazados) / opSeleccionada.cantidadTotal) * 100
                     : 0;
                 $('#opProgressBar').css('width', Math.min(porcentaje, 100) + '%');
             }

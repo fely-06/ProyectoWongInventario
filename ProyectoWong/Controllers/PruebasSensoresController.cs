@@ -66,10 +66,11 @@ namespace ProyectoWong.Controllers
                 {
                     id = op.Id,
                     numeroOP = op.NumeroOP,
-                    producto = op.Producto.Nombre,
-                    cantidadTotal = op.CantidadAProducir,
-                    aprobados = op.CantidadAprobada,
-                    rechazados = op.CantidadRechazada,
+                    producto = op.Producto != null ? op.Producto.Nombre : "—",
+                    // Solo se prueban las piezas que pasaron la inspección visual
+                    cantidadTotal = op.CantidadAprobada,
+                    aprobados = op.PruebasAprobadas,
+                    rechazados = op.PruebasRechazadas,
                     ordenCompra = op.OrdenCompra != null ? op.OrdenCompra.NumeroOC : "Manual",
                     estado = op.Estado
                 })
@@ -84,7 +85,18 @@ namespace ProyectoWong.Controllers
         {
             try
             {
+                var ordenProduccion = await _db.OrdenProduccion.FindAsync(request.OrdenProduccionId);
+                if (ordenProduccion == null)
+                    return Json(new { success = false, error = "Orden de producción no encontrada." });
+                if (ordenProduccion.Estado != "EnPruebasTecnicas")
+                    return Json(new { success = false, error = $"La orden no está en pruebas técnicas. Estado actual: {ordenProduccion.Estado}" });
+                if (ordenProduccion.PruebasAprobadas + ordenProduccion.PruebasRechazadas >= ordenProduccion.CantidadAprobada)
+                    return Json(new { success = false, error = "Ya se probaron todas las piezas de esta orden." });
+
                 var (_, historialStore, _, _, _) = _store.Obtener();
+
+                // Todo o nada: historial, lecturas y contadores de la orden
+                await using var transaction = await _db.Database.BeginTransactionAsync();
 
                 // A. Crear el registro de la prueba en BD
                 var nuevoHistorial = new HistorialPruebaSensor
@@ -118,27 +130,22 @@ namespace ProyectoWong.Controllers
                     });
                 }
 
-                // ✅ SEGUNDO SaveChanges - Guarda TODOS los detalles de una vez
-                await _db.SaveChangesAsync();
+                // C. ACTUALIZAR CONTADORES DE PRUEBAS TÉCNICAS (separados de los de la inspección visual)
+                if (request.EsAprobado)
+                    ordenProduccion.PruebasAprobadas++;
+                else
+                    ordenProduccion.PruebasRechazadas++;
 
-                // C. ACTUALIZAR CONTADORES DE LA ORDEN DE PRODUCCIÓN
-                var ordenProduccion = await _db.OrdenProduccion.FindAsync(request.OrdenProduccionId);
-                if (ordenProduccion != null)
+                int totalProbado = ordenProduccion.PruebasAprobadas + ordenProduccion.PruebasRechazadas;
+                if (totalProbado >= ordenProduccion.CantidadAprobada)
                 {
-                    if (request.EsAprobado)
-                        ordenProduccion.CantidadAprobada++;
-                    else
-                        ordenProduccion.CantidadRechazada++;
-
-                    int totalProbado = ordenProduccion.CantidadAprobada + ordenProduccion.CantidadRechazada;
-                    if (totalProbado >= ordenProduccion.CantidadAProducir)
-                    {
-                        ordenProduccion.Estado = "Completada";
-                        ordenProduccion.FechaFin = DateTime.Now;
-                    }
-
-                    await _db.SaveChangesAsync(); // ✅ TERCER SaveChanges - Actualiza la orden
+                    ordenProduccion.Estado = "Completada";
+                    ordenProduccion.FechaFin = DateTime.Now;
                 }
+
+                // ✅ SEGUNDO SaveChanges - Guarda TODOS los detalles y la orden de una vez
+                await _db.SaveChangesAsync();
+                await transaction.CommitAsync();
 
                 _store.Limpiar();
 
@@ -148,8 +155,8 @@ namespace ProyectoWong.Controllers
                     historialId = nuevoHistorial.Id,
                     nuevosContadores = new
                     {
-                        aprobados = ordenProduccion?.CantidadAprobada ?? 0,
-                        rechazados = ordenProduccion?.CantidadRechazada ?? 0
+                        aprobados = ordenProduccion.PruebasAprobadas,
+                        rechazados = ordenProduccion.PruebasRechazadas
                     }
                 });
             }
@@ -164,6 +171,35 @@ namespace ProyectoWong.Controllers
                 });
             }
         }
+
+        // 3. VERIFICAR SI LA ORDEN YA TERMINÓ SUS PRUEBAS TÉCNICAS
+        // GuardarPrueba es quien cierra la orden al probar la última pieza; aquí solo se informa el estado.
+        [HttpPost("CompletarOP")]
+        public async Task<IActionResult> CompletarOP([FromBody] CompletarOPRequest request)
+        {
+            var orden = await _db.OrdenProduccion.AsNoTracking()
+                .FirstOrDefaultAsync(o => o.Id == request.OrdenProduccionId);
+            if (orden == null)
+                return Json(new { success = false, mensaje = "Orden de producción no encontrada." });
+
+            int probadas = orden.PruebasAprobadas + orden.PruebasRechazadas;
+            string mensaje = orden.Estado == "Completada"
+                ? $"Orden de producción {orden.NumeroOP} completada."
+                : $"Faltan {Math.Max(0, orden.CantidadAprobada - probadas)} piezas por probar.";
+
+            return Json(new
+            {
+                success = true,
+                mensaje,
+                totalAprobados = orden.PruebasAprobadas,
+                totalRechazados = orden.PruebasRechazadas
+            });
+        }
+    }
+
+    public class CompletarOPRequest
+    {
+        public int OrdenProduccionId { get; set; }
     }
 
     public class GuardarPruebaRequest

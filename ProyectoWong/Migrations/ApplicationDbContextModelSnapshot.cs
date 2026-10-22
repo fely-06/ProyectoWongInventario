@@ -358,6 +358,12 @@ namespace ProyectoWong.Migrations
                     b.Property<int>("ProductoId")
                         .HasColumnType("int");
 
+                    b.Property<int>("PruebasAprobadas")
+                        .HasColumnType("int");
+
+                    b.Property<int>("PruebasRechazadas")
+                        .HasColumnType("int");
+
                     b.Property<double>("TiempoPausadoMinutos")
                         .HasColumnType("float");
 
