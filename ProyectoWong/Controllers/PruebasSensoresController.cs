@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using ProyectoWong.Data; // Ajusta si tu DbContext está en otro namespace
 using ProyectoWong.Helpers;
 using ProyectoWong.Models;
+using ProyectoWong.Models.Planta;
 using ProyectoWong.Models.Produccion;
 using ProyectoWong.Models.Sensores; // Asegúrate de tener aquí tus modelos de HistorialPruebaSensor y DetalleLecturaSensor
 using System.IO.Ports;
@@ -131,10 +132,15 @@ namespace ProyectoWong.Controllers
                 }
 
                 // C. ACTUALIZAR CONTADORES DE PRUEBAS TÉCNICAS (separados de los de la inspección visual)
+                bool scrapRegistrado = false;
                 if (request.EsAprobado)
                     ordenProduccion.PruebasAprobadas++;
                 else
+                {
                     ordenProduccion.PruebasRechazadas++;
+                    // D. La pieza que no pasa la prueba física se cuantifica como scrap automáticamente
+                    scrapRegistrado = await RegistrarScrapAutomaticoAsync(ordenProduccion, request.PruebasFallidas);
+                }
 
                 int totalProbado = ordenProduccion.PruebasAprobadas + ordenProduccion.PruebasRechazadas;
                 if (totalProbado >= ordenProduccion.CantidadAprobada)
@@ -153,6 +159,7 @@ namespace ProyectoWong.Controllers
                 {
                     success = true,
                     historialId = nuevoHistorial.Id,
+                    scrapRegistrado,
                     nuevosContadores = new
                     {
                         aprobados = ordenProduccion.PruebasAprobadas,
@@ -170,6 +177,43 @@ namespace ProyectoWong.Controllers
                     innerError = ex.InnerException?.Message
                 });
             }
+        }
+
+        // Crea 1 pieza de scrap en el banco de pruebas con el motivo de la primera prueba que falló.
+        // Devuelve false si no hay máquinas cargadas o si la orden ya tiene todo su scrap registrado.
+        private async Task<bool> RegistrarScrapAutomaticoAsync(OrdenProduccion orden, List<string>? pruebasFallidas)
+        {
+            var maquina = await _db.Maquinas
+                .Where(m => m.Activa)
+                .OrderBy(m => m.Codigo == CatalogosPlanta.CodigoBancoPruebas ? 0 : 1)
+                .ThenBy(m => m.Codigo)
+                .FirstOrDefaultAsync();
+            if (maquina == null) return false;
+
+            int scrapActual = await _db.RegistrosScrap
+                .Where(r => r.OrdenProduccionId == orden.Id)
+                .SumAsync(r => (int?)r.Cantidad) ?? 0;
+            if (scrapActual + 1 > orden.CantidadAProducir) return false;
+
+            var motivos = (pruebasFallidas ?? [])
+                .Where(CatalogosPlanta.MotivoPorPrueba.ContainsKey)
+                .Select(p => CatalogosPlanta.MotivoPorPrueba[p])
+                .Distinct()
+                .ToList();
+
+            _db.RegistrosScrap.Add(new RegistroScrap
+            {
+                OrdenProduccionId = orden.Id,
+                MaquinaId = maquina.Id,
+                MotivoRechazo = motivos.FirstOrDefault() ?? "Otro",
+                Cantidad = 1,
+                Fecha = DateTime.Now,
+                Observaciones = motivos.Count > 0
+                    ? "Generado por Pruebas de Sensores. Falló: " + string.Join(", ", motivos)
+                    : "Generado por Pruebas de Sensores.",
+                Automatico = true
+            });
+            return true;
         }
 
         // 3. VERIFICAR SI LA ORDEN YA TERMINÓ SUS PRUEBAS TÉCNICAS
@@ -208,5 +252,7 @@ namespace ProyectoWong.Controllers
         public bool EsAprobado { get; set; }
         public string Observaciones { get; set; } = "";
         public int DuracionSegundos { get; set; }
+        // Ids de los pasos que no pasaron ("rpm", "temp"); sirve para el motivo del scrap automático
+        public List<string>? PruebasFallidas { get; set; }
     }
 }

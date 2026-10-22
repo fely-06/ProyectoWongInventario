@@ -16,6 +16,16 @@ namespace ProyectoWong.Models.Planta
             "Otro"
         };
 
+        // Máquina donde se hacen las pruebas físicas (sensores); ahí se registra el scrap automático
+        public const string CodigoBancoPruebas = "MAQ-05";
+
+        // Prueba física fallida (id del paso en Pruebas de Sensores) -> motivo de rechazo
+        public static readonly Dictionary<string, string> MotivoPorPrueba = new()
+        {
+            ["rpm"] = "Velocidad baja (RPM)",
+            ["temp"] = "Falla de temperatura"
+        };
+
         public static readonly string[] CausasParo =
         {
             "Falla mecánica",

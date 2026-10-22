@@ -35,7 +35,8 @@ namespace ProyectoWong.Controllers
                         numeroOP = o.NumeroOP,
                         producto = o.Producto != null ? o.Producto.Nombre : "—",
                         cantidadAProducir = o.CantidadAProducir,
-                        rechazadas = o.CantidadRechazada + o.PruebasRechazadas
+                        // Las rechazadas en pruebas físicas ya se registran solas; a mano solo faltan las de inspección visual
+                        rechazadas = o.CantidadRechazada
                     })
                     .ToListAsync();
 
@@ -43,9 +44,14 @@ namespace ProyectoWong.Controllers
                 var scrapPorOrden = await _context.RegistrosScrap
                     .AsNoTracking()
                     .GroupBy(r => r.OrdenProduccionId)
-                    .Select(g => new { ordenId = g.Key, total = g.Sum(r => r.Cantidad) })
+                    .Select(g => new
+                    {
+                        ordenId = g.Key,
+                        total = g.Sum(r => r.Cantidad),
+                        manual = g.Sum(r => r.Automatico ? 0 : r.Cantidad)
+                    })
                     .ToListAsync();
-                var mapa = scrapPorOrden.ToDictionary(x => x.ordenId, x => x.total);
+                var mapa = scrapPorOrden.ToDictionary(x => x.ordenId);
 
                 var maquinas = await _context.Maquinas
                     .AsNoTracking()
@@ -63,7 +69,8 @@ namespace ProyectoWong.Controllers
                         o.producto,
                         o.cantidadAProducir,
                         o.rechazadas,
-                        scrapRegistrado = mapa.TryGetValue(o.id, out var t) ? t : 0
+                        scrapRegistrado = mapa.TryGetValue(o.id, out var t) ? t.total : 0,
+                        scrapManual = t?.manual ?? 0
                     }),
                     maquinas,
                     motivos = CatalogosPlanta.MotivosRechazo
@@ -96,7 +103,8 @@ namespace ProyectoWong.Controllers
                         r.MotivoRechazo,
                         r.Cantidad,
                         r.Fecha,
-                        r.Observaciones
+                        r.Observaciones,
+                        r.Automatico
                     })
                     .ToListAsync();
 
@@ -128,7 +136,8 @@ namespace ProyectoWong.Controllers
                     porcentajeOrden = x.CantidadOrden > 0
                         ? Math.Round(acumuladoPorOrden[x.OrdenProduccionId] * 100.0 / x.CantidadOrden, 2) : 0,
                     fecha = x.Fecha,
-                    observaciones = x.Observaciones
+                    observaciones = x.Observaciones,
+                    automatico = x.Automatico
                 }).ToList();
 
                 var defectos = lista

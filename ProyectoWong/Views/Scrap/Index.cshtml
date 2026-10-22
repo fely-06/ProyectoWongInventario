@@ -238,7 +238,7 @@
                     '<td>' + escHtml(new Date(x.fecha).toLocaleString('es-MX', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })) + '</td>' +
                     '<td><strong>' + escHtml(x.numeroOP) + '</strong><div style="font-size:.78rem;color:var(--color-texto-claro);">' + escHtml(x.producto) + '</div></td>' +
                     '<td>' + escHtml(x.maquina) + '</td>' +
-                    '<td>' + escHtml(x.motivoRechazo) + (x.observaciones ? '<div style="font-size:.78rem;color:var(--color-texto-claro);">' + escHtml(x.observaciones) + '</div>' : '') + '</td>' +
+                    '<td>' + escHtml(x.motivoRechazo) + (x.automatico ? ' <span class="badge-cute badge-cute-info" title="Registrado por Pruebas de Sensores">Automático</span>' : '') + (x.observaciones ? '<div style="font-size:.78rem;color:var(--color-texto-claro);">' + escHtml(x.observaciones) + '</div>' : '') + '</td>' +
                     '<td class="text-center"><strong>' + x.cantidad + '</strong></td>' +
                     '<td class="text-center">' + x.porcentajeEvento + ' %</td>' +
                     '<td class="text-center">' + badgePct(x.porcentajeOrden) + '</td>' +
@@ -294,7 +294,8 @@
             modalScrap.show();
         }
 
-        // Muestra cuántas piezas rechazadas tiene la orden (inspección/pruebas) y cuántas ya están en scrap
+        // Muestra cuántas piezas rechazó la inspección visual (se capturan a mano) y cuánto scrap ya tiene la orden.
+        // Las rechazadas en pruebas físicas se registran solas desde Pruebas de Sensores.
         function mostrarPista() {
             const id = parseInt($('#fOrden').val());
             const o = catalogos.ordenes.find(function (x) { return x.id === id; });
@@ -303,17 +304,19 @@
 
             // al editar, lo que ya tenía este registro no cuenta como "ya registrado"
             const propio = (editando && editando.ordenProduccionId === o.id) ? editando.cantidad : 0;
+            const propioManual = (editando && !editando.automatico) ? propio : 0;
             const registrado = o.scrapRegistrado - propio;
-            const pendiente = Math.max(0, o.rechazadas - registrado);
+            const pendiente = Math.max(0, o.rechazadas - (o.scrapManual - propioManual));
             const maximo = Math.max(0, o.cantidadAProducir - registrado);
 
             $('#fCantidad').attr('max', maximo);
             $p.removeClass('d-none').html(
-                'Rechazadas en inspección/pruebas: <strong>' + o.rechazadas + '</strong> · ' +
-                'Scrap ya registrado: <strong>' + registrado + '</strong> · ' +
-                'Pendiente: <strong>' + pendiente + '</strong>' +
+                'Rechazadas en inspección visual: <strong>' + o.rechazadas + '</strong> · ' +
+                'Pendiente de capturar: <strong>' + pendiente + '</strong>' +
                 (pendiente > 0 ? ' <a href="#" onclick="usarPendiente(' + pendiente + '); return false;">Usar ' + pendiente + '</a>' : '') +
-                '<br><small>Máximo registrable en esta orden: ' + maximo + '</small>'
+                '<br><small>Scrap ya registrado en la orden: ' + registrado +
+                (o.scrapRegistrado > o.scrapManual ? ' (incluye ' + (o.scrapRegistrado - o.scrapManual) + ' automático(s) de pruebas físicas)' : '') +
+                ' · Máximo registrable: ' + maximo + '</small>'
             );
         }
 

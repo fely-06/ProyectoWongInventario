@@ -1055,7 +1055,9 @@
                             OrdenProduccionId: opSeleccionada.id,
                             EsAprobado: todoOk,
                             Observaciones: todoOk ? 'Pruebas completadas exitosamente' : 'Fallo en límites establecidos',
-                            DuracionSegundos: duracionTotal
+                            DuracionSegundos: duracionTotal,
+                            // Pasos que no pasaron: el servidor los usa como motivo del scrap automático
+                            PruebasFallidas: pasos.filter((p, i) => !(resultados[i] && resultados[i].aprobado)).map(p => p.id)
                         })
                     });
 
@@ -1064,7 +1066,8 @@
                         opSeleccionada.rechazados = respuestaBD.nuevosContadores.rechazados;
                         actualizarTarjetaOP();
 
-                        $('#resultBadge small').html(`<i class="bi bi-check-circle-fill text-success"></i> Registro guardado. Contadores actualizados (Aprobados: ${opSeleccionada.aprobados} / Rechazados: ${opSeleccionada.rechazados}).`);
+                        $('#resultBadge small').html(`<i class="bi bi-check-circle-fill text-success"></i> Registro guardado. Contadores actualizados (Aprobados: ${opSeleccionada.aprobados} / Rechazados: ${opSeleccionada.rechazados}).`
+                            + (respuestaBD.scrapRegistrado ? '<br><i class="bi bi-recycle text-danger"></i> La pieza se registró como scrap automáticamente.' : ''));
 
                         // === VERIFICAR SI LA OP ESTÁ COMPLETA ===
                         const respuestaCompletar = await $.ajax({

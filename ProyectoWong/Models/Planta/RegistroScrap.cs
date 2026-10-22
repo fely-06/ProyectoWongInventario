@@ -33,5 +33,8 @@ namespace ProyectoWong.Models.Planta
 
         [StringLength(300)]
         public string? Observaciones { get; set; }
+
+        // true si lo generó Pruebas de Sensores al rechazar una pieza (false = captura manual)
+        public bool Automatico { get; set; }
     }
 }

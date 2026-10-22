@@ -272,6 +272,9 @@ namespace ProyectoWong.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<bool>("Automatico")
+                        .HasColumnType("bit");
+
                     b.Property<int>("Cantidad")
                         .HasColumnType("int");
 
