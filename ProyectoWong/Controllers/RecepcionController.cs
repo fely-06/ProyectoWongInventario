@@ -417,7 +417,7 @@ namespace ProyectoWong.Controllers
                             {
                                 var ordenProduccion = new OrdenProduccion
                                 {
-                                    NumeroOP = $"OP-{DateTime.Now:yyyyMMdd}-{Guid.NewGuid().ToString().Substring(0, 6).ToUpper()}",
+                                    NumeroOP = $"WO-{DateTime.Now:yyyyMMdd}-{Guid.NewGuid().ToString().Substring(0, 6).ToUpper()}",
                                     ProductoId = producto.Id,
                                     CantidadAProducir = cantidadAProducir,
                                     Estado = "Pendiente",
