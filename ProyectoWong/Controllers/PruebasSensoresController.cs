@@ -182,10 +182,10 @@ namespace ProyectoWong.Controllers
             if (orden == null)
                 return Json(new { success = false, mensaje = "Orden de producción no encontrada." });
 
-            int probadas = orden.PruebasAprobadas + orden.PruebasRechazadas;
+            int faltan = Math.Max(0, orden.CantidadAprobada - orden.PruebasAprobadas - orden.PruebasRechazadas);
             string mensaje = orden.Estado == "Completada"
                 ? $"Orden de producción {orden.NumeroOP} completada."
-                : $"Faltan {Math.Max(0, orden.CantidadAprobada - probadas)} piezas por probar.";
+                : faltan == 1 ? "Falta 1 pieza por probar." : $"Faltan {faltan} piezas por probar.";
 
             return Json(new
             {
