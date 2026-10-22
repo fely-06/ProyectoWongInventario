@@ -31,9 +31,9 @@ using (var scope = app.Services.CreateScope())
     ProyectoWong.Helpers.DbSeeder.SeedAdminUser(db);
     ProyectoWong.Helpers.DbSeeder.SeedVentiladorPortatil(db);
 
-    // Máquinas para Scrap y Downtime. Si aún no se ejecuta Database/scrap_downtime.sql no debe tumbar la app.
+    // Máquinas para Scrap y Downtime. Si aún no se aplican las migraciones no debe tumbar la app.
     try { ProyectoWong.Helpers.PlantaSeeder.SeedMaquinas(db); }
-    catch (Exception ex) { Console.WriteLine($"⚠ No se pudieron cargar las máquinas (¿falta ejecutar Database/scrap_downtime.sql?): {ex.Message}"); }
+    catch (Exception ex) { Console.WriteLine($"⚠ No se pudieron cargar las máquinas (¿falta correr dotnet ef database update?): {ex.Message}"); }
 }
 
 if (!app.Environment.IsDevelopment())

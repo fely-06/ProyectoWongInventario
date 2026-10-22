@@ -335,7 +335,7 @@ namespace ProyectoWong.Controllers
         }
 
         private static string MensajeBD(Exception ex) =>
-            "No se pudo completar la operación. ¿Ya se ejecutó Database/scrap_downtime.sql? Detalle: "
+            "No se pudo completar la operación. ¿Ya se aplicaron las migraciones (dotnet ef database update)? Detalle: "
             + (ex.InnerException?.Message ?? ex.Message);
     }
 

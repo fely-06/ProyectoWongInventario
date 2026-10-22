@@ -61,6 +61,13 @@ namespace ProyectoWong.Data
                 .HasForeignKey(r => r.MaquinaId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            // Pruebas de sensores: cada lectura apunta a su historial por HistorialId
+            modelBuilder.Entity<HistorialPruebaSensor>()
+                .HasMany(h => h.Lecturas)
+                .WithOne()
+                .HasForeignKey(l => l.HistorialId)
+                .OnDelete(DeleteBehavior.Cascade);
+
             // Componente
             modelBuilder.Entity<Componente>().HasKey(c => c.Id);
             modelBuilder.Entity<ProductoComponente>()

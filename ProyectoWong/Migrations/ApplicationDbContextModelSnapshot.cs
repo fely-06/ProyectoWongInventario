@@ -115,9 +115,6 @@ namespace ProyectoWong.Migrations
                     b.Property<int>("HistorialId")
                         .HasColumnType("int");
 
-                    b.Property<int?>("HistorialPruebaSensorId")
-                        .HasColumnType("int");
-
                     b.Property<double?>("Humedad")
                         .HasColumnType("float");
 
@@ -129,7 +126,7 @@ namespace ProyectoWong.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("HistorialPruebaSensorId");
+                    b.HasIndex("HistorialId");
 
                     b.ToTable("DetalleLecturasSensores");
                 });
@@ -192,6 +189,117 @@ namespace ProyectoWong.Migrations
                     b.HasIndex("OrdenProduccionId");
 
                     b.ToTable("HistorialPruebasSensores");
+                });
+
+            modelBuilder.Entity("ProyectoWong.Models.Planta.Maquina", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<bool>("Activa")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Codigo")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("Nombre")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Maquinas");
+                });
+
+            modelBuilder.Entity("ProyectoWong.Models.Planta.RegistroDowntime", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Causa")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<double>("DuracionEstimadaMinutos")
+                        .HasColumnType("float");
+
+                    b.Property<double>("DuracionMinutos")
+                        .HasColumnType("float");
+
+                    b.Property<string>("Estado")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<DateTime?>("HoraFin")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("HoraInicio")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("MaquinaId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Observaciones")
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)");
+
+                    b.Property<bool>("Simulado")
+                        .HasColumnType("bit");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("MaquinaId");
+
+                    b.ToTable("RegistrosDowntime");
+                });
+
+            modelBuilder.Entity("ProyectoWong.Models.Planta.RegistroScrap", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("Cantidad")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("Fecha")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("MaquinaId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("MotivoRechazo")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("Observaciones")
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)");
+
+                    b.Property<int>("OrdenProduccionId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("MaquinaId");
+
+                    b.HasIndex("OrdenProduccionId");
+
+                    b.ToTable("RegistrosScrap");
                 });
 
             modelBuilder.Entity("ProyectoWong.Models.Produccion.OrdenProduccion", b =>
@@ -689,7 +797,9 @@ namespace ProyectoWong.Migrations
                 {
                     b.HasOne("ProyectoWong.Models.HistorialPruebaSensor", null)
                         .WithMany("Lecturas")
-                        .HasForeignKey("HistorialPruebaSensorId");
+                        .HasForeignKey("HistorialId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("ProyectoWong.Models.EscalaDescuento", b =>
@@ -710,6 +820,36 @@ namespace ProyectoWong.Migrations
                         .HasForeignKey("OrdenProduccionId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("OrdenProduccion");
+                });
+
+            modelBuilder.Entity("ProyectoWong.Models.Planta.RegistroDowntime", b =>
+                {
+                    b.HasOne("ProyectoWong.Models.Planta.Maquina", "Maquina")
+                        .WithMany()
+                        .HasForeignKey("MaquinaId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Maquina");
+                });
+
+            modelBuilder.Entity("ProyectoWong.Models.Planta.RegistroScrap", b =>
+                {
+                    b.HasOne("ProyectoWong.Models.Planta.Maquina", "Maquina")
+                        .WithMany()
+                        .HasForeignKey("MaquinaId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("ProyectoWong.Models.Produccion.OrdenProduccion", "OrdenProduccion")
+                        .WithMany()
+                        .HasForeignKey("OrdenProduccionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Maquina");
 
                     b.Navigation("OrdenProduccion");
                 });
