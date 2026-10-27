@@ -14,6 +14,9 @@
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.css" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
 
+    @* Estilos del menú lateral y la base visual compartida; los de abajo son solo de esta pantalla *@
+    @await Html.PartialAsync("_EstilosModulo")
+
     <style>
             :root {
                 --color-amarillo: #f3eeb6;
@@ -83,16 +86,6 @@
                 z-index: 1;
                 max-width: 1400px;
                 margin: 0 auto;
-            }
-
-            .sidebar {
-                width: 260px;
-                background: var(--color-blanco-glass);
-                backdrop-filter: blur(12px);
-                border-radius: 24px;
-                padding: 2rem 1.5rem;
-                box-shadow: 0 10px 30px rgba(132, 191, 147, 0.15);
-                flex-shrink: 0;
             }
 
             .main-content {
@@ -408,9 +401,7 @@
                 }
 
             .conn-status {
-                position: absolute;
-                top: 2rem;
-                right: 2rem;
+                align-self: flex-end;
                 padding: 0.5rem 1rem;
                 border-radius: 50px;
                 font-size: 0.85rem;
