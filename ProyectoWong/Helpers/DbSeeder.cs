@@ -5,10 +5,9 @@ namespace ProyectoWong.Helpers
 {
     public static class DbSeeder
     {
-        // Si la tabla Usuarios está vacía, crea un admin por defecto.
+        // Cada vez que arranca la app: si la tabla Usuarios está vacía, crea un admin por defecto.
         // Correo y contraseña salen de la configuración (AdminInicial:Email / AdminInicial:Password,
-        // p. ej. con dotnet user-secrets). Si no hay contraseña configurada se genera una
-        // aleatoria y se muestra una sola vez en la consola.
+        // p. ej. con dotnet user-secrets); si no se configuran, se usa admin@wong.com / 12345.
         public static void SeedAdminUser(ApplicationDbContext context, IConfiguration config)
         {
             if (context.Usuarios.Any())
@@ -16,8 +15,8 @@ namespace ProyectoWong.Helpers
 
             string email = config["AdminInicial:Email"] ?? "admin@wong.com";
             string? password = config["AdminInicial:Password"];
-            bool generada = string.IsNullOrWhiteSpace(password);
-            if (generada)
+            bool porDefecto = string.IsNullOrWhiteSpace(password);
+            if (porDefecto)
                 password = "12345";
 
             var admin = new Usuarios
@@ -32,7 +31,7 @@ namespace ProyectoWong.Helpers
             context.Usuarios.Add(admin);
             context.SaveChanges();
 
-            if (generada)
+            if (porDefecto)
                 Console.WriteLine($"🔑 [SERVIDOR] Usuario administrador creado: {email} / {password}  (cámbiala desde el módulo Usuarios)");
         }
 
