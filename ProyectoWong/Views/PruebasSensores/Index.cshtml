@@ -400,6 +400,15 @@
                     display: block;
                 }
 
+            .tabla-resultados { margin-bottom: 1.5rem; }
+            .tabla-resultados h6 { font-weight: 800; color: var(--color-texto); margin: 1rem 0 0.5rem; }
+            .tabla-resultados .tabla-scroll { max-height: 320px; overflow-y: auto; border-radius: 12px; border: 1px solid #e5e7eb; background: white; }
+            .tabla-resultados table { width: 100%; margin: 0; font-size: 0.85rem; }
+            .tabla-resultados th { position: sticky; top: 0; background: var(--color-azul-claro); font-weight: 800; text-transform: uppercase; font-size: 0.72rem; padding: 0.5rem 0.75rem; }
+            .tabla-resultados td { padding: 0.4rem 0.75rem; border-top: 1px solid #f1f5f9; }
+            .tabla-resultados .fuera { color: var(--color-rojo); font-weight: 700; }
+            .tabla-resultados .dentro { color: #166534; font-weight: 700; }
+
             .conn-status {
                 align-self: flex-end;
                 padding: 0.5rem 1rem;
@@ -605,6 +614,9 @@
 
                     <div id="resultBadge" class="result-badge"></div>
 
+                    <!-- Tabla con los datos medidos (se muestra aunque la prueba falle) -->
+                    <div id="tablaResultados" class="tabla-resultados"></div>
+
                     <div class="action-area">
                         <div id="measuring" class="measuring"><span class="pulse-dot"></span> Midiendo...</div>
                         <div id="timerDisplay" class="timer-display">01:00</div>
@@ -676,6 +688,7 @@
             let intervaloPolling = null;
             let pruebaEnCurso = false;
             let resultados = [];
+            let lecturasPorPaso = [];   // lecturas válidas de cada prueba, en orden de llegada
 
             // Variables para Órdenes de Producción
             let ordenesDisponibles = [];
@@ -745,6 +758,10 @@
                     if (index < pasoActual && r && !r.aprobado) {
                         clase += ' failed';
                         icono = '<i class="bi bi-x-lg"></i>';
+                    } else if (index < pasoActual && !r) {
+                        // No se realizó: la pieza ya se había rechazado en una prueba anterior
+                        clase = '';
+                        icono = '–';
                     }
                     html += `<div class="step-item ${clase}"><div class="step-circle">${icono}</div><div class="step-label">${paso.id.toUpperCase()}</div></div>`;
                 });
@@ -776,6 +793,7 @@
                 $('#liveDataGrid').html(metricasHtml).show();
 
                 $('#resultBadge').removeClass('pass fail').css('display', 'none').text('');
+                $('#tablaResultados').empty();
                 $('#timerDisplay').removeClass('running finished').css('display', '').text(formatoTiempo(paso.duracion));
                 $('#timerBar').css('width', '0%');
                 $('#timerProgress').removeClass('visible');
@@ -957,7 +975,29 @@
                 const paso = pasos[pasoActual];
                 const ev = evaluarPaso(paso, datos);
                 const lim = LIMITES[ev.campo];
-                const medido = esNumero(ev.valor) ? `${formatearValor(ev.campo, ev.valor)} ${lim.unidad}` : 'sin lecturas válidas';
+
+                // Lecturas de esta prueba (el historial viene de la más nueva a la más vieja).
+                // Solo se guardan las medidas que evalúa esta prueba.
+                lecturasPorPaso[pasoActual] = (datos.historial || [])
+                    .filter(l => !l.error)
+                    .slice().reverse()
+                    .map(l => ({
+                        fechaHora: l.fechaHora,
+                        rpm: paso.metricas.includes('rpm') ? l.rpm : null,
+                        temperatura: paso.metricas.includes('temperatura') ? l.temperatura : null,
+                        humedad: paso.metricas.includes('humedad') ? l.humedad : null
+                    }));
+
+                // Sin lecturas no se puede juzgar la pieza: es una falla del sensor, no del producto
+                if (!esNumero(ev.valor)) {
+                    $('#resultBadge').removeClass('pass').addClass('fail').css('display', 'block')
+                        .html('<i class="bi bi-exclamation-triangle-fill"></i> No llegaron lecturas válidas del sensor. Revise el Arduino y repita la prueba; la pieza no se marca como rechazada.');
+                    renderizarTablas(pasoActual);
+                    mostrar($('#btnRepeat'));
+                    return;
+                }
+
+                const medido = `${formatearValor(ev.campo, ev.valor)} ${lim.unidad}`;
 
                 resultados[pasoActual] = {
                     titulo: paso.titulo,
@@ -982,13 +1022,57 @@
                     $badge.append(' <small>(No se pudo enviar el resultado al LED)</small>');
                 }
 
+                renderizarTablas(pasoActual);
+
+                // Si la pieza falla una prueba ya no pasa a la siguiente: se rechaza y se va directo a scrap
+                if (!ev.aprobado) {
+                    mostrarResumenFinal();
+                    return;
+                }
+
                 mostrar($('#btnNext'));
-                if (!ev.aprobado) mostrar($('#btnRepeat'));
             }
 
             function repetirPrueba() {
                 delete resultados[pasoActual];
+                delete lecturasPorPaso[pasoActual];
                 cargarPaso(pasoActual);
+            }
+
+            // Tabla de resultados por prueba + todas las lecturas medidas.
+            // soloPaso = índice para mostrar una sola prueba; sin él se muestran todas las realizadas.
+            function renderizarTablas(soloPaso) {
+                const indices = soloPaso === undefined ? pasos.map((p, i) => i) : [soloPaso];
+
+                const filasResultado = indices.map(i => {
+                    const r = resultados[i];
+                    if (!r) {
+                        const motivo = lecturasPorPaso[i] ? 'Sin lecturas válidas' : 'No realizada (pieza ya rechazada)';
+                        return `<tr><td>${pasos[i].titulo}</td><td>--</td><td>${LIMITES[pasos[i].evalua].texto}</td><td class="text-muted">${motivo}</td></tr>`;
+                    }
+                    return `<tr><td>${r.titulo}</td><td><b>${r.medido}</b></td><td>${r.requerido}</td>
+                        <td class="${r.aprobado ? 'dentro' : 'fuera'}">${r.aprobado ? 'APROBADA' : 'RECHAZADA'}</td></tr>`;
+                }).join('');
+
+                const fmt = (v, d) => esNumero(v) ? v.toFixed(d) : '--';
+                const filasLecturas = indices.flatMap(i => (lecturasPorPaso[i] || []).map(l => {
+                    const campo = pasos[i].evalua;
+                    const dentro = dentroDeLimites(campo, l[campo]);
+                    const hora = new Date(l.fechaHora).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                    return `<tr><td>${hora}</td><td>${pasos[i].id.toUpperCase()}</td>
+                        <td>${fmt(l.rpm, 0)}</td><td>${fmt(l.temperatura, 1)}</td><td>${fmt(l.humedad, 1)}</td>
+                        <td class="${dentro === false ? 'fuera' : 'dentro'}">${dentro === false ? 'Fuera de rango' : (dentro ? 'OK' : '--')}</td></tr>`;
+                })).join('');
+
+                $('#tablaResultados').html(`
+                    <h6><i class="bi bi-table"></i> Resultados</h6>
+                    <div class="tabla-scroll"><table class="table table-sm align-middle">
+                        <thead><tr><th>Prueba</th><th>Promedio medido</th><th>Requerido</th><th>Resultado</th></tr></thead>
+                        <tbody>${filasResultado}</tbody></table></div>
+                    <h6><i class="bi bi-activity"></i> Lecturas registradas (${(filasLecturas.match(/<tr>/g) || []).length})</h6>
+                    <div class="tabla-scroll"><table class="table table-sm align-middle">
+                        <thead><tr><th>Hora</th><th>Prueba</th><th>RPM</th><th>Temp. (°C)</th><th>Humedad (%)</th><th>Estado</th></tr></thead>
+                        <tbody>${filasLecturas || '<tr><td colspan="6" class="text-center text-muted">Sin lecturas</td></tr>'}</tbody></table></div>`);
             }
 
             function siguientePaso() {
@@ -1008,11 +1092,8 @@
 
                 $('#productInfoBox').hide();
                 $('#stepTitle').text('Resumen Final de Pruebas');
-                $('#stepInstructions').html(pasos.map((p, i) => {
-                    const r = resultados[i];
-                    if (!r) return `<li>${p.titulo}: <span class="res-bad">sin resultado</span></li>`;
-                    return `<li>${r.titulo}: <b>${r.medido}</b> (Req: ${r.requerido}) — <span class="${r.aprobado ? 'res-ok' : 'res-bad'} fw-bold">${r.aprobado ? '✅ APROBADA' : '❌ RECHAZADA'}</span></li>`;
-                }).join(''));
+                $('#stepInstructions').html(`<li>Orden <b>${opSeleccionada.numeroOP}</b> · ${opSeleccionada.producto}</li>`);
+                renderizarTablas();
 
                 $('#liveDataGrid').hide();
                 $('#timerDisplay').css('display', 'none');
@@ -1022,7 +1103,7 @@
                 $('#resultBadge').removeClass('pass fail').addClass(todoOk ? 'pass' : 'fail').css('display', 'block')
                     .html(todoOk
                         ? '<i class="bi bi-trophy-fill"></i> PRODUCTO APROBADO: Cumple todas las especificaciones.'
-                        : '<i class="bi bi-x-octagon-fill"></i> PRODUCTO RECHAZADO: No cumple una o más pruebas.');
+                        : '<i class="bi bi-x-octagon-fill"></i> PRODUCTO RECHAZADO: falló una prueba, la pieza se envía a scrap.');
 
                 ocultar($('#btnNext'));
                 ocultar($('#btnStart'));
@@ -1035,7 +1116,7 @@
                 // === GUARDAR EN BD LIGADO A LA ORDEN DE PRODUCCIÓN ===
                 $('#resultBadge').append('<br><small class="text-muted"><i class="bi bi-hourglass-split"></i> Guardando y actualizando contadores de la OP...</small>');
 
-                const duracionTotal = resultados.reduce((acc, curr) => acc + (curr.duracion || 0), 0);
+                const duracionTotal = resultados.reduce((acc, curr) => acc + ((curr && curr.duracion) || 0), 0);
 
                 try {
                     const respuestaBD = await $.ajax({
@@ -1047,8 +1128,10 @@
                             EsAprobado: todoOk,
                             Observaciones: todoOk ? 'Pruebas completadas exitosamente' : 'Fallo en límites establecidos',
                             DuracionSegundos: duracionTotal,
-                            // Pasos que no pasaron: el servidor los usa como motivo del scrap automático
-                            PruebasFallidas: pasos.filter((p, i) => !(resultados[i] && resultados[i].aprobado)).map(p => p.id)
+                            // Pruebas realizadas que no pasaron: el servidor las usa como motivo del scrap automático
+                            PruebasFallidas: pasos.filter((p, i) => resultados[i] && !resultados[i].aprobado).map(p => p.id),
+                            // Todas las lecturas de la tabla, para guardarlas con el historial de la prueba
+                            Lecturas: lecturasPorPaso.flat().filter(Boolean)
                         })
                     });
 
@@ -1095,6 +1178,7 @@
                 clearInterval(intervaloPolling);
                 pruebaEnCurso = false;
                 resultados = [];
+                lecturasPorPaso = [];
                 try {
                     await $.post('/PruebasSensores/Limpiar');
                     await $.post('/PruebasSensores/Reiniciar');

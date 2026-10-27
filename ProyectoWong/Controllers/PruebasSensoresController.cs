@@ -113,8 +113,13 @@ namespace ProyectoWong.Controllers
                 _db.HistorialPruebasSensores.Add(nuevoHistorial);
                 await _db.SaveChangesAsync(); // ✅ PRIMER SaveChanges - Guarda el historial y obtiene el ID
 
-                // B. Guardar lecturas detalladas en tiempo real
-                foreach (var lectura in historialStore)
+                // B. Guardar lecturas detalladas de TODAS las pruebas realizadas. La pantalla las manda
+                //    porque el Arduino se limpia al iniciar cada prueba; si no llegan, se usa lo que haya en memoria.
+                var lecturas = request.Lecturas is { Count: > 0 }
+                    ? request.Lecturas.Select(l => new LecturaSensor { FechaHora = l.FechaHora, Rpm = l.Rpm, Temperatura = l.Temperatura, Humedad = l.Humedad }).ToList()
+                    : historialStore.Where(l => l.Error == null).ToList();
+
+                foreach (var lectura in lecturas)
                 {
                     string estadoLectura = "OK";
                     if (lectura.Rpm.HasValue && lectura.Rpm < 2000) estadoLectura = "FUERA_DE_RANGO";
@@ -254,5 +259,15 @@ namespace ProyectoWong.Controllers
         public int DuracionSegundos { get; set; }
         // Ids de los pasos que no pasaron ("rpm", "temp"); sirve para el motivo del scrap automático
         public List<string>? PruebasFallidas { get; set; }
+        // Lecturas tomadas durante las pruebas (las mismas que la pantalla muestra en la tabla)
+        public List<LecturaPruebaRequest>? Lecturas { get; set; }
+    }
+
+    public class LecturaPruebaRequest
+    {
+        public DateTime FechaHora { get; set; }
+        public double? Rpm { get; set; }
+        public double? Temperatura { get; set; }
+        public double? Humedad { get; set; }
     }
 }

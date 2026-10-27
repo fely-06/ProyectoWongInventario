@@ -6,7 +6,7 @@ namespace ProyectoWong.Helpers
     // Se registra como Singleton: lo escribe SensorSerialService y lo lee el controlador.
     public class SensorDataStore
     {
-        private const int MaxHistorial = 50;
+        private const int MaxHistorial = 120; // 2 min a 1 lectura por segundo: cabe una prueba completa de 60 s
         private readonly object _lock = new();
         private readonly List<LecturaSensor> _historial = new();
 
