@@ -29,7 +29,7 @@ namespace ProyectoWong.Helpers
         private void Ciclo(CancellationToken ct)
         {
             bool habilitado = _config.GetValue("Sensores:Habilitado", true);
-            string puerto = _config.GetValue("Sensores:PuertoCom", "COM4") ?? "COM4";
+            string puerto = _config.GetValue("Sensores:PuertoCom", "COM3") ?? "COM3";
             int baudRate = _config.GetValue("Sensores:BaudRate", 9600);
 
             if (!habilitado)

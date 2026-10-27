@@ -31,7 +31,7 @@ ASP.NET Core MVC (.NET 10) + Entity Framework Core + SQL Server.
    Si no defines la contraseña, se genera una aleatoria y se imprime una sola vez en la consola.
 
 4. **Sensores.** El Arduino (`Arduino/SensoresWong`) se lee por el puerto de `Sensores:PuertoCom`
-   (COM4 por defecto). Si no está conectado, pon `Sensores:Habilitado` en `false`.
+   (COM3 por defecto). Si no está conectado, pon `Sensores:Habilitado` en `false`.
 
 5. Ejecuta `dotnet run` y entra a la URL que aparece en la consola.
 
