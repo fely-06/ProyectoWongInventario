@@ -18,7 +18,7 @@ namespace ProyectoWong.Helpers
             string? password = config["AdminInicial:Password"];
             bool generada = string.IsNullOrWhiteSpace(password);
             if (generada)
-                password = Convert.ToBase64String(System.Security.Cryptography.RandomNumberGenerator.GetBytes(9));
+                password = "12345";
 
             var admin = new Usuarios
             {
