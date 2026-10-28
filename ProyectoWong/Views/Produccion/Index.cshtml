@@ -435,7 +435,38 @@
         </div>
     </div>
 
-    
+    <!-- MODAL PARO DE MÁQUINA: detiene la orden y lo registra en Downtime -->
+    <div class="modal fade" id="modalParo" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="bi bi-exclamation-octagon-fill text-danger"></i> Paro de máquina · <span id="paroNumeroOP"></span></h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="paroOrdenId" />
+                    <div class="mb-3">
+                        <label class="form-label" for="paroMaquina">Máquina que se detuvo</label>
+                        <select class="form-select" id="paroMaquina"></select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="paroCausa">Causa del paro</label>
+                        <select class="form-select" id="paroCausa"></select>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label" for="paroObs">Observaciones (opcional)</label>
+                        <textarea class="form-control" id="paroObs" rows="2" maxlength="300"></textarea>
+                    </div>
+                    <small class="text-muted">La orden queda detenida y el paro aparece en Downtime en curso. Al pulsar <b>Reanudar</b> se cierra el paro con su duración real.</small>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn-cute-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button class="btn-cute-primary" id="btnRegistrarParo" style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);" onclick="registrarParo()"><i class="bi bi-stop-circle-fill"></i> Detener producción</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- MODAL DE SIMULACIÓN DE PRODUCCIÓN (TIEMPO REAL) -->
 <div class="modal fade" id="modalSimulacion" tabindex="-1" data-bs-backdrop="static">
     <div class="modal-dialog modal-dialog-centered modal-lg">
@@ -482,7 +513,7 @@
     // ==========================================
     // VARIABLES GLOBALES
     // ==========================================
-    let modalNueva, modalSimulacion;
+    let modalNueva, modalSimulacion, modalParo;
     let pollingInterval = null;
     let currentMonitoredOrderId = null;
 
@@ -502,7 +533,8 @@
     $(function() {
         modalNueva = new bootstrap.Modal(document.getElementById('modalNueva'));
         modalSimulacion = new bootstrap.Modal(document.getElementById('modalSimulacion'));
-        
+        modalParo = new bootstrap.Modal(document.getElementById('modalParo'));
+
         // Detener el polling si el usuario cierra el modal manualmente
         document.getElementById('modalSimulacion').addEventListener('hidden.bs.modal', function () {
             detenerMonitoreo();
@@ -546,7 +578,11 @@
             }
             
             $.each(r.result, function(i, o) {
-                let badgeClass = o.estado === 'Pendiente' ? 'badge-cute-warning' : 
+                // Una orden pausada por un paro de máquina se muestra como "Detenida" con su causa
+                let estadoHtml = o.paro
+                    ? `<span class="badge-cute badge-cute-danger"><i class="bi bi-exclamation-octagon-fill"></i> Detenida</span><div class="small text-muted mt-1">${o.paro}</div>`
+                    : null;
+                let badgeClass = o.estado === 'Pendiente' ? 'badge-cute-warning' :
                                  o.estado === 'Pausada' ? 'badge-cute-warning' : 
                                  o.estado === 'EnProceso' ? 'badge-cute-info' : 'badge-cute-success';
                 
@@ -572,6 +608,7 @@
                         <button class="btn-cute-secondary btn-cute-sm me-1" onclick="${o.estado === 'EnProceso' ? 'pausarProduccion' : 'reanudarProduccion'}(${o.id})">
                             <i class="bi bi-${o.estado === 'EnProceso' ? 'pause' : 'play'}-fill"></i> ${o.estado === 'EnProceso' ? 'Pausar' : 'Reanudar'}
                         </button>
+                        ${o.estado === 'EnProceso' ? `<button class="btn btn-sm btn-outline-danger me-1" onclick="abrirParo(${o.id}, '${o.numeroOP}')" title="Detener por paro de máquina (se registra en Downtime)"><i class="bi bi-exclamation-octagon-fill"></i> Paro</button>` : ''}
                         <button class="btn-cute-primary btn-cute-sm me-1" onclick="verSimulacion(${o.id})"><i class="bi bi-eye-fill"></i> Ver</button>
                         <!-- Botón de seguridad por si cierran el modal -->
                         <button class="btn btn-sm btn-outline-success" onclick="completarManual(${o.id})" title="Forzar finalización y descuento de inventario"><i class="bi bi-check-lg"></i> Completar</button>`;
@@ -593,7 +630,7 @@
                         <td>${o.producto}</td>
                         <td class="text-center">${o.cantidad} uds</td>
                         <td>${o.numeroOC}</td>
-                        <td><span class="badge-cute ${badgeClass}">${o.estado}</span></td>
+                        <td>${estadoHtml || `<span class="badge-cute ${badgeClass}">${o.estado}</span>`}</td>
                         <td>${new Date(o.fechaCreacion).toLocaleDateString()}</td>
                         <td class="text-center">${acciones}</td>
                     </tr>
@@ -663,6 +700,45 @@
         });
     }
 
+    // ---------- Paro de máquina (se registra en Downtime) ----------
+    function abrirParo(id, numeroOP) {
+        $('#paroOrdenId').val(id);
+        $('#paroNumeroOP').text(numeroOP);
+        $('#paroObs').val('');
+        $.get('/Downtime/catalogos', function(r) {
+            if (!r.success) { showToast(r.mensaje, 'danger'); return; }
+            const maquinas = r.result.maquinas.map(m => `<option value="${m.id}">${m.nombre}</option>`).join('');
+            const causas = r.result.causas.map(c => `<option value="${c}">${c}</option>`).join('');
+            $('#paroMaquina').html('<option value="">Selecciona una máquina...</option>' + maquinas);
+            $('#paroCausa').html('<option value="">Selecciona una causa...</option>' + causas);
+            modalParo.show();
+        });
+    }
+
+    function registrarParo() {
+        const id = $('#paroOrdenId').val();
+        const data = {
+            MaquinaId: parseInt($('#paroMaquina').val()),
+            Causa: $('#paroCausa').val(),
+            Observaciones: $('#paroObs').val()
+        };
+        if (!data.MaquinaId) { showToast('Selecciona la máquina que se detuvo.', 'warning'); return; }
+        if (!data.Causa) { showToast('Selecciona la causa del paro.', 'warning'); return; }
+
+        $('#btnRegistrarParo').prop('disabled', true);
+        $.ajax({
+            url: '/Produccion/paro/' + id, type: 'POST', contentType: 'application/json', data: JSON.stringify(data),
+            success: function(r) {
+                if (!r.success) { showToast(r.mensaje, 'danger'); return; }
+                showToast(r.mensaje, 'success');
+                modalParo.hide();
+                cargarOrdenes();
+            },
+            error: function() { showToast('Error de conexión al registrar el paro', 'danger'); },
+            complete: function() { $('#btnRegistrarParo').prop('disabled', false); }
+        });
+    }
+
     function reanudarProduccion(id) {
         $.post('/Produccion/reanudar/' + id, function(r) {
             r.success ? (showToast(r.mensaje, 'success'), cargarOrdenes(), verSimulacion(id)) : showToast(r.mensaje, 'danger');
@@ -710,7 +786,10 @@
         const pasoIndex = Math.max(0, data.pasoActual - 1);
         $('#simModalPasoActual').text(PASOS_SIMULACION[pasoIndex]);
 
-        if (data.estadoSimulacion === 'Pausada') {
+        if (data.estadoSimulacion === 'Pausada' && data.paro) {
+            $('#simModalEstadoTexto').text('⛔ Detenida por paro: ' + data.paro).css('color', '#dc2626');
+            $('#simModalIconoWrap').removeClass('spin');
+        } else if (data.estadoSimulacion === 'Pausada') {
             $('#simModalEstadoTexto').text('⏸ Producción Pausada').css('color', '#d97706');
             $('#simModalIconoWrap').removeClass('spin');
         } else if (data.estadoSimulacion === 'EnProceso') {

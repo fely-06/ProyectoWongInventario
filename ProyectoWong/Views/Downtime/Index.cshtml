@@ -270,6 +270,7 @@
                 html += '<div class="live-card">' +
                     '<div class="live-machine"><span class="pulse-dot"></span>' + escHtml(x.maquina) + '</div>' +
                     '<div class="live-cause">' + escHtml(x.causa) + '</div>' +
+                    (x.orden ? '<div style="font-size:.78rem;font-weight:700;color:var(--color-texto-claro);"><i class="bi bi-gear-wide-connected"></i> Detiene la orden ' + escHtml(x.orden) + '</div>' : '') +
                     '<div class="live-time" id="reloj-' + x.id + '">' + fmtReloj(x.minutos) + '</div>';
                 if (x.simulado) {
                     html += '<div class="bar-track"><div class="bar-fill top" id="prog-' + x.id + '" style="width:' + x.progreso + '%"></div></div>' +
@@ -336,7 +337,8 @@
                     ? '<span class="badge-cute badge-cute-danger"><span class="pulse-dot" style="width:7px;height:7px;"></span>En curso</span>'
                     : '<span class="badge-cute badge-cute-success">Finalizado</span>';
                 html += '<tr>' +
-                    '<td><strong>' + escHtml(x.maquina) + '</strong>' + (x.simulado ? ' <i class="bi bi-cpu" title="Paro simulado" style="color:var(--color-aqua);"></i>' : '') + '</td>' +
+                    '<td><strong>' + escHtml(x.maquina) + '</strong>' + (x.simulado ? ' <i class="bi bi-cpu" title="Paro simulado" style="color:var(--color-aqua);"></i>' : '') +
+                    (x.orden ? '<div style="font-size:.78rem;color:var(--color-texto-claro);">Orden ' + escHtml(x.orden) + '</div>' : '') + '</td>' +
                     '<td>' + escHtml(x.causa) + (x.observaciones ? '<div style="font-size:.78rem;color:var(--color-texto-claro);">' + escHtml(x.observaciones) + '</div>' : '') + '</td>' +
                     '<td>' + escHtml(fmtFechaHora(x.horaInicio)) + '</td>' +
                     '<td>' + (x.horaFin ? escHtml(fmtFechaHora(x.horaFin)) : '—') + '</td>' +

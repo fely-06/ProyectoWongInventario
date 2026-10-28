@@ -65,7 +65,8 @@ namespace ProyectoWong.Controllers
                         r.DuracionEstimadaMinutos,
                         r.Estado,
                         r.Simulado,
-                        r.Observaciones
+                        r.Observaciones,
+                        Orden = r.OrdenProduccion != null ? r.OrdenProduccion.NumeroOP : null
                     })
                     .ToListAsync();
 
@@ -98,6 +99,7 @@ namespace ProyectoWong.Controllers
                         x.Simulado,
                         x.DuracionEstimadaMinutos,
                         x.Observaciones,
+                        x.Orden,
                         EnCurso = enCurso,
                         Minutos = Math.Round(minutos, 2),
                         Progreso = Math.Round(progreso, 1)
@@ -156,6 +158,7 @@ namespace ProyectoWong.Controllers
                         simulado = i.Simulado,
                         duracionEstimadaMinutos = i.DuracionEstimadaMinutos,
                         observaciones = i.Observaciones,
+                        orden = i.Orden,
                         enCurso = i.EnCurso,
                         minutos = i.Minutos,
                         progreso = i.Progreso
@@ -244,6 +247,10 @@ namespace ProyectoWong.Controllers
                 var registro = await _context.RegistrosDowntime.FirstOrDefaultAsync(r => r.Id == id);
                 if (registro == null) return Json(Respuesta.Error("El registro ya no existe."));
 
+                // Borrar un paro en curso no debe dejar detenida para siempre a su orden
+                if (registro.Estado == "EnCurso")
+                    await ReanudarOrdenDelParoAsync(registro, DateTime.Now);
+
                 _context.RegistrosDowntime.Remove(registro);
                 await _context.SaveChangesAsync();
                 return Json(Respuesta.OK("Registro eliminado."));
@@ -304,8 +311,13 @@ namespace ProyectoWong.Controllers
                 registro.HoraFin = ahora;
                 registro.DuracionMinutos = Math.Round(Math.Max(0, (ahora - registro.HoraInicio).TotalMinutes), 2);
                 registro.Estado = "Finalizado";
+
+                // Si el paro detuvo una orden de producción, la orden sigue fabricando
+                bool reanudada = await ReanudarOrdenDelParoAsync(registro, ahora);
+
                 await _context.SaveChangesAsync();
-                return Json(Respuesta.OK($"Paro finalizado. Duración: {registro.DuracionMinutos} min."));
+                return Json(Respuesta.OK($"Paro finalizado. Duración: {registro.DuracionMinutos} min."
+                    + (reanudada ? " La orden de producción se reanudó." : "")));
             }
             catch (Exception ex)
             {
@@ -314,6 +326,22 @@ namespace ProyectoWong.Controllers
         }
 
         // ---------- helpers ----------
+        // Reanuda la orden que detuvo este paro, si sigue pausada y no la detiene otro paro en curso.
+        private async Task<bool> ReanudarOrdenDelParoAsync(RegistroDowntime paro, DateTime ahora)
+        {
+            if (paro.OrdenProduccionId is not int ordenId) return false;
+
+            var orden = await _context.OrdenProduccion.FirstOrDefaultAsync(o => o.Id == ordenId);
+            if (orden == null || orden.Estado != "Pausada") return false;
+
+            bool otroParo = await _context.RegistrosDowntime
+                .AnyAsync(r => r.OrdenProduccionId == ordenId && r.Estado == "EnCurso" && r.Id != paro.Id);
+            if (otroParo) return false;
+
+            ProduccionFlujo.Reanudar(orden, ahora);
+            return true;
+        }
+
         private Task<bool> MaquinaValida(int id) => _context.Maquinas.AnyAsync(m => m.Id == id && m.Activa);
 
         // ¿La máquina ya tiene un paro que se empalma con [inicio, fin)?

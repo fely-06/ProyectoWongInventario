@@ -56,14 +56,49 @@ namespace ProyectoWong.Controllers
             if (orden == null || orden.Estado != "Pausada" || !orden.FechaPausa.HasValue)
                 return Json(Respuesta.Error("No se puede reanudar esta orden"));
 
-            // Calcular cuánto tiempo estuvo pausada y sumarlo al acumulado
-            var minutosPausa = (DateTime.Now - orden.FechaPausa.Value).TotalMinutes;
-            orden.TiempoPausadoMinutos += minutosPausa;
-
-            orden.Estado = "EnProceso";
-            orden.FechaPausa = null;
+            // Suma el tiempo en pausa al acumulado y, si la detuvo un paro, lo cierra con su duración real
+            var ahora = DateTime.Now;
+            ProduccionFlujo.Reanudar(orden, ahora);
+            await ProduccionFlujo.CerrarParosDeOrdenAsync(_context, id, ahora);
             await _context.SaveChangesAsync();
             return Json(Respuesta.OK("Producción reanudada"));
+        }
+
+        // 3b. PARO: detiene la orden por una falla de máquina y lo registra en Downtime (en curso).
+        //     Se cierra al reanudar la orden o con "Finalizar ahora" en Downtime.
+        [HttpPost("paro/{id}")]
+        public async Task<IActionResult> RegistrarParo(int id, [FromBody] ParoProduccionRequest request)
+        {
+            var orden = await _context.OrdenProduccion.FirstOrDefaultAsync(o => o.Id == id);
+            if (orden == null || orden.Estado != "EnProceso")
+                return Json(Respuesta.Error("Solo se puede registrar un paro en una orden en proceso"));
+            if (request == null || !await _context.Maquinas.AnyAsync(m => m.Id == request.MaquinaId && m.Activa))
+                return Json(Respuesta.Error("Selecciona la máquina que se detuvo."));
+            if (!ProyectoWong.Models.Planta.CatalogosPlanta.CausasParo.Contains(request.Causa))
+                return Json(Respuesta.Error("Selecciona la causa del paro."));
+            if (await _context.RegistrosDowntime.AnyAsync(r => r.MaquinaId == request.MaquinaId && r.Estado == "EnCurso"))
+                return Json(Respuesta.Error("Esa máquina ya tiene un paro en curso."));
+
+            var ahora = DateTime.Now;
+            orden.Estado = "Pausada";
+            orden.FechaPausa = ahora;
+
+            var observaciones = string.IsNullOrWhiteSpace(request.Observaciones) ? null : request.Observaciones.Trim();
+            if (observaciones != null && observaciones.Length > 300) observaciones = observaciones[..300];
+
+            _context.RegistrosDowntime.Add(new ProyectoWong.Models.Planta.RegistroDowntime
+            {
+                MaquinaId = request.MaquinaId,
+                Causa = request.Causa,
+                HoraInicio = ahora,
+                Estado = "EnCurso",
+                Simulado = false,
+                Observaciones = observaciones,
+                OrdenProduccionId = orden.Id
+            });
+
+            await _context.SaveChangesAsync();
+            return Json(Respuesta.OK($"Paro registrado: la orden {orden.NumeroOP} queda detenida. Al reanudar se cierra el paro."));
         }
 
         // 4. CONSULTAR PROGRESO (Matemática corregida para soportar pausas)
@@ -98,6 +133,11 @@ namespace ProyectoWong.Controllers
                 : (fabricada ? 100 : 0);
             tiempoRestanteMin = Math.Max(0, orden.DuracionEstimadaMinutos - minutosTrabajados);
 
+            var paro = await _context.RegistrosDowntime
+                .Where(r => r.OrdenProduccionId == orden.Id && r.Estado == "EnCurso")
+                .Select(r => r.Causa + " · " + r.Maquina.Codigo)
+                .FirstOrDefaultAsync();
+
             int totalPasos = 7;
             int pasoActual = (int)Math.Ceiling((progreso / 100) * totalPasos);
             pasoActual = Math.Clamp(pasoActual, 1, totalPasos);
@@ -112,6 +152,7 @@ namespace ProyectoWong.Controllers
                 pasoActual,
                 estadoSimulacion = orden.Estado,
                 fabricada,
+                paro,
                 tiempoRestanteTexto = fabricada ? "Finalizado" : $"{(int)tiempoRestanteMin}m {Math.Round((tiempoRestanteMin % 1) * 60)}s"
             }));
         }
@@ -142,7 +183,12 @@ namespace ProyectoWong.Controllers
                     cantidad = o.CantidadAProducir,
                     estado = o.Estado,
                     fechaCreacion = o.FechaCreacion,
-                    numeroOC = o.OrdenCompra != null ? o.OrdenCompra.NumeroOC : "Manual"
+                    numeroOC = o.OrdenCompra != null ? o.OrdenCompra.NumeroOC : "Manual",
+                    // Paro en curso que tiene detenida la orden (null si no hay)
+                    paro = _context.RegistrosDowntime
+                        .Where(r => r.OrdenProduccionId == o.Id && r.Estado == "EnCurso")
+                        .Select(r => r.Causa + " · " + r.Maquina.Codigo)
+                        .FirstOrDefault()
                 })
                 .ToListAsync();
 
@@ -259,6 +305,13 @@ namespace ProyectoWong.Controllers
             }
         }
 
+    }
+
+    public class ParoProduccionRequest
+    {
+        public int MaquinaId { get; set; }
+        public string Causa { get; set; } = string.Empty;
+        public string? Observaciones { get; set; }
     }
 
     // DTO para recibir los datos del frontend

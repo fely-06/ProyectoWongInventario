@@ -254,12 +254,17 @@ namespace ProyectoWong.Migrations
                         .HasMaxLength(300)
                         .HasColumnType("nvarchar(300)");
 
+                    b.Property<int?>("OrdenProduccionId")
+                        .HasColumnType("int");
+
                     b.Property<bool>("Simulado")
                         .HasColumnType("bit");
 
                     b.HasKey("Id");
 
                     b.HasIndex("MaquinaId");
+
+                    b.HasIndex("OrdenProduccionId");
 
                     b.ToTable("RegistrosDowntime");
                 });
@@ -841,7 +846,14 @@ namespace ProyectoWong.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("ProyectoWong.Models.Produccion.OrdenProduccion", "OrdenProduccion")
+                        .WithMany()
+                        .HasForeignKey("OrdenProduccionId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.Navigation("Maquina");
+
+                    b.Navigation("OrdenProduccion");
                 });
 
             modelBuilder.Entity("ProyectoWong.Models.Planta.RegistroScrap", b =>

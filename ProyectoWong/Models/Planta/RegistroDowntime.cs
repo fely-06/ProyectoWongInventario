@@ -36,5 +36,11 @@ namespace ProyectoWong.Models.Planta
 
         [StringLength(300)]
         public string? Observaciones { get; set; }
+
+        // Orden de producción que este paro detuvo (botón "Paro" en Producción). Null = paro sin orden.
+        public int? OrdenProduccionId { get; set; }
+
+        [ForeignKey(nameof(OrdenProduccionId))]
+        public ProyectoWong.Models.Produccion.OrdenProduccion? OrdenProduccion { get; set; }
     }
 }

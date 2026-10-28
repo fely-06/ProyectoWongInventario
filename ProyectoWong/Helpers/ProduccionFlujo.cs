@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using ProyectoWong.Data;
+using ProyectoWong.Models.Produccion;
 
 namespace ProyectoWong.Helpers
 {
@@ -14,6 +15,30 @@ namespace ProyectoWong.Helpers
 
         // Estados en los que la fabricación ya terminó (inventario ya movido)
         public static readonly string[] EstadosFabricada = { "EnInspeccion", "EnPruebasTecnicas", "Completada" };
+
+        // Pasa una orden pausada a "EnProceso" sumando el tiempo que estuvo detenida
+        // (ese tiempo no cuenta para la fabricación).
+        public static void Reanudar(OrdenProduccion orden, DateTime ahora)
+        {
+            if (orden.FechaPausa.HasValue)
+                orden.TiempoPausadoMinutos += Math.Max(0, (ahora - orden.FechaPausa.Value).TotalMinutes);
+            orden.Estado = "EnProceso";
+            orden.FechaPausa = null;
+        }
+
+        // Cierra los paros en curso que detuvieron esta orden (botón "Paro" en Producción).
+        public static async Task CerrarParosDeOrdenAsync(ApplicationDbContext context, int ordenId, DateTime ahora)
+        {
+            var paros = await context.RegistrosDowntime
+                .Where(r => r.OrdenProduccionId == ordenId && r.Estado == "EnCurso")
+                .ToListAsync();
+            foreach (var paro in paros)
+            {
+                paro.HoraFin = ahora;
+                paro.DuracionMinutos = Math.Round(Math.Max(0, (ahora - paro.HoraInicio).TotalMinutes), 2);
+                paro.Estado = "Finalizado";
+            }
+        }
 
         // Descuenta componentes, suma el producto terminado y pasa la orden a "EnInspeccion".
         // Devuelve false si la orden no existe o ya no está fabricándose (por ejemplo,
