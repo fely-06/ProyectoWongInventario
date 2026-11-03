@@ -76,6 +76,11 @@
             </a>
         </li>
         <li class="nav-item">
+            <a class="nav-link @(activo == "ProductoTerminado" ? "active" : "")" asp-controller="ProductoTerminado" asp-action="Index">
+                <i class="bi bi-archive-fill"></i> Producto Terminado
+            </a>
+        </li>
+        <li class="nav-item">
             <a class="nav-link @(activo == "Scrap" ? "active" : "")" asp-controller="Scrap" asp-action="Index">
                 <i class="bi bi-recycle"></i> Register Scrap
             </a>

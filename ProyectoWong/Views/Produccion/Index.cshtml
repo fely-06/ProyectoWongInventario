@@ -620,7 +620,8 @@
                 } else if (o.estado === 'EnPruebasTecnicas') {
                     acciones = `<span class="badge-cute badge-cute-info"><i class="bi bi-cpu"></i> En Pruebas Técnicas</span>`;
                 } else if (o.estado === 'Completada') {
-                    acciones = `<span class="badge-cute badge-cute-success"><i class="bi bi-check-circle-fill"></i> Completada</span>`;
+                    acciones = `<span class="badge-cute badge-cute-success"><i class="bi bi-check-circle-fill"></i> Completada</span>
+                        <a class="btn-cute-secondary btn-cute-sm ms-1" href="/ProductoTerminado?traza=${encodeURIComponent(o.numeroOP)}" title="Almacén y trazabilidad del producto terminado"><i class="bi bi-archive"></i> Almacén</a>`;
                 } else {
                     acciones = `<span class="badge-cute badge-cute-warning">${o.estado}</span>`;
                 }

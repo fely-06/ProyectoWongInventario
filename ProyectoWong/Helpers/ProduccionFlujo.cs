@@ -40,7 +40,7 @@ namespace ProyectoWong.Helpers
             }
         }
 
-        // Descuenta componentes, suma el producto terminado y pasa la orden a "EnInspeccion".
+        // Descuenta componentes y pasa la orden a "EnInspeccion".
         // Devuelve false si la orden no existe o ya no está fabricándose (por ejemplo,
         // porque otro proceso la terminó un instante antes): en ese caso no toca el inventario.
         public static async Task<bool> FinalizarFabricacionAsync(ApplicationDbContext context, int ordenId, CancellationToken ct = default)
@@ -62,21 +62,18 @@ namespace ProyectoWong.Helpers
             }
 
             var orden = await context.OrdenProduccion
-                .Include(o => o.Producto)
                 .Include(o => o.Detalles!).ThenInclude(d => d.Componente)
                 .FirstAsync(o => o.Id == ordenId, ct);
 
-            // 1. Descontar componentes del inventario
+            // Descontar componentes del inventario. El producto terminado NO se suma aquí:
+            // solo las piezas buenas entran al stock cuando su pallet se ubica en el almacén
+            // de producto terminado (ProductoTerminadoController).
             foreach (var detalle in orden.Detalles ?? [])
             {
                 if (detalle.Componente != null)
                     detalle.Componente.Cantidad -= detalle.CantidadRequerida;
                 detalle.CantidadConsumida = detalle.CantidadRequerida;
             }
-
-            // 2. Aumentar stock del producto terminado (ya fabricado, pendiente de calidad)
-            if (orden.Producto != null)
-                orden.Producto.Cantidad += orden.CantidadAProducir;
 
             await context.SaveChangesAsync(ct);
             await transaction.CommitAsync(ct);

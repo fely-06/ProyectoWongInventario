@@ -32,6 +32,10 @@ namespace ProyectoWong.Data
         public DbSet<ProyectoWong.Models.Planta.Maquina> Maquinas { get; set; } = default!;
         public DbSet<ProyectoWong.Models.Planta.RegistroScrap> RegistrosScrap { get; set; } = default!;
         public DbSet<ProyectoWong.Models.Planta.RegistroDowntime> RegistrosDowntime { get; set; } = default!;
+
+        // Almacén de producto terminado
+        public DbSet<ProyectoWong.Models.ProductoTerminado.LoteProductoTerminado> LotesProductoTerminado { get; set; } = default!;
+        public DbSet<ProyectoWong.Models.ProductoTerminado.PalletProductoTerminado> PalletsProductoTerminado { get; set; } = default!;
         
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -66,6 +70,24 @@ namespace ProyectoWong.Data
                 .WithMany()
                 .HasForeignKey(r => r.OrdenProduccionId)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            // Producto terminado: un lote por orden, códigos únicos y sin borrados en cascada
+            modelBuilder.Entity<ProyectoWong.Models.ProductoTerminado.LoteProductoTerminado>(e =>
+            {
+                e.HasIndex(l => l.NumeroLote).IsUnique();
+                e.HasIndex(l => l.OrdenProduccionId).IsUnique();
+                e.HasOne(l => l.OrdenProduccion).WithMany().HasForeignKey(l => l.OrdenProduccionId).OnDelete(DeleteBehavior.Restrict);
+                e.HasOne(l => l.Producto).WithMany().HasForeignKey(l => l.ProductoId).OnDelete(DeleteBehavior.Restrict);
+                e.HasOne(l => l.Receptor).WithMany().HasForeignKey(l => l.RecibidoPor).OnDelete(DeleteBehavior.NoAction);
+            });
+
+            modelBuilder.Entity<ProyectoWong.Models.ProductoTerminado.PalletProductoTerminado>(e =>
+            {
+                e.HasIndex(p => p.CodigoPallet).IsUnique();
+                e.HasOne(p => p.Lote).WithMany(l => l.Pallets).HasForeignKey(p => p.LoteId).OnDelete(DeleteBehavior.Cascade);
+                e.HasOne(p => p.Ubicacion).WithMany().HasForeignKey(p => p.UbicacionId).OnDelete(DeleteBehavior.Restrict);
+                e.HasOne(p => p.Operador).WithMany().HasForeignKey(p => p.UbicadoPor).OnDelete(DeleteBehavior.NoAction);
+            });
 
             // Pruebas de sensores: cada lectura apunta a su historial por HistorialId
             modelBuilder.Entity<HistorialPruebaSensor>()

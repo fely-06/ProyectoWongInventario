@@ -1,0 +1,68 @@
+@model ProyectoWong.Models.ProductoTerminado.LoteProductoTerminado
+@{
+    Layout = null;
+    var pallets = Model.Pallets.OrderBy(p => p.CodigoPallet).ToList();
+    var tipo = Model.TipoEmpaque == "Caja" ? "CAJA" : "PALLET";
+}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Etiquetas @Model.NumeroLote</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Nunito', sans-serif; margin: 0; background: #f1f5f9; color: #111827; }
+        .barra { display: flex; justify-content: space-between; align-items: center; padding: 14px 24px; background: white; border-bottom: 1px solid #e5e7eb; }
+        .barra button { background: #9abf17; color: white; border: none; border-radius: 10px; padding: 8px 18px; font-weight: 800; cursor: pointer; }
+        .hoja { display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 16px; padding: 24px; }
+        .etiqueta { background: white; border: 2px dashed #111827; border-radius: 10px; padding: 16px 18px; page-break-inside: avoid; break-inside: avoid; }
+        .etiqueta .cab { display: flex; justify-content: space-between; font-weight: 800; font-size: 13px; letter-spacing: .5px; }
+        .etiqueta .codigo { font-family: monospace; font-size: 22px; font-weight: 800; margin: 6px 0 2px; }
+        .etiqueta svg { width: 100%; height: 70px; }
+        .etiqueta table { width: 100%; font-size: 13px; border-collapse: collapse; margin-top: 4px; }
+        .etiqueta td { padding: 2px 0; } .etiqueta td:first-child { color: #6b7280; width: 40%; }
+        .etiqueta .grande { font-size: 18px; font-weight: 800; }
+        @@media print {
+            body { background: white; }
+            .barra { display: none; }
+            .hoja { padding: 0; gap: 10px; grid-template-columns: 1fr 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="barra">
+        <div><b>Lote @Model.NumeroLote</b> · @pallets.Count etiqueta(s)</div>
+        <button onclick="window.print()">Imprimir</button>
+    </div>
+
+    <div class="hoja">
+        @for (int i = 0; i < pallets.Count; i++)
+        {
+            var p = pallets[i];
+            <div class="etiqueta">
+                <div class="cab"><span>SIV · PRODUCTO TERMINADO</span><span>@tipo @(i + 1) DE @pallets.Count</span></div>
+                <div class="codigo">@p.CodigoPallet</div>
+                <svg class="barcode" data-codigo="@p.CodigoPallet"></svg>
+                <table>
+                    <tr><td>Producto</td><td><b>@(Model.Producto?.Nombre ?? "—")</b></td></tr>
+                    <tr><td>Cantidad</td><td class="grande">@p.Cantidad pzas</td></tr>
+                    <tr><td>Lote</td><td><b>@Model.NumeroLote</b></td></tr>
+                    <tr><td>Orden de producción</td><td>@(Model.OrdenProduccion?.NumeroOP ?? "—")</td></tr>
+                    <tr><td>Fecha de entrada</td><td>@Model.FechaRecepcion.ToString("dd/MM/yyyy HH:mm")</td></tr>
+                    <tr><td>Calidad</td><td>Aprobado (inspección visual y pruebas)</td></tr>
+                </table>
+            </div>
+        }
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
+    <script>
+        // Código de barras CODE128 con el identificador del pallet (lo lee cualquier escáner)
+        document.querySelectorAll('svg.barcode').forEach(function (svg) {
+            try { JsBarcode(svg, svg.dataset.codigo, { format: 'CODE128', displayValue: false, height: 60, margin: 0 }); }
+            catch (e) { svg.remove(); }
+        });
+    </script>
+</body>
+</html>

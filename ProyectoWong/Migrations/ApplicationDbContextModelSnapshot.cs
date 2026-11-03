@@ -476,6 +476,113 @@ namespace ProyectoWong.Migrations
                     b.ToTable("ProductoComponentes");
                 });
 
+            modelBuilder.Entity("ProyectoWong.Models.ProductoTerminado.LoteProductoTerminado", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("Cantidad")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Estado")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<DateTime>("FechaRecepcion")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("NumeroLote")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<string>("Observaciones")
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)");
+
+                    b.Property<int>("OrdenProduccionId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ProductoId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("RecibidoPor")
+                        .HasColumnType("int");
+
+                    b.Property<string>("TipoEmpaque")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("NumeroLote")
+                        .IsUnique();
+
+                    b.HasIndex("OrdenProduccionId")
+                        .IsUnique();
+
+                    b.HasIndex("ProductoId");
+
+                    b.HasIndex("RecibidoPor");
+
+                    b.ToTable("LotesProductoTerminado");
+                });
+
+            modelBuilder.Entity("ProyectoWong.Models.ProductoTerminado.PalletProductoTerminado", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("Cantidad")
+                        .HasColumnType("int");
+
+                    b.Property<string>("CodigoPallet")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
+
+                    b.Property<string>("Estado")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<DateTime>("FechaEtiqueta")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("FechaUbicacion")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("LoteId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("UbicacionId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("UbicadoPor")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CodigoPallet")
+                        .IsUnique();
+
+                    b.HasIndex("LoteId");
+
+                    b.HasIndex("UbicacionId");
+
+                    b.HasIndex("UbicadoPor");
+
+                    b.ToTable("PalletsProductoTerminado");
+                });
+
             modelBuilder.Entity("ProyectoWong.Models.Proveedor", b =>
                 {
                     b.Property<int>("Id")
@@ -930,6 +1037,58 @@ namespace ProyectoWong.Migrations
                     b.Navigation("Producto");
                 });
 
+            modelBuilder.Entity("ProyectoWong.Models.ProductoTerminado.LoteProductoTerminado", b =>
+                {
+                    b.HasOne("ProyectoWong.Models.Produccion.OrdenProduccion", "OrdenProduccion")
+                        .WithMany()
+                        .HasForeignKey("OrdenProduccionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("ProyectoWong.Models.Producto", "Producto")
+                        .WithMany()
+                        .HasForeignKey("ProductoId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("ProyectoWong.Models.Usuarios", "Receptor")
+                        .WithMany()
+                        .HasForeignKey("RecibidoPor")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.Navigation("OrdenProduccion");
+
+                    b.Navigation("Producto");
+
+                    b.Navigation("Receptor");
+                });
+
+            modelBuilder.Entity("ProyectoWong.Models.ProductoTerminado.PalletProductoTerminado", b =>
+                {
+                    b.HasOne("ProyectoWong.Models.ProductoTerminado.LoteProductoTerminado", "Lote")
+                        .WithMany("Pallets")
+                        .HasForeignKey("LoteId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("ProyectoWong.Models.Recepcion.Ubicacion", "Ubicacion")
+                        .WithMany()
+                        .HasForeignKey("UbicacionId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("ProyectoWong.Models.Usuarios", "Operador")
+                        .WithMany()
+                        .HasForeignKey("UbicadoPor")
+                        .OnDelete(DeleteBehavior.NoAction);
+
+                    b.Navigation("Lote");
+
+                    b.Navigation("Operador");
+
+                    b.Navigation("Ubicacion");
+                });
+
             modelBuilder.Entity("ProyectoWong.Models.Recepcion.InspeccionQA", b =>
                 {
                     b.HasOne("ProyectoWong.Models.Usuarios", "Inspector")
@@ -1070,6 +1229,11 @@ namespace ProyectoWong.Migrations
                     b.Navigation("Componentes");
 
                     b.Navigation("EscalasDescuento");
+                });
+
+            modelBuilder.Entity("ProyectoWong.Models.ProductoTerminado.LoteProductoTerminado", b =>
+                {
+                    b.Navigation("Pallets");
                 });
 
             modelBuilder.Entity("ProyectoWong.Models.Recepcion.OrdenCompra", b =>

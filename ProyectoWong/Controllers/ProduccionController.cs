@@ -275,7 +275,7 @@ namespace ProyectoWong.Controllers
             }
         }
 
-        // 5. FINALIZAR FABRICACIÓN (Descuenta componentes, suma producto final y pasa a Inspección)
+        // 5. FINALIZAR FABRICACIÓN (Descuenta componentes y pasa a Inspección)
         [HttpPost("completar/{id}")]
         public async Task<IActionResult> Completar(int id)
         {
@@ -292,7 +292,7 @@ namespace ProyectoWong.Controllers
                 if (ProduccionFlujo.EstadosFabricada.Contains(estado))
                     return Json(Respuesta.OK("La fabricación de esta orden ya estaba finalizada."));
 
-                // Descuenta componentes, suma producto terminado y pasa a Inspección Visual.
+                // Descuenta componentes y pasa a Inspección Visual.
                 // FechaFin se pondrá cuando pase las pruebas técnicas.
                 if (!await ProduccionFlujo.FinalizarFabricacionAsync(_context, id))
                     return Json(Respuesta.Error("La orden no puede ser completada en su estado actual"));

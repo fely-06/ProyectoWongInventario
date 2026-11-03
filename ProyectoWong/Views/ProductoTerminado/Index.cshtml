@@ -1,0 +1,435 @@
+@{
+    Layout = null;
+    ViewBag.Title = "Producto Terminado - SIV";
+}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewBag.Title</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
+
+    @await Html.PartialAsync("_EstilosModulo")
+    <style>
+        .pt-tabs { display: flex; gap: .5rem; flex-wrap: wrap; margin-bottom: 1.25rem; }
+        .pt-tab { border: 2px solid transparent; background: white; border-radius: 14px; padding: .6rem 1.1rem; font-weight: 800; color: var(--color-texto); box-shadow: 0 2px 8px rgba(0,0,0,.04); }
+        .pt-tab.active { background: linear-gradient(135deg, var(--color-verde) 0%, var(--color-aqua) 100%); color: white; }
+        .pt-tab .count { background: rgba(0,0,0,.08); border-radius: 50px; padding: 0 .5rem; margin-left: .35rem; font-size: .8rem; }
+        .pt-panel { display: none; }
+        .pt-panel.active { display: block; }
+        .scan-box { display: flex; gap: .75rem; flex-wrap: wrap; align-items: flex-end; }
+        .scan-box .form-control { font-family: monospace; font-weight: 700; font-size: 1.05rem; }
+        .traza-card { background: white; border-radius: 16px; padding: 1rem 1.25rem; box-shadow: 0 2px 8px rgba(0,0,0,.04); margin-bottom: 1rem; }
+        .traza-card h6 { font-weight: 800; margin-bottom: .6rem; }
+        .traza-step { display: flex; gap: .5rem; align-items: center; color: var(--color-texto-claro); font-weight: 700; font-size: .85rem; margin-bottom: .5rem; flex-wrap: wrap; }
+        .traza-step .chip { background: var(--color-azul-claro); color: var(--color-texto); border-radius: 50px; padding: .2rem .7rem; }
+        .traza-step .chip.on { background: var(--color-verde); color: white; }
+        .dato { font-size: .85rem; } .dato b { color: var(--color-texto); }
+        tr.resaltado td { background: #fef9c3 !important; }
+    </style>
+</head>
+<body>
+    <div class="bg-blob blob-1"></div>
+    <div class="bg-blob blob-2"></div>
+    <div class="bg-blob blob-3"></div>
+
+    <div class="dashboard-wrapper">
+        @await Html.PartialAsync("_Sidebar")
+
+        <main class="main-content">
+            <div class="top-bar">
+                <div class="welcome-text">
+                    <h2>Producto Terminado</h2>
+                    <p>Recibe, etiqueta, ubica y rastrea las piezas buenas de cada orden de producción.</p>
+                </div>
+            </div>
+
+            <div class="content-card">
+                <div class="kpi-row">
+                    <div class="kpi-box"><div class="kpi-value" id="kpiAlmacenado">0</div><div class="kpi-label">Piezas almacenadas</div></div>
+                    <div class="kpi-box warn"><div class="kpi-value" id="kpiPorUbicar">0</div><div class="kpi-label">Piezas por ubicar</div></div>
+                    <div class="kpi-box"><div class="kpi-value" id="kpiLotes">0</div><div class="kpi-label">Lotes</div></div>
+                    <div class="kpi-box"><div class="kpi-value" id="kpiPallets">0</div><div class="kpi-label">Cajas / pallets</div></div>
+                </div>
+
+                <div class="pt-tabs">
+                    <button class="pt-tab active" data-panel="recibir"><i class="bi bi-box-arrow-in-down"></i> 1. Recibir<span class="count" id="cntPendientes">0</span></button>
+                    <button class="pt-tab" data-panel="ubicar"><i class="bi bi-geo-alt-fill"></i> 2. Ubicar<span class="count" id="cntPorUbicar">0</span></button>
+                    <button class="pt-tab" data-panel="existencias"><i class="bi bi-clipboard-data"></i> Existencias</button>
+                    <button class="pt-tab" data-panel="trazabilidad"><i class="bi bi-diagram-3-fill"></i> Trazabilidad</button>
+                </div>
+
+                <!-- 1. RECIBIR -->
+                <section class="pt-panel active" id="panel-recibir">
+                    <div class="alert-cute alert p-3 mb-3"><i class="bi bi-info-circle"></i> Órdenes <b>completadas</b> (ya pasaron inspección visual y pruebas). Solo entran las piezas buenas.</div>
+                    <div class="table-responsive">
+                        <table class="table-cute">
+                            <thead><tr><th>Orden</th><th>Producto</th><th class="text-center">Producidas</th><th class="text-center">Rechazo visual</th><th class="text-center">Rechazo pruebas</th><th class="text-center">Buenas</th><th>Terminada</th><th class="text-center">Acción</th></tr></thead>
+                            <tbody id="tbPendientes"><tr><td colspan="8" class="text-center text-muted py-4">Cargando...</td></tr></tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- 2. UBICAR -->
+                <section class="pt-panel" id="panel-ubicar">
+                    <div class="panel-soft mb-3">
+                        <h5 class="section-title"><i class="bi bi-upc-scan"></i> Confirmar ubicación</h5>
+                        <div class="scan-box">
+                            <div style="flex: 2 1 260px;">
+                                <label class="form-label" for="uCodigo">Código de caja/pallet (escanea la etiqueta)</label>
+                                <input id="uCodigo" class="form-control" placeholder="LPT-AAAAMMDD-001-P01" autocomplete="off" />
+                            </div>
+                            <div style="flex: 1 1 200px;">
+                                <label class="form-label" for="uUbicacion">Ubicación</label>
+                                <select id="uUbicacion" class="form-select"></select>
+                            </div>
+                            <button class="btn-cute-secondary" onclick="nuevaUbicacion()" title="Crear ubicación"><i class="bi bi-plus-lg"></i></button>
+                            <button class="btn-cute-primary" id="btnUbicar" onclick="ubicar()"><i class="bi bi-check2-circle"></i> Confirmar</button>
+                        </div>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table-cute">
+                            <thead><tr><th>Código</th><th>Lote</th><th>Orden</th><th>Producto</th><th class="text-center">Piezas</th><th>Etiquetado</th><th class="text-center">Acciones</th></tr></thead>
+                            <tbody id="tbPorUbicar"><tr><td colspan="7" class="text-center text-muted py-4">Cargando...</td></tr></tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- REPORTE DE EXISTENCIAS -->
+                <section class="pt-panel" id="panel-existencias">
+                    <div class="d-flex justify-content-end gap-2 mb-2">
+                        <button class="btn-cute-secondary" onclick="exportarCsv()"><i class="bi bi-filetype-csv"></i> Exportar CSV</button>
+                        <button class="btn-cute-secondary" onclick="window.print()"><i class="bi bi-printer"></i> Imprimir</button>
+                    </div>
+                    <h5 class="section-title"><i class="bi bi-box-seam"></i> Por producto</h5>
+                    <div class="table-responsive mb-3"><table class="table-cute">
+                        <thead><tr><th>Producto</th><th class="text-center">Almacenado</th><th class="text-center">Por ubicar</th><th class="text-center">Lotes</th><th class="text-center">Cajas / pallets</th></tr></thead>
+                        <tbody id="tbExProducto"></tbody></table></div>
+                    <h5 class="section-title"><i class="bi bi-collection"></i> Por lote</h5>
+                    <div class="table-responsive mb-3"><table class="table-cute">
+                        <thead><tr><th>Lote</th><th>Producto</th><th>Orden</th><th>Recibido</th><th class="text-center">Piezas</th><th class="text-center">Cajas / pallets</th><th>Ubicaciones</th><th class="text-center">Acciones</th></tr></thead>
+                        <tbody id="tbExLote"></tbody></table></div>
+                    <h5 class="section-title"><i class="bi bi-geo-alt"></i> Por ubicación</h5>
+                    <div id="exUbicaciones" class="live-grid"></div>
+                </section>
+
+                <!-- REPORTE DE TRAZABILIDAD -->
+                <section class="pt-panel" id="panel-trazabilidad">
+                    <div class="panel-soft mb-3">
+                        <div class="scan-box">
+                            <div style="flex: 1 1 320px;">
+                                <label class="form-label" for="tCodigo">Código de pallet, lote u orden de producción</label>
+                                <input id="tCodigo" class="form-control" placeholder="LPT-…-P01, LPT-AAAAMMDD-001 o WO-…" autocomplete="off" />
+                            </div>
+                            <button class="btn-cute-primary" onclick="rastrear()"><i class="bi bi-search"></i> Rastrear</button>
+                        </div>
+                    </div>
+                    <div id="trazaResultado"><div class="empty-note">Escanea o escribe un código para ver su historia completa.</div></div>
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <!-- MODAL RECIBIR -->
+    <div class="modal fade" id="modalRecibir" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="bi bi-box-arrow-in-down"></i> Registrar entrada · <span id="rNumeroOP"></span></h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="rOrdenId" />
+                    <div class="hint-box mb-3" id="rResumen"></div>
+                    <div class="row g-3 mb-3">
+                        <div class="col-6">
+                            <label class="form-label" for="rTipo">Empaque</label>
+                            <select id="rTipo" class="form-select" onchange="previsualizar()"><option value="Pallet">Pallet</option><option value="Caja">Caja</option></select>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label" for="rPorUnidad">Piezas por caja/pallet</label>
+                            <input id="rPorUnidad" type="number" min="1" class="form-control" value="10" oninput="previsualizar()" />
+                        </div>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label" for="rObs">Observaciones (opcional)</label>
+                        <textarea id="rObs" class="form-control" rows="2" maxlength="300"></textarea>
+                    </div>
+                    <div class="hint-box" id="rPrevia"></div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn-cute-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button class="btn-cute-primary" id="btnRecibir" onclick="recibir()"><i class="bi bi-tags-fill"></i> Registrar y generar etiquetas</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.js"></script>
+    @await Html.PartialAsync("_ScriptsModulo")
+
+    <script>
+        let modalRecibir;
+        let pendientes = [];
+        let existencias = null;
+
+        $(function () {
+            modalRecibir = new bootstrap.Modal(document.getElementById('modalRecibir'));
+            $('.pt-tab').on('click', function () { abrirPanel($(this).data('panel')); });
+            $('#uCodigo').on('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); $('#uUbicacion').focus(); } });
+            $('#tCodigo').on('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); rastrear(); } });
+            cargarUbicaciones();
+            recargarTodo();
+
+            // Permite abrir la trazabilidad directo: /ProductoTerminado?traza=CODIGO
+            const traza = new URLSearchParams(location.search).get('traza');
+            if (traza) { $('#tCodigo').val(traza); abrirPanel('trazabilidad'); rastrear(); }
+        });
+
+        function abrirPanel(nombre) {
+            $('.pt-tab').removeClass('active');
+            $('.pt-tab[data-panel="' + nombre + '"]').addClass('active');
+            $('.pt-panel').removeClass('active');
+            $('#panel-' + nombre).addClass('active');
+            if (nombre === 'ubicar') setTimeout(function () { $('#uCodigo').focus(); }, 50);
+            if (nombre === 'trazabilidad') setTimeout(function () { $('#tCodigo').focus(); }, 50);
+        }
+
+        function recargarTodo() { cargarPendientes(); cargarPorUbicar(); cargarExistencias(); }
+        const fecha = function (iso) { return iso ? new Date(iso).toLocaleString('es-MX', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'; };
+
+        // ---------- 1. Recibir ----------
+        function cargarPendientes() {
+            $.get('/ProductoTerminado/pendientes', function (r) {
+                pendientes = r.result || [];
+                $('#cntPendientes').text(pendientes.length);
+                if (pendientes.length === 0) {
+                    $('#tbPendientes').html('<tr><td colspan="8" class="text-center text-muted py-4">No hay órdenes completadas pendientes de recibir.</td></tr>');
+                    return;
+                }
+                $('#tbPendientes').html(pendientes.map(function (o) {
+                    return '<tr><td><strong>' + escHtml(o.numeroOP) + '</strong></td><td>' + escHtml(o.producto) + '</td>' +
+                        '<td class="text-center">' + o.producidas + '</td><td class="text-center">' + o.rechazoVisual + '</td><td class="text-center">' + o.rechazoPruebas + '</td>' +
+                        '<td class="text-center"><span class="badge-cute badge-cute-success">' + o.buenas + '</span></td><td>' + fecha(o.fechaFin) + '</td>' +
+                        '<td class="text-center"><button class="btn-cute-primary btn-cute-sm" onclick="abrirRecibir(' + o.id + ')"><i class="bi bi-box-arrow-in-down"></i> Recibir</button></td></tr>';
+                }).join(''));
+            });
+        }
+
+        function abrirRecibir(id) {
+            const o = pendientes.find(function (x) { return x.id === id; });
+            if (!o) return;
+            $('#rOrdenId').val(id);
+            $('#rNumeroOP').text(o.numeroOP);
+            $('#rResumen').html('<b>' + escHtml(o.producto) + '</b> · ' + o.producidas + ' producidas − ' + o.rechazoVisual + ' rechazo visual − ' + o.rechazoPruebas + ' rechazo en pruebas = <b>' + o.buenas + ' piezas buenas</b>');
+            $('#rObs').val('');
+            previsualizar();
+            modalRecibir.show();
+        }
+
+        function previsualizar() {
+            const o = pendientes.find(function (x) { return x.id === parseInt($('#rOrdenId').val()); });
+            const n = parseInt($('#rPorUnidad').val());
+            if (!o || !n || n <= 0) { $('#rPrevia').text('Indica cuántas piezas lleva cada caja/pallet.'); return; }
+            const unidades = Math.ceil(o.buenas / n), ultima = o.buenas - n * (unidades - 1);
+            const tipo = $('#rTipo').val() === 'Caja' ? 'caja' : 'pallet';
+            const cadaUno = tipo === 'caja' ? (unidades === 1 ? 'con' : 'cada una con') : (unidades === 1 ? 'con' : 'cada uno con');
+            $('#rPrevia').html('Se generará' + (unidades === 1 ? ' ' : 'n ') + '<b>' + unidades + ' ' + tipo + (unidades === 1 ? '' : 's') + '</b>, ' + cadaUno + ' su propio código y etiqueta' +
+                (unidades > 1 && ultima !== n ? ' (el último con ' + ultima + ' pzas)' : '') + '.');
+        }
+
+        function recibir() {
+            const data = { OrdenProduccionId: parseInt($('#rOrdenId').val()), TipoEmpaque: $('#rTipo').val(), PiezasPorUnidad: parseInt($('#rPorUnidad').val()), Observaciones: $('#rObs').val() };
+            if (!data.PiezasPorUnidad || data.PiezasPorUnidad <= 0) { showToast('Las piezas por caja/pallet deben ser mayores que cero.', 'warning'); return; }
+            $('#btnRecibir').prop('disabled', true);
+            $.ajax({
+                url: '/ProductoTerminado/recibir', type: 'POST', contentType: 'application/json', data: JSON.stringify(data),
+                success: function (r) {
+                    if (!r.success) { showToast(r.mensaje, 'danger'); return; }
+                    showToast(r.mensaje, 'success');
+                    modalRecibir.hide();
+                    window.open('/ProductoTerminado/etiquetas/' + r.result.loteId, '_blank');
+                    recargarTodo();
+                    abrirPanel('ubicar');
+                },
+                error: function () { showToast('Error de comunicación con el servidor.', 'danger'); },
+                complete: function () { $('#btnRecibir').prop('disabled', false); }
+            });
+        }
+
+        // ---------- 2. Ubicar ----------
+        function cargarUbicaciones(seleccionar) {
+            $.get('/Recepcion/listar-ubicaciones', function (r) {
+                const items = (r.result || []).map(function (u) { return { id: u.id, texto: u.codigo + (u.zona ? ' · Zona ' + u.zona : '') }; });
+                llenarSelect('#uUbicacion', items, 'id', 'texto', 'Selecciona una ubicación...');
+                if (seleccionar) $('#uUbicacion').val(seleccionar);
+            });
+        }
+
+        function nuevaUbicacion() {
+            const codigo = prompt('Código de la nueva ubicación (por ejemplo PT-01):');
+            if (!codigo) return;
+            const zona = prompt('Zona (opcional, por ejemplo PT):') || null;
+            $.ajax({
+                url: '/Recepcion/crear-ubicacion', type: 'POST', contentType: 'application/json', data: JSON.stringify({ Codigo: codigo.trim(), Zona: zona }),
+                success: function (r) {
+                    if (!r.success) { showToast(r.mensaje, 'danger'); return; }
+                    showToast('Ubicación ' + r.result.codigo + ' creada.', 'success');
+                    cargarUbicaciones(r.result.id);
+                }
+            });
+        }
+
+        function cargarPorUbicar() {
+            $.get('/ProductoTerminado/por-ubicar', function (r) {
+                const lista = r.result || [];
+                $('#cntPorUbicar').text(lista.length);
+                if (lista.length === 0) {
+                    $('#tbPorUbicar').html('<tr><td colspan="7" class="text-center text-muted py-4">Todas las cajas/pallets están ubicadas.</td></tr>');
+                    return;
+                }
+                $('#tbPorUbicar').html(lista.map(function (p) {
+                    return '<tr><td><strong style="font-family:monospace">' + escHtml(p.codigo) + '</strong></td><td>' + escHtml(p.numeroLote) + '</td><td>' + escHtml(p.numeroOP) + '</td>' +
+                        '<td>' + escHtml(p.producto) + '</td><td class="text-center">' + p.cantidad + '</td><td>' + fecha(p.fechaEtiqueta) + '</td>' +
+                        '<td><div class="row-actions">' +
+                        '<button class="btn-cute-secondary btn-cute-sm" title="Usar este código" onclick="usarCodigo(\'' + p.codigo + '\')"><i class="bi bi-arrow-up-circle"></i></button>' +
+                        '<a class="btn-cute-secondary btn-cute-sm" title="Reimprimir etiquetas del lote" target="_blank" href="/ProductoTerminado/etiquetas/' + p.loteId + '"><i class="bi bi-printer"></i></a>' +
+                        '</div></td></tr>';
+                }).join(''));
+            });
+        }
+
+        function usarCodigo(codigo) { $('#uCodigo').val(codigo); $('#uUbicacion').focus(); }
+
+        function ubicar() {
+            const data = { CodigoPallet: $('#uCodigo').val().trim(), UbicacionId: parseInt($('#uUbicacion').val()) };
+            if (!data.CodigoPallet) { showToast('Escanea o escribe el código de la caja/pallet.', 'warning'); return; }
+            if (!data.UbicacionId) { showToast('Selecciona la ubicación.', 'warning'); return; }
+            $('#btnUbicar').prop('disabled', true);
+            $.ajax({
+                url: '/ProductoTerminado/ubicar', type: 'POST', contentType: 'application/json', data: JSON.stringify(data),
+                success: function (r) {
+                    if (!r.success) { showToast(r.mensaje, 'danger'); return; }
+                    showToast(r.mensaje + (r.result.loteCompleto ? ' El lote quedó completo.' : ''), 'success');
+                    $('#uCodigo').val('').focus();
+                    recargarTodo();
+                },
+                error: function () { showToast('Error de comunicación con el servidor.', 'danger'); },
+                complete: function () { $('#btnUbicar').prop('disabled', false); }
+            });
+        }
+
+        // ---------- Reporte de existencias ----------
+        function cargarExistencias() {
+            $.get('/ProductoTerminado/existencias', function (r) {
+                if (!r.success) return;
+                existencias = r.result;
+                const s = existencias.resumen;
+                $('#kpiAlmacenado').text(s.piezasAlmacenadas);
+                $('#kpiPorUbicar').text(s.piezasPorUbicar);
+                $('#kpiLotes').text(s.lotes);
+                $('#kpiPallets').text(s.pallets);
+
+                $('#tbExProducto').html(existencias.porProducto.length === 0
+                    ? '<tr><td colspan="5" class="text-center text-muted py-4">Aún no hay producto terminado.</td></tr>'
+                    : existencias.porProducto.map(function (p) {
+                        return '<tr><td><strong>' + escHtml(p.producto) + '</strong></td><td class="text-center"><strong>' + p.almacenado + '</strong></td><td class="text-center">' + p.porUbicar + '</td><td class="text-center">' + p.lotes + '</td><td class="text-center">' + p.pallets + '</td></tr>';
+                    }).join(''));
+
+                $('#tbExLote').html(existencias.porLote.length === 0
+                    ? '<tr><td colspan="8" class="text-center text-muted py-4">Sin lotes.</td></tr>'
+                    : existencias.porLote.map(function (l) {
+                        const estado = l.porUbicar > 0 ? ' <span class="badge-cute badge-cute-warning">' + l.porUbicar + ' por ubicar</span>' : '';
+                        return '<tr><td><strong>' + escHtml(l.numeroLote) + '</strong>' + estado + '</td><td>' + escHtml(l.producto) + '</td><td>' + escHtml(l.numeroOP) + '</td><td>' + fecha(l.fechaRecepcion) + '</td>' +
+                            '<td class="text-center">' + l.cantidad + '</td><td class="text-center">' + l.pallets + '</td>' +
+                            '<td>' + (l.ubicaciones.length ? l.ubicaciones.map(function (u) { return '<span class="ubic-chip">' + escHtml(u) + '</span>'; }).join(' ') : '—') + '</td>' +
+                            '<td><div class="row-actions"><button class="btn-cute-secondary btn-cute-sm" title="Trazabilidad" onclick="verTraza(\'' + l.numeroLote + '\')"><i class="bi bi-diagram-3"></i></button>' +
+                            '</div></td></tr>';
+                    }).join(''));
+
+                $('#exUbicaciones').html(existencias.porUbicacion.length === 0
+                    ? '<div class="empty-note">Ninguna caja/pallet ubicada todavía.</div>'
+                    : existencias.porUbicacion.map(function (u) {
+                        return '<div class="live-card" style="border-left-color: var(--color-aqua);"><div class="live-machine"><i class="bi bi-geo-alt-fill"></i> ' + escHtml(u.ubicacion) + (u.zona ? ' <small class="text-muted">Zona ' + escHtml(u.zona) + '</small>' : '') + '</div>' +
+                            '<div class="live-cause">' + u.cantidad + ' pzas en ' + u.pallets.length + (u.pallets.length === 1 ? ' unidad' : ' unidades') + '</div>' +
+                            u.pallets.map(function (p) { return '<div style="font-size:.8rem;"><a href="#" onclick="verTraza(\'' + p.codigo + '\'); return false;" style="font-family:monospace">' + escHtml(p.codigo) + '</a> · ' + p.cantidad + ' pzas</div>'; }).join('') +
+                            '</div>';
+                    }).join(''));
+            });
+        }
+
+        function exportarCsv() {
+            if (!existencias) return;
+            const filas = [['Lote', 'Producto', 'Orden', 'Recibido', 'Piezas', 'Cajas/pallets', 'Por ubicar', 'Ubicaciones']];
+            existencias.porLote.forEach(function (l) { filas.push([l.numeroLote, l.producto, l.numeroOP, l.fechaRecepcion, l.cantidad, l.pallets, l.porUbicar, l.ubicaciones.join(' ')]); });
+            const csv = filas.map(function (f) { return f.map(function (v) { return '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"'; }).join(','); }).join('\r\n');
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' }));
+            a.download = 'existencias_producto_terminado.csv';
+            a.click();
+        }
+
+        // ---------- Reporte de trazabilidad ----------
+        function verTraza(codigo) { $('#tCodigo').val(codigo); abrirPanel('trazabilidad'); rastrear(); }
+
+        function rastrear() {
+            const codigo = $('#tCodigo').val().trim();
+            if (!codigo) { showToast('Escribe un código.', 'warning'); return; }
+            $('#trazaResultado').html('<div class="empty-note">Buscando…</div>');
+            $.get('/ProductoTerminado/trazabilidad', { codigo: codigo }, function (r) {
+                if (!r.success) { $('#trazaResultado').html('<div class="empty-note">' + escHtml(r.mensaje) + '</div>'); return; }
+                pintarTraza(r.result);
+            });
+        }
+
+        function pintarTraza(t) {
+            const o = t.orden, c = t.calidad, l = t.lote;
+            const pasos = ['Orden de compra', 'Producción', 'Inspección visual', 'Pruebas', 'Almacén'];
+            const hechos = [!!o.ordenCompra, !!o.fechaInicio, c.aprobadasVisual + c.rechazadasVisual > 0, c.pruebas.length > 0, !!l];
+            let html = '<div class="traza-step">' + pasos.map(function (p, i) { return '<span class="chip ' + (hechos[i] ? 'on' : '') + '">' + p + '</span>'; }).join('<i class="bi bi-chevron-right"></i>') + '</div>';
+
+            if (l) {
+                html += '<div class="traza-card"><h6><i class="bi bi-box-seam"></i> Lote ' + escHtml(l.numeroLote) + ' · ' + escHtml(l.producto) + '</h6>' +
+                    '<div class="dato mb-2">' + l.cantidad + ' piezas buenas en ' + l.pallets.length + ' ' + (l.tipo === 'Caja' ? 'caja(s)' : 'pallet(s)') + ' · recibido ' + fecha(l.fechaRecepcion) + ' por <b>' + escHtml(l.recibidoPor || '—') + '</b> · ' +
+                    (l.estado === 'Almacenado' ? '<span class="badge-cute badge-cute-success">Almacenado</span>' : '<span class="badge-cute badge-cute-warning">Por ubicar</span>') +
+                    ' <a class="ms-2" target="_blank" href="/ProductoTerminado/etiquetas/' + l.id + '"><i class="bi bi-printer"></i> Etiquetas</a></div>' +
+                    '<table class="table table-sm"><thead><tr><th>Caja/pallet</th><th>Piezas</th><th>Ubicación</th><th>Ubicado</th><th>Por</th></tr></thead><tbody>' +
+                    l.pallets.map(function (p) {
+                        return '<tr class="' + (p.buscado ? 'resaltado' : '') + '"><td style="font-family:monospace"><b>' + escHtml(p.codigo) + '</b></td><td>' + p.cantidad + '</td><td>' + (p.ubicacion ? '<span class="ubic-chip">' + escHtml(p.ubicacion) + '</span>' : '<span class="text-muted">Por ubicar</span>') + '</td><td>' + fecha(p.fechaUbicacion) + '</td><td>' + escHtml(p.ubicadoPor || '—') + '</td></tr>';
+                    }).join('') + '</tbody></table></div>';
+            } else {
+                html += '<div class="traza-card"><h6><i class="bi bi-box-seam"></i> Almacén</h6><div class="dato text-muted">Esta orden todavía no se recibe en el almacén de producto terminado.</div></div>';
+            }
+
+            html += '<div class="traza-card"><h6><i class="bi bi-gear-fill"></i> Orden de producción ' + escHtml(o.numeroOP) + '</h6>' +
+                '<div class="dato">' + escHtml(o.producto) + ' · ' + o.cantidad + ' piezas · estado <b>' + escHtml(o.estado) + '</b></div>' +
+                '<div class="dato">Creada ' + fecha(o.fechaCreacion) + ' · iniciada ' + fecha(o.fechaInicio) + ' · terminada ' + fecha(o.fechaFin) + '</div>' +
+                '<div class="dato">Orden de compra: <b>' + escHtml(o.ordenCompra || 'Manual') + '</b>' + (o.proveedor ? ' · proveedor ' + escHtml(o.proveedor) : '') + '</div>' +
+                '<div class="dato mt-2"><b>Componentes consumidos:</b> ' + o.componentes.map(function (x) { return escHtml(x.numeroPieza) + ' ' + escHtml(x.nombre) + ' ×' + x.cantidad; }).join(' · ') + '</div>' +
+                (t.lotesMaterial.length ? '<div class="dato"><b>Lotes de material de la OC:</b> ' + t.lotesMaterial.map(function (x) { return escHtml(x.componente) + ' lote ' + escHtml(x.lote) + ' (' + x.cantidad + ')'; }).join(' · ') + '</div>' : '') +
+                '</div>';
+
+            html += '<div class="traza-card"><h6><i class="bi bi-patch-check-fill"></i> Calidad</h6>' +
+                '<div class="dato">Inspección visual: <b>' + c.aprobadasVisual + '</b> aprobadas, <b>' + c.rechazadasVisual + '</b> rechazadas' + (c.defectoVisual ? ' · ' + escHtml(c.defectoVisual) : '') +
+                (c.tieneFoto ? ' · <a target="_blank" href="/MonitoreoVisual/Foto/' + c.ordenId + '">ver foto</a>' : '') + '</div>' +
+                '<div class="dato">Pruebas de sensores: <b>' + c.pruebasAprobadas + '</b> aprobadas, <b>' + c.pruebasRechazadas + '</b> rechazadas' +
+                (c.pruebas.length ? ' (' + c.pruebas.length + ' registros, ' + c.pruebas.reduce(function (a, p) { return a + p.lecturas; }, 0) + ' lecturas)' : '') + '</div></div>';
+
+            html += '<div class="row g-3"><div class="col-lg-6"><div class="traza-card"><h6><i class="bi bi-recycle"></i> Scrap</h6>' +
+                (t.scrap.length ? t.scrap.map(function (s) { return '<div class="dato">' + fecha(s.fecha) + ' · ' + escHtml(s.maquina) + ' · ' + escHtml(s.motivo) + ' · <b>' + s.cantidad + '</b> pzas' + (s.automatico ? ' <span class="badge-cute badge-cute-info">Automático</span>' : '') + '</div>'; }).join('') : '<div class="dato text-muted">Sin scrap.</div>') +
+                '</div></div><div class="col-lg-6"><div class="traza-card"><h6><i class="bi bi-hourglass-split"></i> Paros durante la fabricación</h6>' +
+                (t.paros.length ? t.paros.map(function (p) { return '<div class="dato">' + fecha(p.inicio) + ' · ' + escHtml(p.maquina) + ' · ' + escHtml(p.causa) + ' · <b>' + fmtMin(p.minutos) + '</b></div>'; }).join('') : '<div class="dato text-muted">Sin paros registrados.</div>') +
+                '</div></div></div>';
+
+            $('#trazaResultado').html(html);
+        }
+    </script>
+</body>
+</html>
