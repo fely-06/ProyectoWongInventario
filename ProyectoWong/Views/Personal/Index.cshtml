@@ -1,0 +1,402 @@
+@{
+    Layout = null;
+    ViewBag.Title = "Personal - SIV";
+}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewBag.Title</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
+
+    @await Html.PartialAsync("_EstilosModulo")
+    <style>
+        .tab-pane { overflow-x: auto; } /* las tablas anchas se desplazan en pantallas chicas */
+    </style>
+</head>
+<body>
+    <div class="bg-blob blob-1"></div>
+    <div class="bg-blob blob-2"></div>
+    <div class="bg-blob blob-3"></div>
+
+    <div class="dashboard-wrapper">
+        @await Html.PartialAsync("_Sidebar")
+
+        <main class="main-content">
+            <div class="top-bar">
+                <div class="welcome-text">
+                    <h2>Personal</h2>
+                    <p>Empleados, turnos, asignación a máquinas y asistencia.</p>
+                </div>
+            </div>
+
+            <div class="content-card">
+                <ul class="nav nav-tabs mb-4">
+                    <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tabEmpleados">Empleados</button></li>
+                    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tabTurnos">Turnos</button></li>
+                    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tabAsignaciones">Asignaciones</button></li>
+                    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tabAsistencia">Asistencia de hoy</button></li>
+                    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tabReportes">Reportes</button></li>
+                </ul>
+
+                <div class="tab-content">
+                    <!-- EMPLEADOS -->
+                    <div class="tab-pane fade show active" id="tabEmpleados">
+                        <button class="btn-cute-primary mb-3" onclick="abrirEmpleado(0)"><i class="bi bi-plus-lg"></i> Nuevo empleado</button>
+                        <table class="table-cute">
+                            <thead><tr><th>Número</th><th>Nombre</th><th>Puesto</th><th>Estado</th><th></th></tr></thead>
+                            <tbody id="tablaEmpleados"></tbody>
+                        </table>
+                    </div>
+
+                    <!-- TURNOS -->
+                    <div class="tab-pane fade" id="tabTurnos">
+                        <button class="btn-cute-primary mb-3" onclick="abrirTurno(0)"><i class="bi bi-plus-lg"></i> Nuevo turno</button>
+                        <table class="table-cute">
+                            <thead><tr><th>Turno</th><th>Entrada</th><th>Salida</th><th></th></tr></thead>
+                            <tbody id="tablaTurnos"></tbody>
+                        </table>
+                    </div>
+
+                    <!-- ASIGNACIONES (vigentes e historial) -->
+                    <div class="tab-pane fade" id="tabAsignaciones">
+                        <button class="btn-cute-primary mb-3" onclick="abrirAsignacion()"><i class="bi bi-plus-lg"></i> Asignar / cambiar turno</button>
+                        <table class="table-cute">
+                            <thead><tr><th>Empleado</th><th>Turno</th><th>Máquina</th><th>Línea</th><th>Días</th><th>Desde</th><th>Hasta</th></tr></thead>
+                            <tbody id="tablaAsignaciones"></tbody>
+                        </table>
+                    </div>
+
+                    <!-- ASISTENCIA -->
+                    <div class="tab-pane fade" id="tabAsistencia">
+                        <table class="table-cute">
+                            <thead><tr><th>Empleado</th><th>Entrada</th><th>Salida</th><th>Estado</th><th></th></tr></thead>
+                            <tbody id="tablaAsistencia"></tbody>
+                        </table>
+                    </div>
+
+                    <!-- REPORTES -->
+                    <div class="tab-pane fade" id="tabReportes">
+                        <div class="d-flex gap-2 align-items-end flex-wrap mb-3">
+                            <div><label class="form-label">Desde</label><input type="date" id="repDesde" class="form-control" /></div>
+                            <div><label class="form-label">Hasta</label><input type="date" id="repHasta" class="form-control" /></div>
+                            <button class="btn-cute-primary" onclick="generarReporte()"><i class="bi bi-bar-chart-fill"></i> Generar</button>
+                        </div>
+
+                        <h5 class="section-title">Asistencia y horas trabajadas</h5>
+                        <table class="table-cute mb-4">
+                            <thead><tr><th>Empleado</th><th>Asistencias</th><th>Ausencias</th><th>Horas trabajadas</th></tr></thead>
+                            <tbody id="tablaReporte"></tbody>
+                        </table>
+
+                        <h5 class="section-title">Cobertura de personal hoy</h5>
+                        <table class="table-cute">
+                            <thead><tr><th>Turno</th><th>Programados</th><th>Presentes</th><th>Cobertura</th></tr></thead>
+                            <tbody id="tablaCobertura"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- MODAL EMPLEADO -->
+    <div class="modal fade" id="modalEmpleado" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header"><h5 class="modal-title">Empleado</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+                <div class="modal-body">
+                    <input type="hidden" id="eId" />
+                    <label class="form-label">Número de empleado</label>
+                    <input id="eNumero" class="form-control mb-3" maxlength="20" />
+                    <label class="form-label">Nombre</label>
+                    <input id="eNombre" class="form-control mb-3" maxlength="100" />
+                    <label class="form-label">Puesto</label>
+                    <select id="ePuesto" class="form-select mb-3">
+                        <option>Operador</option>
+                        <option>Supervisor</option>
+                        <option>Técnico</option>
+                        <option>Almacenista</option>
+                    </select>
+                    <div class="form-check"><input type="checkbox" id="eActivo" class="form-check-input" /><label class="form-check-label" for="eActivo">Activo</label></div>
+                </div>
+                <div class="modal-footer"><button class="btn-cute-primary" onclick="guardarEmpleado()">Guardar</button></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL TURNO -->
+    <div class="modal fade" id="modalTurno" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header"><h5 class="modal-title">Turno</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+                <div class="modal-body">
+                    <input type="hidden" id="tId" />
+                    <label class="form-label">Nombre</label>
+                    <input id="tNombre" class="form-control mb-3" maxlength="50" placeholder="Matutino" />
+                    <label class="form-label">Hora de entrada</label>
+                    <input type="time" id="tEntrada" class="form-control mb-3" />
+                    <label class="form-label">Hora de salida</label>
+                    <input type="time" id="tSalida" class="form-control" />
+                </div>
+                <div class="modal-footer"><button class="btn-cute-primary" onclick="guardarTurno()">Guardar</button></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL ASIGNACIÓN -->
+    <div class="modal fade" id="modalAsignacion" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header"><h5 class="modal-title">Asignar turno</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+                <div class="modal-body">
+                    <label class="form-label">Empleado</label>
+                    <select id="aEmpleado" class="form-select mb-3"></select>
+                    <label class="form-label">Turno</label>
+                    <select id="aTurno" class="form-select mb-3"></select>
+                    <label class="form-label">Máquina</label>
+                    <select id="aMaquina" class="form-select mb-3"></select>
+                    <label class="form-label">Línea de producción</label>
+                    <input id="aLinea" class="form-control mb-3" maxlength="50" placeholder="Línea 1" />
+                    <label class="form-label d-block">Días que trabaja</label>
+                    <div id="aDias"></div>
+                    <div class="form-text">Si el empleado ya tenía una asignación, se cierra y queda en el historial.</div>
+                </div>
+                <div class="modal-footer"><button class="btn-cute-primary" onclick="guardarAsignacion()">Guardar</button></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL AUSENCIA -->
+    <div class="modal fade" id="modalAusencia" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header"><h5 class="modal-title">Registrar ausencia</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+                <div class="modal-body">
+                    <input type="hidden" id="auEmpleado" />
+                    <label class="form-label">Fecha</label>
+                    <input type="date" id="auFecha" class="form-control mb-3" />
+                    <label class="form-label">Tipo</label>
+                    <select id="auTipo" class="form-select mb-3">
+                        <option>Falta</option>
+                        <option>Permiso</option>
+                        <option>Vacaciones</option>
+                        <option>Incapacidad</option>
+                    </select>
+                    <label class="form-label">Observaciones</label>
+                    <input id="auObs" class="form-control" maxlength="200" />
+                </div>
+                <div class="modal-footer"><button class="btn-cute-primary" onclick="guardarAusencia()">Guardar</button></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.js"></script>
+    @await Html.PartialAsync("_ScriptsModulo")
+
+    <script>
+        const DIAS = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
+        let datos = {};
+
+        $(function () {
+            DIAS.forEach(function (d) {
+                $('#aDias').append('<label class="me-3"><input type="checkbox" class="form-check-input dia" value="' + d + '" /> ' + d + '</label>');
+            });
+            const hoy = fechaHoy();
+            $('#repDesde').val(hoy.slice(0, 8) + '01'); // primer día del mes
+            $('#repHasta').val(hoy);
+            cargar();
+        });
+
+        function fechaHoy() {
+            const d = new Date();
+            return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+        }
+        function hora(iso) { return iso ? new Date(iso).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' }) : '—'; }
+        function fecha(iso) { return iso ? iso.slice(0, 10) : 'Vigente'; }
+
+        // Envía JSON por POST y recarga la pantalla si salió bien
+        function enviar(url, data, modal) {
+            $.ajax({
+                url: url, type: 'POST', contentType: 'application/json', data: JSON.stringify(data || {}),
+                success: function (r) {
+                    showToast(r.mensaje, r.success ? 'success' : 'danger');
+                    if (r.success) {
+                        if (modal) bootstrap.Modal.getOrCreateInstance(modal).hide();
+                        cargar();
+                    }
+                },
+                error: function () { showToast('Error de comunicación con el servidor.', 'danger'); }
+            });
+        }
+
+        function cargar() {
+            $.get('/Personal/datos', function (r) {
+                if (!r.success) { showToast(r.mensaje, 'danger'); return; }
+                datos = r.result;
+                pintarEmpleados();
+                pintarTurnos();
+                pintarAsignaciones();
+                pintarAsistencia();
+            });
+        }
+
+        // ---------- Empleados ----------
+        function pintarEmpleados() {
+            let html = '';
+            datos.empleados.forEach(function (e) {
+                html += '<tr><td>' + escHtml(e.numeroEmpleado) + '</td><td>' + escHtml(e.nombre) + '</td><td>' + escHtml(e.puesto) + '</td>' +
+                    '<td>' + (e.activo ? '<span class="badge-cute badge-cute-success">Activo</span>' : '<span class="badge-cute badge-cute-danger">Inactivo</span>') + '</td>' +
+                    '<td><button class="btn-cute-secondary btn-cute-sm" onclick="abrirEmpleado(' + e.id + ')"><i class="bi bi-pencil-fill"></i></button></td></tr>';
+            });
+            $('#tablaEmpleados').html(html || '<tr><td colspan="5" class="text-center text-muted">Sin empleados.</td></tr>');
+        }
+
+        function abrirEmpleado(id) {
+            const e = datos.empleados.find(function (x) { return x.id === id; }) || { id: 0, numeroEmpleado: '', nombre: '', puesto: 'Operador', activo: true };
+            $('#eId').val(e.id);
+            $('#eNumero').val(e.numeroEmpleado);
+            $('#eNombre').val(e.nombre);
+            $('#ePuesto').val(e.puesto);
+            $('#eActivo').prop('checked', e.activo);
+            bootstrap.Modal.getOrCreateInstance('#modalEmpleado').show();
+        }
+
+        function guardarEmpleado() {
+            enviar('/Personal/guardar-empleado', {
+                Id: parseInt($('#eId').val()),
+                NumeroEmpleado: $('#eNumero').val().trim(),
+                Nombre: $('#eNombre').val().trim(),
+                Puesto: $('#ePuesto').val(),
+                Activo: $('#eActivo').is(':checked')
+            }, '#modalEmpleado');
+        }
+
+        // ---------- Turnos ----------
+        function pintarTurnos() {
+            let html = '';
+            datos.turnos.forEach(function (t) {
+                html += '<tr><td>' + escHtml(t.nombre) + '</td><td>' + t.horaEntrada.slice(0, 5) + '</td><td>' + t.horaSalida.slice(0, 5) + '</td>' +
+                    '<td><button class="btn-cute-secondary btn-cute-sm" onclick="abrirTurno(' + t.id + ')"><i class="bi bi-pencil-fill"></i></button></td></tr>';
+            });
+            $('#tablaTurnos').html(html || '<tr><td colspan="4" class="text-center text-muted">Sin turnos.</td></tr>');
+        }
+
+        function abrirTurno(id) {
+            const t = datos.turnos.find(function (x) { return x.id === id; }) || { id: 0, nombre: '', horaEntrada: '06:00', horaSalida: '14:00' };
+            $('#tId').val(t.id);
+            $('#tNombre').val(t.nombre);
+            $('#tEntrada').val(t.horaEntrada.slice(0, 5));
+            $('#tSalida').val(t.horaSalida.slice(0, 5));
+            bootstrap.Modal.getOrCreateInstance('#modalTurno').show();
+        }
+
+        function guardarTurno() {
+            if (!$('#tEntrada').val() || !$('#tSalida').val()) { showToast('Indica la hora de entrada y de salida.', 'warning'); return; }
+            enviar('/Personal/guardar-turno', {
+                Id: parseInt($('#tId').val()),
+                Nombre: $('#tNombre').val().trim(),
+                HoraEntrada: $('#tEntrada').val() + ':00',
+                HoraSalida: $('#tSalida').val() + ':00'
+            }, '#modalTurno');
+        }
+
+        // ---------- Asignaciones ----------
+        function pintarAsignaciones() {
+            let html = '';
+            datos.asignaciones.forEach(function (a) {
+                html += '<tr' + (a.fechaFin ? ' class="text-muted"' : '') + '><td>' + escHtml(a.empleado) + '</td><td>' + escHtml(a.turno) + '</td>' +
+                    '<td>' + escHtml(a.maquina || '—') + '</td><td>' + escHtml(a.linea || '—') + '</td><td>' + escHtml(a.dias) + '</td>' +
+                    '<td>' + fecha(a.fechaInicio) + '</td><td>' + (a.fechaFin ? fecha(a.fechaFin) : '<span class="badge-cute badge-cute-success">Vigente</span>') + '</td></tr>';
+            });
+            $('#tablaAsignaciones').html(html || '<tr><td colspan="7" class="text-center text-muted">Sin asignaciones.</td></tr>');
+        }
+
+        function abrirAsignacion() {
+            llenarSelect('#aEmpleado', datos.empleados.filter(function (e) { return e.activo; }), 'id', 'nombre', 'Selecciona...');
+            llenarSelect('#aTurno', datos.turnos, 'id', 'nombre', 'Selecciona...');
+            llenarSelect('#aMaquina', datos.maquinas, 'id', 'nombre', 'Sin máquina');
+            $('#aLinea').val('');
+            $('.dia').each(function () { $(this).prop('checked', 'LMXJV'.includes(this.value)); });
+            bootstrap.Modal.getOrCreateInstance('#modalAsignacion').show();
+        }
+
+        function guardarAsignacion() {
+            const dias = $('.dia:checked').map(function () { return this.value; }).get().join(',');
+            if (!$('#aEmpleado').val() || !$('#aTurno').val()) { showToast('Selecciona el empleado y el turno.', 'warning'); return; }
+            enviar('/Personal/asignar', {
+                EmpleadoId: parseInt($('#aEmpleado').val()),
+                TurnoId: parseInt($('#aTurno').val()),
+                MaquinaId: $('#aMaquina').val() ? parseInt($('#aMaquina').val()) : null,
+                Linea: $('#aLinea').val().trim(),
+                Dias: dias
+            }, '#modalAsignacion');
+        }
+
+        // ---------- Asistencia ----------
+        function pintarAsistencia() {
+            let html = '';
+            datos.empleados.filter(function (e) { return e.activo; }).forEach(function (e) {
+                const a = datos.asistenciaHoy.find(function (x) { return x.empleadoId === e.id; });
+                let estado, botones = '';
+                if (!a) {
+                    estado = '<span class="badge-cute badge-cute-warning">Sin registro</span>';
+                    botones = '<button class="btn-cute-primary btn-cute-sm" onclick="enviar(\'/Personal/entrada/' + e.id + '\')">Entrada</button> ' +
+                        '<button class="btn-cute-secondary btn-cute-sm" onclick="abrirAusencia(' + e.id + ')">Ausencia</button>';
+                } else if (a.tipo !== 'Asistencia') {
+                    estado = '<span class="badge-cute badge-cute-danger">' + escHtml(a.tipo) + '</span>';
+                } else if (!a.salida) {
+                    estado = '<span class="badge-cute badge-cute-success">Trabajando</span>';
+                    botones = '<button class="btn-cute-secondary btn-cute-sm" onclick="enviar(\'/Personal/salida/' + e.id + '\')">Salida</button>';
+                } else {
+                    estado = '<span class="badge-cute badge-cute-info">Salió</span>';
+                }
+                html += '<tr><td>' + escHtml(e.nombre) + '</td><td>' + hora(a && a.entrada) + '</td><td>' + hora(a && a.salida) + '</td><td>' + estado + '</td><td>' + botones + '</td></tr>';
+            });
+            $('#tablaAsistencia').html(html || '<tr><td colspan="5" class="text-center text-muted">Sin empleados activos.</td></tr>');
+        }
+
+        function abrirAusencia(empleadoId) {
+            $('#auEmpleado').val(empleadoId);
+            $('#auFecha').val(fechaHoy());
+            $('#auTipo').val('Falta');
+            $('#auObs').val('');
+            bootstrap.Modal.getOrCreateInstance('#modalAusencia').show();
+        }
+
+        function guardarAusencia() {
+            enviar('/Personal/ausencia', {
+                EmpleadoId: parseInt($('#auEmpleado').val()),
+                Fecha: $('#auFecha').val(),
+                Tipo: $('#auTipo').val(),
+                Observaciones: $('#auObs').val().trim()
+            }, '#modalAusencia');
+        }
+
+        // ---------- Reportes ----------
+        function generarReporte() {
+            $.get('/Personal/reporte', { desde: $('#repDesde').val(), hasta: $('#repHasta').val() }, function (r) {
+                if (!r.success) { showToast(r.mensaje, 'danger'); return; }
+                let html = '';
+                r.result.porEmpleado.forEach(function (x) {
+                    html += '<tr><td>' + escHtml(x.empleado) + '</td><td>' + x.asistencias + '</td><td>' + x.ausencias + '</td><td>' + x.horas + ' h</td></tr>';
+                });
+                $('#tablaReporte').html(html || '<tr><td colspan="4" class="text-center text-muted">Sin datos.</td></tr>');
+
+                html = '';
+                r.result.cobertura.forEach(function (c) {
+                    html += '<tr><td>' + escHtml(c.turno) + '</td><td>' + c.programados + '</td><td>' + c.presentes + '</td><td>' + Math.round(c.presentes / c.programados * 100) + ' %</td></tr>';
+                });
+                $('#tablaCobertura').html(html || '<tr><td colspan="4" class="text-center text-muted">Nadie programado para hoy.</td></tr>');
+            });
+        }
+    </script>
+</body>
+</html>
