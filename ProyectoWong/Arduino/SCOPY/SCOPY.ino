@@ -7,15 +7,30 @@ const int dhtPin = 2;
 const int irPin = 3;                // Interrupción externa (INT1 en Uno/Nano)
 const int acs712Pin = A0;           // Pin analógico para sensor de corriente
 const int MPU_ADDR = 0x68;          // Dirección I2C del HW-123 (MPU6050)
+const int ruidoPin = A1;            // Salida analógica (AO) del sensor de sonido RQ-S001
 
 DHT HT(dhtPin, Type);
 
 // ---- Configuración de Límites de Prueba (Ajusta según tus especificaciones) ----
 const float tempMin = 18.0;
 const float tempMax = 28.0;
+const float humMin = 60.0;          // % mínimo: el difusor de agua debe humedecer el aire
+const float humMax = 90.0;          // % máximo (límite útil del DHT11)
 const float rpmMin = 2000.0;
 const float corrienteMax = 500.0;   // Ejemplo: 500 mA máximo permitido
 const float vibracionMax = 1.30;    // Umbral de vibración (en g). 1.0 = quieto.
+const float ruidoMax = 30.0;        // Nivel de ruido máximo permitido (dB aprox.)
+
+// ---- Calibración del sensor de sonido RQ-S001 ----
+// El módulo entrega la señal del micrófono montada en ~2.5 V. Se mide la amplitud pico a pico
+// durante una ventana corta y se convierte a dB con: dB = dbReferencia + 20*log10(pp / ppReferencia).
+// Para calibrar: con un sonómetro (o app del celular) mide el ruido de tu cuarto, pon ese valor
+// en dbReferencia y en ppReferencia la amplitud cruda ("ruidoPP") que imprime el monitor serial.
+// Gira el potenciómetro del módulo para que en silencio la amplitud sea baja pero no 0.
+const unsigned long ventanaRuidoMs = 50;   // 50 ms = al menos 2-3 ciclos de las frecuencias del ventilador
+const int muestrasRuido = 5;               // ventanas promediadas por lectura (~250 ms en total)
+const float ppReferencia = 10.0;           // amplitud cruda medida en el ambiente de referencia
+const float dbReferencia = 40.0;           // dB de ese ambiente de referencia
 
 // ---- Pines de Salida ----
 const int ledRojo = 11;
@@ -34,11 +49,14 @@ float tempC = 0;
 float rpm = 0;
 float corriente = 0;      // en mA
 float vibracion = 0;      // índice de vibración (magnitud en g)
+float ruido = 0;          // nivel de ruido (dB aprox.)
+int ruidoPP = 0;          // amplitud cruda pico a pico (0-1023), útil para calibrar
 
-bool tempValida = false, pruebaTempPasada = false;
+bool tempValida = false, pruebaTempPasada = false, pruebaHumPasada = false;
 bool rpmValida = false, pruebaRpmPasada = false;
 bool corrienteValida = false, pruebaCorrientePasada = false;
 bool vibracionValida = false, pruebaVibracionPasada = false;
+bool ruidoValido = false, pruebaRuidoPasada = false;
 
 // ---- Estado de la prueba ----
 bool enPrueba = false;          
@@ -108,7 +126,7 @@ void leerComandos() {
     noInterrupts();
     contadorPulsos = 0;
     interrupts();
-    tempValida = rpmValida = corrienteValida = vibracionValida = false;
+    tempValida = rpmValida = corrienteValida = vibracionValida = ruidoValido = false;
     tiempoAnteriorMedicion = millis();
     apagarLeds();
   }
@@ -164,8 +182,17 @@ void enviarDatos() {
   Serial.print(",\"vibracion\":");
   if (vibracionValida) Serial.print(vibracion, 2); else Serial.print("null");
   
+  Serial.print(",\"ruido\":");
+  if (ruidoValido) Serial.print(ruido, 1); else Serial.print("null");
+
+  Serial.print(",\"ruidoPP\":");
+  if (ruidoValido) Serial.print(ruidoPP); else Serial.print("null");
+
   Serial.print(",\"pruebaTemp\":");
   imprimirBool(tempValida, pruebaTempPasada);
+
+  Serial.print(",\"pruebaHum\":");
+  imprimirBool(tempValida, pruebaHumPasada);
   
   Serial.print(",\"pruebaRpm\":");
   imprimirBool(rpmValida, pruebaRpmPasada);
@@ -175,6 +202,9 @@ void enviarDatos() {
   
   Serial.print(",\"pruebaVibracion\":");
   imprimirBool(vibracionValida, pruebaVibracionPasada);
+
+  Serial.print(",\"pruebaRuido\":");
+  imprimirBool(ruidoValido, pruebaRuidoPasada);
   
   Serial.println("}");
 }
@@ -205,6 +235,7 @@ void medir() {
     tempC = t;
     humedad = h;
     pruebaTempPasada = (tempC >= tempMin && tempC <= tempMax);
+    pruebaHumPasada = (humedad >= humMin && humedad <= humMax);
   }
 
   // 3. Corriente (ACS712) - Promedio de 10 lecturas para filtrar ruido
@@ -248,5 +279,37 @@ void medir() {
     vibracionValida = false;
   }
 
+  // 5. Ruido (RQ-S001)
+  medirRuido();
+
   enviarDatos();
+}
+
+// Amplitud pico a pico de la señal del micrófono en una ventana de tiempo.
+int amplitudRuido(unsigned long ventanaMs) {
+  int maximo = 0;
+  int minimo = 1023;
+  unsigned long inicio = millis();
+  while (millis() - inicio < ventanaMs) {
+    int v = analogRead(ruidoPin);
+    if (v > maximo) maximo = v;
+    if (v < minimo) minimo = v;
+  }
+  return maximo - minimo;
+}
+
+void medirRuido() {
+  long suma = 0;
+  for (int i = 0; i < muestrasRuido; i++) {
+    suma += amplitudRuido(ventanaRuidoMs);
+  }
+  ruidoPP = suma / muestrasRuido;
+
+  // Amplitud 0 = sin señal (log10(0) no existe): se toma como 1 para dar el nivel mínimo medible
+  float pp = ruidoPP < 1 ? 1.0 : (float)ruidoPP;
+  ruido = dbReferencia + 20.0 * log10(pp / ppReferencia);
+  if (ruido < 0) ruido = 0;
+
+  ruidoValido = true;
+  pruebaRuidoPasada = (ruido <= ruidoMax);
 }

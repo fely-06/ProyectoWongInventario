@@ -23,7 +23,10 @@ namespace ProyectoWong.Models.Planta
         public static readonly Dictionary<string, string> MotivoPorPrueba = new()
         {
             ["rpm"] = "Velocidad baja (RPM)",
-            ["temp"] = "Falla de temperatura"
+            ["temp"] = "Falla de temperatura",
+            ["humedad"] = "Falla de humedad",
+            ["vibracion"] = "Vibración excesiva",
+            ["ruido"] = "Ruido excesivo"
         };
 
         public static readonly string[] CausasParo =

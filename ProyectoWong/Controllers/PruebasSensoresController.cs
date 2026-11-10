@@ -1,11 +1,11 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using ProyectoWong.Data; // Ajusta si tu DbContext está en otro namespace
+using ProyectoWong.Data; 
 using ProyectoWong.Helpers;
 using ProyectoWong.Models;
 using ProyectoWong.Models.Planta;
 using ProyectoWong.Models.Produccion;
-using ProyectoWong.Models.Sensores; // Asegúrate de tener aquí tus modelos de HistorialPruebaSensor y DetalleLecturaSensor
+using ProyectoWong.Models.Sensores;
 using System.IO.Ports;
 
 namespace ProyectoWong.Controllers
@@ -13,6 +13,12 @@ namespace ProyectoWong.Controllers
     [Route("PruebasSensores")]
     public class PruebasSensoresController : Controller
     {
+        // Mismos límites que el Arduino (SCOPY.ino) y la pantalla de pruebas
+        private const double HumedadMin = 60.0;   // %
+        private const double HumedadMax = 90.0;   // %
+        private const double VibracionMax = 1.30; // g
+        private const double RuidoMax = 30.0;     // dB aprox.
+
         private readonly SensorDataStore _store;
         private readonly SensorSerialService _serialService;
         private readonly ApplicationDbContext _db;
@@ -62,7 +68,7 @@ namespace ProyectoWong.Controllers
             var ordenes = _db.OrdenProduccion
                 .Include(op => op.Producto)
                 .Include(op => op.OrdenCompra)
-                .Where(op => op.Estado == "EnPruebasTecnicas") // <-- Solo las que pasaron inspección visual
+                .Where(op => op.Estado == "EnPruebasTecnicas") // Solo las que pasaron inspección visual
                 .Select(op => new
                 {
                     id = op.Id,
@@ -80,7 +86,7 @@ namespace ProyectoWong.Controllers
             return Json(new { success = true, data = ordenes });
         }
 
-        // 2. GUARDAR PRUEBA Y ACTUALIZAR CONTADORES DE LA ORDEN DE PRODUCCIÓN
+        // GUARDAR PRUEBA Y ACTUALIZAR CONTADORES DE LA ORDEN DE PRODUCCIÓN
         [HttpPost("GuardarPrueba")]
         async public Task<IActionResult> GuardarPrueba([FromBody] GuardarPruebaRequest request)
         {
@@ -96,10 +102,9 @@ namespace ProyectoWong.Controllers
 
                 var (_, historialStore, _, _, _) = _store.Obtener();
 
-                // Todo o nada: historial, lecturas y contadores de la orden
                 await using var transaction = await _db.Database.BeginTransactionAsync();
 
-                // A. Crear el registro de la prueba en BD
+                // Crear el registro de la prueba en BD
                 var nuevoHistorial = new HistorialPruebaSensor
                 {
                     OrdenProduccionId = request.OrdenProduccionId,
@@ -111,12 +116,12 @@ namespace ProyectoWong.Controllers
                 };
 
                 _db.HistorialPruebasSensores.Add(nuevoHistorial);
-                await _db.SaveChangesAsync(); // ✅ PRIMER SaveChanges - Guarda el historial y obtiene el ID
+                await _db.SaveChangesAsync(); // PRIMER SaveChanges - Guarda el historial y obtiene el ID
 
-                // B. Guardar lecturas detalladas de TODAS las pruebas realizadas. La pantalla las manda
+                // Guardar lecturas detalladas de TODAS las pruebas realizadas. La pantalla las manda
                 //    porque el Arduino se limpia al iniciar cada prueba; si no llegan, se usa lo que haya en memoria.
                 var lecturas = request.Lecturas is { Count: > 0 }
-                    ? request.Lecturas.Select(l => new LecturaSensor { FechaHora = l.FechaHora, Rpm = l.Rpm, Temperatura = l.Temperatura, Humedad = l.Humedad }).ToList()
+                    ? request.Lecturas.Select(l => new LecturaSensor { FechaHora = l.FechaHora, Rpm = l.Rpm, Temperatura = l.Temperatura, Humedad = l.Humedad, Vibracion = l.Vibracion, Ruido = l.Ruido }).ToList()
                     : historialStore.Where(l => l.Error == null).ToList();
 
                 foreach (var lectura in lecturas)
@@ -124,26 +129,31 @@ namespace ProyectoWong.Controllers
                     string estadoLectura = "OK";
                     if (lectura.Rpm.HasValue && lectura.Rpm < 2000) estadoLectura = "FUERA_DE_RANGO";
                     if (lectura.Temperatura.HasValue && (lectura.Temperatura < 18 || lectura.Temperatura > 28)) estadoLectura = "FUERA_DE_RANGO";
+                    if (lectura.Humedad.HasValue && (lectura.Humedad < HumedadMin || lectura.Humedad > HumedadMax)) estadoLectura = "FUERA_DE_RANGO";
+                    if (lectura.Vibracion.HasValue && lectura.Vibracion > VibracionMax) estadoLectura = "FUERA_DE_RANGO";
+                    if (lectura.Ruido.HasValue && lectura.Ruido > RuidoMax) estadoLectura = "FUERA_DE_RANGO";
 
                     _db.DetalleLecturasSensores.Add(new DetalleLecturaSensor
                     {
-                        HistorialId = nuevoHistorial.Id, // ✅ Este ID ya existe gracias al primer SaveChanges
+                        HistorialId = nuevoHistorial.Id, // Este ID ya existe gracias al primer SaveChanges
                         FechaHora = lectura.FechaHora,
                         Rpm = lectura.Rpm,
                         Temperatura = lectura.Temperatura,
                         Humedad = lectura.Humedad,
+                        Vibracion = lectura.Vibracion,
+                        Ruido = lectura.Ruido,
                         Estado = estadoLectura
                     });
                 }
 
-                // C. ACTUALIZAR CONTADORES DE PRUEBAS TÉCNICAS (separados de los de la inspección visual)
+                // ACTUALIZAR CONTADORES DE PRUEBAS TÉCNICAS (separados de los de la inspección visual)
                 bool scrapRegistrado = false;
                 if (request.EsAprobado)
                     ordenProduccion.PruebasAprobadas++;
                 else
                 {
                     ordenProduccion.PruebasRechazadas++;
-                    // D. La pieza que no pasa la prueba física se cuantifica como scrap automáticamente
+                    //La pieza que no pasa la prueba física se cuantifica como scrap automáticamente
                     scrapRegistrado = await RegistrarScrapAutomaticoAsync(ordenProduccion, request.PruebasFallidas);
                 }
 
@@ -154,7 +164,7 @@ namespace ProyectoWong.Controllers
                     ordenProduccion.FechaFin = DateTime.Now;
                 }
 
-                // ✅ SEGUNDO SaveChanges - Guarda TODOS los detalles y la orden de una vez
+                // SEGUNDO SaveChanges - Guarda TODOS los detalles y la orden de una vez
                 await _db.SaveChangesAsync();
                 await transaction.CommitAsync();
 
@@ -174,7 +184,7 @@ namespace ProyectoWong.Controllers
             }
             catch (Exception ex)
             {
-                // ✅ Retorna el error con más detalles
+                //Retorna el error con más detalles
                 return Json(new
                 {
                     success = false,
@@ -221,7 +231,7 @@ namespace ProyectoWong.Controllers
             return true;
         }
 
-        // 3. VERIFICAR SI LA ORDEN YA TERMINÓ SUS PRUEBAS TÉCNICAS
+        // VERIFICAR SI LA ORDEN YA TERMINÓ SUS PRUEBAS TÉCNICAS
         // GuardarPrueba es quien cierra la orden al probar la última pieza; aquí solo se informa el estado.
         [HttpPost("CompletarOP")]
         public async Task<IActionResult> CompletarOP([FromBody] CompletarOPRequest request)
@@ -257,7 +267,7 @@ namespace ProyectoWong.Controllers
         public bool EsAprobado { get; set; }
         public string Observaciones { get; set; } = "";
         public int DuracionSegundos { get; set; }
-        // Ids de los pasos que no pasaron ("rpm", "temp"); sirve para el motivo del scrap automático
+        // Ids de los pasos que no pasaron ("rpm", "temp", "humedad", "vibracion", "ruido"); sirve para el motivo del scrap automático
         public List<string>? PruebasFallidas { get; set; }
         // Lecturas tomadas durante las pruebas (las mismas que la pantalla muestra en la tabla)
         public List<LecturaPruebaRequest>? Lecturas { get; set; }
@@ -269,5 +279,7 @@ namespace ProyectoWong.Controllers
         public double? Rpm { get; set; }
         public double? Temperatura { get; set; }
         public double? Humedad { get; set; }
+        public double? Vibracion { get; set; }
+        public double? Ruido { get; set; }
     }
 }

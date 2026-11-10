@@ -37,7 +37,7 @@ namespace ProyectoWong.Data
         public DbSet<ProyectoWong.Models.ProductoTerminado.LoteProductoTerminado> LotesProductoTerminado { get; set; } = default!;
         public DbSet<ProyectoWong.Models.ProductoTerminado.PalletProductoTerminado> PalletsProductoTerminado { get; set; } = default!;
 
-        // Personal: empleados, turnos, asignaciones y asistencia
+        // Personal
         public DbSet<ProyectoWong.Models.Personal.Empleado> Empleados { get; set; } = default!;
         public DbSet<ProyectoWong.Models.Personal.Turno> Turnos { get; set; } = default!;
         public DbSet<ProyectoWong.Models.Personal.AsignacionTurno> AsignacionesTurno { get; set; } = default!;

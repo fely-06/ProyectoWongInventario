@@ -121,7 +121,13 @@ namespace ProyectoWong.Migrations
                     b.Property<double?>("Rpm")
                         .HasColumnType("float");
 
+                    b.Property<double?>("Ruido")
+                        .HasColumnType("float");
+
                     b.Property<double?>("Temperatura")
+                        .HasColumnType("float");
+
+                    b.Property<double?>("Vibracion")
                         .HasColumnType("float");
 
                     b.HasKey("Id");

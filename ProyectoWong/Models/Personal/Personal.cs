@@ -3,7 +3,6 @@ using ProyectoWong.Models.Planta;
 
 namespace ProyectoWong.Models.Personal
 {
-    // Empleado de la planta (operador, supervisor, etc.)
     public class Empleado
     {
         public int Id { get; set; }
@@ -23,7 +22,6 @@ namespace ProyectoWong.Models.Personal
         public bool Activo { get; set; } = true;
     }
 
-    // Turno de trabajo, p. ej. "Matutino" de 06:00 a 14:00
     public class Turno
     {
         public int Id { get; set; }
@@ -36,9 +34,6 @@ namespace ProyectoWong.Models.Personal
         public TimeSpan HoraSalida { get; set; }
     }
 
-    // Qué turno, máquina/línea y días trabaja un empleado.
-    // FechaFin vacía = asignación vigente. Al cambiar de turno se cierra la anterior,
-    // así las asignaciones viejas quedan como historial.
     public class AsignacionTurno
     {
         public int Id { get; set; }
@@ -55,16 +50,14 @@ namespace ProyectoWong.Models.Personal
         [StringLength(50)]
         public string? Linea { get; set; }
 
-        // Días de la semana que trabaja: L,M,X,J,V,S,D
         [Required(ErrorMessage = "Selecciona al menos un día")]
         [StringLength(20)]
-        public string Dias { get; set; } = "L,M,X,J,V";
+        public string Dias { get; set; } = "L,M,X,J,V"; // L,M,X,J,V,S,D
 
         public DateTime FechaInicio { get; set; }
-        public DateTime? FechaFin { get; set; }
+        public DateTime? FechaFin { get; set; } // null = vigente
     }
 
-    // Un registro por empleado por día: su entrada/salida o el motivo de su ausencia.
     public class Asistencia
     {
         public int Id { get; set; }
@@ -76,10 +69,9 @@ namespace ProyectoWong.Models.Personal
         public DateTime? Entrada { get; set; }
         public DateTime? Salida { get; set; }
 
-        // "Asistencia" o el tipo de ausencia: Falta, Permiso, Vacaciones, Incapacidad
         [Required]
         [StringLength(20)]
-        public string Tipo { get; set; } = "Asistencia";
+        public string Tipo { get; set; } = "Asistencia"; // o Falta, Permiso, Vacaciones, Incapacidad
 
         [StringLength(200)]
         public string? Observaciones { get; set; }

@@ -6,7 +6,6 @@ using ProyectoWong.Models.Personal;
 
 namespace ProyectoWong.Controllers
 {
-    // Módulo de Personal: empleados, turnos, asignaciones a máquinas, asistencia y reportes.
     [Route("Personal")]
     public class PersonalController : Controller
     {
@@ -23,7 +22,6 @@ namespace ProyectoWong.Controllers
             return View();
         }
 
-        // Todo lo que necesita la pantalla en una sola consulta
         [HttpGet("datos")]
         public async Task<IActionResult> Datos()
         {
@@ -57,7 +55,6 @@ namespace ProyectoWong.Controllers
             return Json(Respuesta.OK("Consulta exitosa", new { empleados, turnos, maquinas, asignaciones, asistenciaHoy }));
         }
 
-        // ---------- Empleados ----------
         [HttpPost("guardar-empleado")]
         public async Task<IActionResult> GuardarEmpleado([FromBody] Empleado empleado)
         {
@@ -66,12 +63,11 @@ namespace ProyectoWong.Controllers
             bool repetido = await _context.Empleados.AnyAsync(e => e.NumeroEmpleado == empleado.NumeroEmpleado && e.Id != empleado.Id);
             if (repetido) return Json(Respuesta.Error("Ya existe un empleado con ese número"));
 
-            _context.Empleados.Update(empleado); // Id = 0 lo da de alta, Id > 0 lo edita
+            _context.Empleados.Update(empleado);
             await _context.SaveChangesAsync();
             return Json(Respuesta.OK("Empleado guardado"));
         }
 
-        // ---------- Turnos ----------
         [HttpPost("guardar-turno")]
         public async Task<IActionResult> GuardarTurno([FromBody] Turno turno)
         {
@@ -82,14 +78,12 @@ namespace ProyectoWong.Controllers
             return Json(Respuesta.OK("Turno guardado"));
         }
 
-        // ---------- Asignaciones ----------
-        // Asigna (o cambia) el turno, máquina, línea y días de un empleado.
-        // La asignación vigente anterior se cierra con la fecha de hoy y queda en el historial.
         [HttpPost("asignar")]
         public async Task<IActionResult> Asignar([FromBody] AsignacionTurno asignacion)
         {
             if (!ModelState.IsValid) return Json(Respuesta.FromModelState(ModelState));
 
+            // se cierra la asignacion anterior para que quede en el historial
             var anteriores = await _context.AsignacionesTurno
                 .Where(a => a.EmpleadoId == asignacion.EmpleadoId && a.FechaFin == null)
                 .ToListAsync();
@@ -105,7 +99,6 @@ namespace ProyectoWong.Controllers
             return Json(Respuesta.OK(anteriores.Count > 0 ? "Cambio de turno registrado" : "Asignación registrada"));
         }
 
-        // ---------- Asistencia ----------
         [HttpPost("entrada/{empleadoId}")]
         public async Task<IActionResult> Entrada(int empleadoId)
         {
@@ -127,7 +120,7 @@ namespace ProyectoWong.Controllers
         [HttpPost("salida/{empleadoId}")]
         public async Task<IActionResult> Salida(int empleadoId)
         {
-            // La última entrada sin salida (puede ser de ayer si es turno nocturno)
+            // en turno de noche la entrada puede ser de ayer
             var registro = await _context.Asistencias
                 .Where(a => a.EmpleadoId == empleadoId && a.Entrada != null && a.Salida == null)
                 .OrderByDescending(a => a.Entrada)
@@ -160,11 +153,9 @@ namespace ProyectoWong.Controllers
             return Json(Respuesta.OK("Ausencia registrada"));
         }
 
-        // ---------- Reportes ----------
         [HttpGet("reporte")]
         public async Task<IActionResult> Reporte(DateTime desde, DateTime hasta)
         {
-            // Asistencia y horas trabajadas por empleado en el periodo
             var registros = await _context.Asistencias
                 .Where(a => a.Fecha >= desde.Date && a.Fecha <= hasta.Date)
                 .ToListAsync();
@@ -184,7 +175,6 @@ namespace ProyectoWong.Controllers
                 };
             });
 
-            // Cobertura de hoy: por turno, cuántos debían venir y cuántos llegaron
             var hoy = DateTime.Today;
             string letraHoy = "DLMXJVS"[(int)hoy.DayOfWeek].ToString();
 

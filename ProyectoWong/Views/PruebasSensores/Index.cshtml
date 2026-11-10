@@ -646,13 +646,17 @@
             const LIMITES = {
                 rpm:         { min: 2000, max: null, unidad: 'RPM', decimales: 0, texto: 'Mín. 2000 RPM' },
                 temperatura: { min: 18,   max: 28,   unidad: '°C',  decimales: 1, texto: '18 – 28 °C' },
-                humedad:     null
+                humedad:     { min: 60,   max: 90,   unidad: '%',   decimales: 1, texto: '60 – 90 %' },
+                vibracion:   { min: null, max: 1.30, unidad: 'g',   decimales: 2, texto: 'Máx. 1.30 g' },
+                ruido:       { min: null, max: 30,   unidad: 'dB',  decimales: 1, texto: 'Máx. 30 dB' }
             };
 
             const METRICAS = {
                 rpm:         { etiqueta: 'Velocidad',   unidad: 'RPM', id: 'liveRpm'  },
                 temperatura: { etiqueta: 'Temperatura', unidad: '°C',  id: 'liveTemp' },
-                humedad:     { etiqueta: 'Humedad',     unidad: '%',   id: 'liveHum'  }
+                humedad:     { etiqueta: 'Humedad',     unidad: '%',   id: 'liveHum'  },
+                vibracion:   { etiqueta: 'Vibración',   unidad: 'g',   id: 'liveVib'  },
+                ruido:       { etiqueta: 'Ruido',       unidad: 'dB',  id: 'liveRuido' }
             };
 
             const pasos = [
@@ -666,7 +670,7 @@
                     ],
                     duracion: 60,
                     metricas: ['rpm'],
-                    evalua: 'rpm'
+                    evalua: ['rpm']
                 },
                 {
                     id: 'temp',
@@ -674,11 +678,36 @@
                     instrucciones: [
                         'Asegúrese de que el producto haya estado encendido al menos 2 minutos.',
                         'El sensor DHT11 debe estar a menos de 5 cm de la superficie de prueba.',
-                        'No obstruya las ranuras de ventilación del producto.'
+                        'No obstruya las ranuras de ventilación del producto.',
+                        'Llene el depósito del difusor de agua y verifique que esté encendido; el sensor debe quedar frente a la salida de vapor.'
                     ],
                     duracion: 60,
                     metricas: ['temperatura', 'humedad'],
-                    evalua: 'temperatura'
+                    evalua: ['temperatura', 'humedad']
+                },
+                {
+                    id: 'vibracion',
+                    titulo: 'Prueba 3: Vibración',
+                    instrucciones: [
+                        'Fije el sensor HW-123 (MPU6050) a la carcasa del producto con cinta doble cara o abrazadera.',
+                        'Mantenga el sensor plano (eje Z hacia arriba); en reposo debe marcar cerca de 1.00 g.',
+                        'No toque la mesa ni el producto mientras se mide.'
+                    ],
+                    duracion: 60,
+                    metricas: ['vibracion'],
+                    evalua: ['vibracion']
+                },
+                {
+                    id: 'ruido',
+                    titulo: 'Prueba 4: Nivel de Ruido',
+                    instrucciones: [
+                        'Coloque el micrófono del sensor RQ-S001 a unos 10 cm del ventilador, sin que le llegue el flujo de aire directo.',
+                        'Mantenga silencio en el área de pruebas durante la medición.',
+                        'No mueva el sensor ni el producto mientras se mide.'
+                    ],
+                    duracion: 60,
+                    metricas: ['ruido'],
+                    evalua: ['ruido']
                 }
             ];
 
@@ -742,10 +771,31 @@
                 return valor.toFixed(lim ? lim.decimales : 1);
             }
 
+            // Id de la falla que se manda al servidor para el motivo del scrap automático
+            const ID_FALLA = { rpm: 'rpm', temperatura: 'temp', humedad: 'humedad', vibracion: 'vibracion', ruido: 'ruido' };
+
+            // Un paso puede evaluar varias medidas (ej. temperatura y humedad): aprueba solo si todas cumplen
             function evaluarPaso(paso, datos) {
-                const campo = paso.evalua;
-                const valor = promedioReciente(datos, campo);
-                return { campo, valor, aprobado: dentroDeLimites(campo, valor) === true };
+                const evaluaciones = paso.evalua.map(campo => {
+                    const valor = promedioReciente(datos, campo);
+                    return { campo, valor, aprobado: dentroDeLimites(campo, valor) === true };
+                });
+                return {
+                    evaluaciones,
+                    completo: evaluaciones.every(e => esNumero(e.valor)),
+                    aprobado: evaluaciones.every(e => e.aprobado)
+                };
+            }
+
+            function textoRequerido(paso) {
+                if (paso.evalua.length === 1) return LIMITES[paso.evalua[0]].texto;
+                return paso.evalua.map(c => `${METRICAS[c].etiqueta}: ${LIMITES[c].texto}`).join(' · ');
+            }
+
+            function textoMedido(evaluaciones) {
+                const valor = e => `${formatearValor(e.campo, e.valor)} ${LIMITES[e.campo].unidad}`;
+                if (evaluaciones.length === 1) return valor(evaluaciones[0]);
+                return evaluaciones.map(e => `${METRICAS[e.campo].etiqueta}: ${valor(e)}`).join(' · ');
             }
 
             // ---------- Pantalla ----------
@@ -974,7 +1024,7 @@
 
                 const paso = pasos[pasoActual];
                 const ev = evaluarPaso(paso, datos);
-                const lim = LIMITES[ev.campo];
+                const requerido = textoRequerido(paso);
 
                 // Lecturas de esta prueba (el historial viene de la más nueva a la más vieja).
                 // Solo se guardan las medidas que evalúa esta prueba.
@@ -985,11 +1035,13 @@
                         fechaHora: l.fechaHora,
                         rpm: paso.metricas.includes('rpm') ? l.rpm : null,
                         temperatura: paso.metricas.includes('temperatura') ? l.temperatura : null,
-                        humedad: paso.metricas.includes('humedad') ? l.humedad : null
+                        humedad: paso.metricas.includes('humedad') ? l.humedad : null,
+                        vibracion: paso.metricas.includes('vibracion') ? l.vibracion : null,
+                        ruido: paso.metricas.includes('ruido') ? l.ruido : null
                     }));
 
                 // Sin lecturas no se puede juzgar la pieza: es una falla del sensor, no del producto
-                if (!esNumero(ev.valor)) {
+                if (!ev.completo) {
                     $('#resultBadge').removeClass('pass').addClass('fail').css('display', 'block')
                         .html('<i class="bi bi-exclamation-triangle-fill"></i> No llegaron lecturas válidas del sensor. Revise el Arduino y repita la prueba; la pieza no se marca como rechazada.');
                     renderizarTablas(pasoActual);
@@ -997,22 +1049,23 @@
                     return;
                 }
 
-                const medido = `${formatearValor(ev.campo, ev.valor)} ${lim.unidad}`;
+                const medido = textoMedido(ev.evaluaciones);
 
                 resultados[pasoActual] = {
                     titulo: paso.titulo,
                     medido: medido,
-                    requerido: lim.texto,
+                    requerido: requerido,
                     aprobado: ev.aprobado,
+                    fallas: ev.evaluaciones.filter(e => !e.aprobado).map(e => ID_FALLA[e.campo]),
                     duracion: paso.duracion
                 };
 
                 const $badge = $('#resultBadge');
                 $badge.removeClass('pass fail').addClass(ev.aprobado ? 'pass' : 'fail').css('display', 'block');
                 if (ev.aprobado) {
-                    $badge.html(`<i class="bi bi-check-circle-fill"></i> PRUEBA APROBADA: promedio ${medido} (requerido: ${lim.texto}).`);
+                    $badge.html(`<i class="bi bi-check-circle-fill"></i> PRUEBA APROBADA: promedio ${medido} (requerido: ${requerido}).`);
                 } else {
-                    $badge.html(`<i class="bi bi-x-circle-fill"></i> PRUEBA RECHAZADA: promedio ${medido} (requerido: ${lim.texto}).`);
+                    $badge.html(`<i class="bi bi-x-circle-fill"></i> PRUEBA RECHAZADA: promedio ${medido} (requerido: ${requerido}).`);
                 }
 
                 try {
@@ -1048,7 +1101,7 @@
                     const r = resultados[i];
                     if (!r) {
                         const motivo = lecturasPorPaso[i] ? 'Sin lecturas válidas' : 'No realizada (pieza ya rechazada)';
-                        return `<tr><td>${pasos[i].titulo}</td><td>--</td><td>${LIMITES[pasos[i].evalua].texto}</td><td class="text-muted">${motivo}</td></tr>`;
+                        return `<tr><td>${pasos[i].titulo}</td><td>--</td><td>${textoRequerido(pasos[i])}</td><td class="text-muted">${motivo}</td></tr>`;
                     }
                     return `<tr><td>${r.titulo}</td><td><b>${r.medido}</b></td><td>${r.requerido}</td>
                         <td class="${r.aprobado ? 'dentro' : 'fuera'}">${r.aprobado ? 'APROBADA' : 'RECHAZADA'}</td></tr>`;
@@ -1056,11 +1109,11 @@
 
                 const fmt = (v, d) => esNumero(v) ? v.toFixed(d) : '--';
                 const filasLecturas = indices.flatMap(i => (lecturasPorPaso[i] || []).map(l => {
-                    const campo = pasos[i].evalua;
-                    const dentro = dentroDeLimites(campo, l[campo]);
+                    const estados = pasos[i].evalua.map(c => dentroDeLimites(c, l[c]));
+                    const dentro = estados.includes(false) ? false : (estados.every(e => e === true) ? true : null);
                     const hora = new Date(l.fechaHora).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
                     return `<tr><td>${hora}</td><td>${pasos[i].id.toUpperCase()}</td>
-                        <td>${fmt(l.rpm, 0)}</td><td>${fmt(l.temperatura, 1)}</td><td>${fmt(l.humedad, 1)}</td>
+                        <td>${fmt(l.rpm, 0)}</td><td>${fmt(l.temperatura, 1)}</td><td>${fmt(l.humedad, 1)}</td><td>${fmt(l.vibracion, 2)}</td><td>${fmt(l.ruido, 1)}</td>
                         <td class="${dentro === false ? 'fuera' : 'dentro'}">${dentro === false ? 'Fuera de rango' : (dentro ? 'OK' : '--')}</td></tr>`;
                 })).join('');
 
@@ -1071,8 +1124,8 @@
                         <tbody>${filasResultado}</tbody></table></div>
                     <h6><i class="bi bi-activity"></i> Lecturas registradas (${(filasLecturas.match(/<tr>/g) || []).length})</h6>
                     <div class="tabla-scroll"><table class="table table-sm align-middle">
-                        <thead><tr><th>Hora</th><th>Prueba</th><th>RPM</th><th>Temp. (°C)</th><th>Humedad (%)</th><th>Estado</th></tr></thead>
-                        <tbody>${filasLecturas || '<tr><td colspan="6" class="text-center text-muted">Sin lecturas</td></tr>'}</tbody></table></div>`);
+                        <thead><tr><th>Hora</th><th>Prueba</th><th>RPM</th><th>Temp. (°C)</th><th>Humedad (%)</th><th>Vibración (g)</th><th>Ruido (dB)</th><th>Estado</th></tr></thead>
+                        <tbody>${filasLecturas || '<tr><td colspan="8" class="text-center text-muted">Sin lecturas</td></tr>'}</tbody></table></div>`);
             }
 
             function siguientePaso() {
@@ -1129,7 +1182,7 @@
                             Observaciones: todoOk ? 'Pruebas completadas exitosamente' : 'Fallo en límites establecidos',
                             DuracionSegundos: duracionTotal,
                             // Pruebas realizadas que no pasaron: el servidor las usa como motivo del scrap automático
-                            PruebasFallidas: pasos.filter((p, i) => resultados[i] && !resultados[i].aprobado).map(p => p.id),
+                            PruebasFallidas: resultados.flatMap(r => r && !r.aprobado ? r.fallas : []),
                             // Todas las lecturas de la tabla, para guardarlas con el historial de la prueba
                             Lecturas: lecturasPorPaso.flat().filter(Boolean)
                         })

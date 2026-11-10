@@ -17,7 +17,7 @@
 
     @await Html.PartialAsync("_EstilosModulo")
     <style>
-        .tab-pane { overflow-x: auto; } /* las tablas anchas se desplazan en pantallas chicas */
+        .tab-pane { overflow-x: auto; }
     </style>
 </head>
 <body>
@@ -46,7 +46,7 @@
                 </ul>
 
                 <div class="tab-content">
-                    <!-- EMPLEADOS -->
+                    <!-- Empleados -->
                     <div class="tab-pane fade show active" id="tabEmpleados">
                         <button class="btn-cute-primary mb-3" onclick="abrirEmpleado(0)"><i class="bi bi-plus-lg"></i> Nuevo empleado</button>
                         <table class="table-cute">
@@ -55,7 +55,7 @@
                         </table>
                     </div>
 
-                    <!-- TURNOS -->
+                    <!-- Turnos -->
                     <div class="tab-pane fade" id="tabTurnos">
                         <button class="btn-cute-primary mb-3" onclick="abrirTurno(0)"><i class="bi bi-plus-lg"></i> Nuevo turno</button>
                         <table class="table-cute">
@@ -64,7 +64,7 @@
                         </table>
                     </div>
 
-                    <!-- ASIGNACIONES (vigentes e historial) -->
+                    <!-- Asignaciones -->
                     <div class="tab-pane fade" id="tabAsignaciones">
                         <button class="btn-cute-primary mb-3" onclick="abrirAsignacion()"><i class="bi bi-plus-lg"></i> Asignar / cambiar turno</button>
                         <table class="table-cute">
@@ -73,7 +73,7 @@
                         </table>
                     </div>
 
-                    <!-- ASISTENCIA -->
+                    <!-- Asistencia -->
                     <div class="tab-pane fade" id="tabAsistencia">
                         <table class="table-cute">
                             <thead><tr><th>Empleado</th><th>Entrada</th><th>Salida</th><th>Estado</th><th></th></tr></thead>
@@ -81,7 +81,7 @@
                         </table>
                     </div>
 
-                    <!-- REPORTES -->
+                    <!-- Reportes -->
                     <div class="tab-pane fade" id="tabReportes">
                         <div class="d-flex gap-2 align-items-end flex-wrap mb-3">
                             <div><label class="form-label">Desde</label><input type="date" id="repDesde" class="form-control" /></div>
@@ -106,7 +106,7 @@
         </main>
     </div>
 
-    <!-- MODAL EMPLEADO -->
+    <!-- modal empleado -->
     <div class="modal fade" id="modalEmpleado" tabindex="-1">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
@@ -131,7 +131,7 @@
         </div>
     </div>
 
-    <!-- MODAL TURNO -->
+    <!-- modal turno -->
     <div class="modal fade" id="modalTurno" tabindex="-1">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
@@ -150,7 +150,7 @@
         </div>
     </div>
 
-    <!-- MODAL ASIGNACIÓN -->
+    <!-- modal asignacion -->
     <div class="modal fade" id="modalAsignacion" tabindex="-1">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
@@ -173,7 +173,7 @@
         </div>
     </div>
 
-    <!-- MODAL AUSENCIA -->
+    <!-- modal ausencia -->
     <div class="modal fade" id="modalAusencia" tabindex="-1">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
@@ -222,7 +222,6 @@
         function hora(iso) { return iso ? new Date(iso).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' }) : '—'; }
         function fecha(iso) { return iso ? iso.slice(0, 10) : 'Vigente'; }
 
-        // Envía JSON por POST y recarga la pantalla si salió bien
         function enviar(url, data, modal) {
             $.ajax({
                 url: url, type: 'POST', contentType: 'application/json', data: JSON.stringify(data || {}),
@@ -248,7 +247,6 @@
             });
         }
 
-        // ---------- Empleados ----------
         function pintarEmpleados() {
             let html = '';
             datos.empleados.forEach(function (e) {
@@ -279,7 +277,6 @@
             }, '#modalEmpleado');
         }
 
-        // ---------- Turnos ----------
         function pintarTurnos() {
             let html = '';
             datos.turnos.forEach(function (t) {
@@ -308,7 +305,6 @@
             }, '#modalTurno');
         }
 
-        // ---------- Asignaciones ----------
         function pintarAsignaciones() {
             let html = '';
             datos.asignaciones.forEach(function (a) {
@@ -340,7 +336,6 @@
             }, '#modalAsignacion');
         }
 
-        // ---------- Asistencia ----------
         function pintarAsistencia() {
             let html = '';
             datos.empleados.filter(function (e) { return e.activo; }).forEach(function (e) {
@@ -380,7 +375,6 @@
             }, '#modalAusencia');
         }
 
-        // ---------- Reportes ----------
         function generarReporte() {
             $.get('/Personal/reporte', { desde: $('#repDesde').val(), hasta: $('#repHasta').val() }, function (r) {
                 if (!r.success) { showToast(r.mensaje, 'danger'); return; }

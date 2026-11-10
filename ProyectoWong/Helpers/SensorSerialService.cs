@@ -150,8 +150,13 @@ namespace ProyectoWong.Helpers
                     lectura.Temperatura = LeerNumero(root, "temp");
                     lectura.Humedad = LeerNumero(root, "hum");
                     lectura.Rpm = LeerNumero(root, "rpm");
+                    lectura.Vibracion = LeerNumero(root, "vibracion");
+                    lectura.Ruido = LeerNumero(root, "ruido");
                     lectura.PruebaTemperatura = LeerBool(root, "pruebaTemp");
+                    lectura.PruebaHumedad = LeerBool(root, "pruebaHum");
                     lectura.PruebaRpm = LeerBool(root, "pruebaRpm");
+                    lectura.PruebaVibracion = LeerBool(root, "pruebaVibracion");
+                    lectura.PruebaRuido = LeerBool(root, "pruebaRuido");
                 }
             }
             catch (JsonException) { return; }
