@@ -516,6 +516,8 @@
     let modalNueva, modalSimulacion, modalParo;
     let pollingInterval = null;
     let currentMonitoredOrderId = null;
+    let estadosPrevios = {};        // último estado conocido de cada orden (para detectar cuándo termina)
+    let hayOrdenesActivas = false;  // hay órdenes EnProceso / Pausada -> refrescar la tabla
 
     const PASOS_SIMULACION = [
         'Verificando componentes en inventario',
@@ -535,10 +537,19 @@
         modalSimulacion = new bootstrap.Modal(document.getElementById('modalSimulacion'));
         modalParo = new bootstrap.Modal(document.getElementById('modalParo'));
 
-        // Detener el polling si el usuario cierra el modal manualmente
+        // Al cerrar el modal la orden sigue fabricándose en el servidor (ProduccionBackgroundService).
+        // Se deja de consultar el progreso del modal, pero la tabla se sigue refrescando sola.
         document.getElementById('modalSimulacion').addEventListener('hidden.bs.modal', function () {
+            const id = currentMonitoredOrderId;
             detenerMonitoreo();
+            if (id && estadosPrevios[id] === 'EnProceso') {
+                showToast('La producción sigue en segundo plano. Al terminar se descontarán los componentes y te avisaremos aquí.', 'warning');
+            }
+            cargarOrdenes();
         });
+
+        // Mientras haya órdenes fabricándose, refrescar la tabla cada 5 s
+        setInterval(function () { if (hayOrdenesActivas) cargarOrdenes(); }, 5000);
 
         cargarProductos();
         cargarOrdenes();
@@ -574,9 +585,21 @@
             tbody.empty();
             if (!r.success || !r.result || !r.result.length) {
                 tbody.html('<tr><td colspan="7" class="text-center text-muted py-4">Sin órdenes de producción</td></tr>');
+                hayOrdenesActivas = false;
                 return;
             }
-            
+
+            // Avisar de las órdenes que terminaron de fabricarse en segundo plano (con el modal cerrado)
+            const fabricada = ['EnInspeccion', 'EnPruebasTecnicas', 'Completada'];
+            $.each(r.result, function(i, o) {
+                const antes = estadosPrevios[o.id];
+                if ((antes === 'EnProceso' || antes === 'Pausada') && fabricada.includes(o.estado) && o.id !== currentMonitoredOrderId) {
+                    showToast(`La orden ${o.numeroOP} terminó de fabricarse. Se descontaron los componentes y pasó a Inspección Visual.`, 'success');
+                }
+                estadosPrevios[o.id] = o.estado;
+            });
+            hayOrdenesActivas = r.result.some(o => o.estado === 'EnProceso' || o.estado === 'Pausada');
+
             $.each(r.result, function(i, o) {
                 // Una orden pausada por un paro de máquina se muestra como "Detenida" con su causa
                 let estadoHtml = o.paro
@@ -807,7 +830,8 @@
 
         // Si el backend ya terminó la fabricación (pasa a inspección), el frontend solo celebra y cierra
         if (data.fabricada) {
-            detenerMonitoreo(); 
+            estadosPrevios[data.ordenId] = data.estadoSimulacion; // el modal ya avisa, no repetir el aviso de la tabla
+            detenerMonitoreo();
             $('#simModalEstadoTexto').text('✅ Producción Completada').css('color', 'var(--color-verde)');
             $('#simModalIconoWrap').removeClass('spin');
         
@@ -828,6 +852,7 @@
             type: 'POST',
             success: function(r) {
                 if (r.success) {
+                    estadosPrevios[id] = 'EnInspeccion';
                     showToast('Inventario actualizado correctamente', 'success');
                     detenerMonitoreo();
                     modalSimulacion.hide();
@@ -893,6 +918,7 @@
         type: 'POST',
         success: function(r) {
             if (r.success) {
+                estadosPrevios[id] = 'EnInspeccion';
                 showToast('Producción completada e inventario actualizado', 'success');
                 cargarOrdenes();
             } else {

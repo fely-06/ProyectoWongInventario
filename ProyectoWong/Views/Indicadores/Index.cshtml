@@ -1,0 +1,482 @@
+@{
+    Layout = null;
+    ViewBag.Title = "Indicadores de Desempeño - SIV";
+}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewBag.Title</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
+
+    @await Html.PartialAsync("_EstilosModulo")
+
+    <style>
+        .main-content { min-width: 0; } /* evita que las gráficas desborden el contenedor flex */
+
+        /* Barra de filtros */
+        .filtros-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 1rem; align-items: end; }
+        .presets { display: flex; flex-wrap: wrap; gap: .4rem; margin-top: 1rem; }
+        .chip-preset {
+            border: 2px solid var(--color-azul-claro); background: white; border-radius: 50px;
+            padding: .3rem .9rem; font-size: .8rem; font-weight: 700; color: var(--color-texto); cursor: pointer; transition: all .2s ease;
+        }
+        .chip-preset:hover, .chip-preset.active { background: var(--color-verde); border-color: var(--color-verde); color: white; }
+
+        /* Pestañas de módulos */
+        .tabs-modulos { display: flex; flex-wrap: wrap; gap: .5rem; }
+        .tab-modulo {
+            border: none; background: white; border-radius: 50px; padding: .5rem 1rem; font-weight: 700; font-size: .85rem;
+            color: var(--color-texto); box-shadow: 0 2px 8px rgba(0,0,0,.04); cursor: pointer; transition: all .2s ease;
+            display: inline-flex; align-items: center; gap: .4rem;
+        }
+        .tab-modulo:hover { background: var(--color-amarillo); }
+        .tab-modulo.active { background: linear-gradient(135deg, var(--color-verde) 0%, var(--color-aqua) 100%); color: white; }
+        .tab-modulo .dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+
+        /* Tarjetas KPI con semáforo */
+        .kpi-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
+        .kpi-tile {
+            background: white; border-radius: 18px; padding: 1rem 1.1rem; box-shadow: 0 4px 12px rgba(0,0,0,.04);
+            border-left: 6px solid #cbd5e1; position: relative; cursor: help;
+        }
+        .kpi-tile.ok { border-left-color: #16a34a; }
+        .kpi-tile.warn { border-left-color: #f59e0b; }
+        .kpi-tile.danger { border-left-color: #dc2626; }
+        .kpi-tile .kpi-nombre { font-size: .75rem; font-weight: 800; color: var(--color-texto-claro); text-transform: uppercase; letter-spacing: .03em; }
+        .kpi-tile .kpi-valor { font-size: 1.55rem; font-weight: 800; color: var(--color-texto); line-height: 1.25; margin: .2rem 0; word-break: break-word; }
+        .kpi-tile .kpi-meta { font-size: .75rem; font-weight: 700; color: var(--color-texto-claro); }
+
+        /* Gráficas */
+        .chart-box { position: relative; height: 290px; }
+        .modulo-desc { color: var(--color-texto-claro); font-weight: 600; font-size: .9rem; margin: -.75rem 0 1.25rem; }
+        .link-modulo { font-size: .85rem; font-weight: 700; color: var(--color-verde); text-decoration: none; }
+        .link-modulo:hover { text-decoration: underline; color: var(--color-verde); }
+
+        /* Tabla de reporte */
+        details.reporte { margin-top: 1.25rem; }
+        details.reporte summary { cursor: pointer; font-weight: 800; color: var(--color-texto); list-style: none; display: flex; align-items: center; gap: .5rem; }
+        details.reporte summary::-webkit-details-marker { display: none; }
+        details.reporte summary .bi-chevron-right { transition: transform .2s ease; }
+        details.reporte[open] summary .bi-chevron-right { transform: rotate(90deg); }
+        .tabla-scroll { overflow-x: auto; max-height: 420px; overflow-y: auto; }
+        .table-cute tbody tr:hover { transform: none; }
+
+        .leyenda-semaforo { display: flex; gap: 1rem; flex-wrap: wrap; font-size: .8rem; font-weight: 700; color: var(--color-texto-claro); }
+        .leyenda-semaforo span::before { content: ''; display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 5px; vertical-align: middle; }
+        .leyenda-semaforo .l-ok::before { background: #16a34a; }
+        .leyenda-semaforo .l-warn::before { background: #f59e0b; }
+        .leyenda-semaforo .l-danger::before { background: #dc2626; }
+        .leyenda-semaforo .l-neutral::before { background: #cbd5e1; }
+
+        .cargando { text-align: center; padding: 3rem 0; color: var(--color-texto-claro); font-weight: 700; }
+
+        /* Impresión / Guardar como PDF */
+        .solo-impresion { display: none; }
+        @@media print {
+            body { background: white !important; }
+            .bg-blob, .sidebar, .no-print, .top-bar .user-profile { display: none !important; }
+            .dashboard-wrapper { padding: 0; display: block; }
+            .content-card, .panel-soft { box-shadow: none !important; border: 1px solid #e2e8f0; backdrop-filter: none; animation: none; }
+            .seccion-modulo { display: block !important; break-inside: avoid-page; page-break-before: always; }
+            .seccion-modulo:first-child { page-break-before: auto; }
+            .chart-box { height: 240px; }
+            .tabla-scroll { max-height: none; overflow: visible; }
+            .solo-impresion { display: block; }
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-blob blob-1"></div>
+    <div class="bg-blob blob-2"></div>
+    <div class="bg-blob blob-3"></div>
+
+    <div class="dashboard-wrapper">
+        @await Html.PartialAsync("_Sidebar")
+
+        <main class="main-content">
+            <div class="top-bar">
+                <div class="welcome-text">
+                    <h2>Indicadores de Desempeño</h2>
+                    <p>Panel de control con los indicadores de todos los módulos de la planta.</p>
+                    <p class="solo-impresion" id="txtPeriodoImpresion"></p>
+                </div>
+                <div class="user-profile">
+                    <div style="text-align: right;">
+                        <div style="font-weight: 700; font-size: 0.95rem;">Admin SIV</div>
+                        <div style="font-size: 0.8rem; color: var(--color-texto-claro);">admin@siv.com</div>
+                    </div>
+                    <div class="user-avatar">A</div>
+                </div>
+            </div>
+
+            <!-- FILTROS -->
+            <div class="content-card no-print">
+                <div class="card-header-custom" style="margin-bottom: 1rem;">
+                    <h3>Filtros</h3>
+                    <div class="d-flex gap-2 flex-wrap">
+                        <button class="btn-cute-secondary" onclick="imprimir()">Imprimir / PDF</button>
+                    </div>
+                </div>
+
+                <div class="filtros-grid">
+                    <div>
+                        <label class="form-label" for="fDesde">Desde</label>
+                        <input type="date" id="fDesde" class="form-control" />
+                    </div>
+                    <div>
+                        <label class="form-label" for="fHasta">Hasta</label>
+                        <input type="date" id="fHasta" class="form-control" />
+                    </div>
+                    <div>
+                        <label class="form-label" for="fProducto">Producto</label>
+                        <select id="fProducto" class="form-select"><option value="">Todos</option></select>
+                    </div>
+                    <div>
+                        <label class="form-label" for="fMaquina">Máquina</label>
+                        <select id="fMaquina" class="form-select"><option value="">Todas</option></select>
+                    </div>
+                    <div>
+                        <button class="btn-cute-primary w-100 justify-content-center" onclick="cargar()">Aplicar</button>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <div class="presets">
+                        <button class="chip-preset" data-preset="hoy">Hoy</button>
+                        <button class="chip-preset" data-preset="7">Últimos 7 días</button>
+                        <button class="chip-preset active" data-preset="30">Últimos 30 días</button>
+                        <button class="chip-preset" data-preset="mes">Este mes</button>
+                        <button class="chip-preset" data-preset="90">Últimos 90 días</button>
+                        <button class="chip-preset" data-preset="anio">Este año</button>
+                    </div>
+                    <div class="form-check form-switch mt-3">
+                        <input class="form-check-input" type="checkbox" id="chkAuto">
+                        <label class="form-check-label fw-bold" for="chkAuto" style="font-size:.85rem;">Actualizar cada minuto</label>
+                    </div>
+                </div>
+                <div class="hint-box mt-3">
+                    El filtro de <b>producto</b> aplica a Producción, Pruebas, Scrap, Downtime y Producto terminado;
+                    el de <b>máquina</b> aplica a Scrap y Downtime. Pasa el mouse sobre una tarjeta para ver cómo se calcula.
+                </div>
+            </div>
+
+            <!-- PESTAÑAS DE MÓDULOS -->
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 no-print">
+                <div class="tabs-modulos" id="tabsModulos"></div>
+                <div class="leyenda-semaforo">
+                    <span class="l-ok">En meta</span><span class="l-warn">Atención</span><span class="l-danger">Fuera de meta</span><span class="l-neutral">Informativo</span>
+                </div>
+            </div>
+            <div class="text-end no-print" style="font-size:.8rem; font-weight:700; color: var(--color-texto-claro); margin-top: -1rem;" id="txtGenerado"></div>
+
+            <!-- SECCIONES (las arma el JavaScript) -->
+            <div id="contenedorModulos" class="d-flex flex-column gap-4">
+                <div class="content-card cargando"><div class="spinner-border text-success mb-2"></div><div>Calculando indicadores…</div></div>
+            </div>
+        </main>
+    </div>
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    @await Html.PartialAsync("_ScriptsModulo")
+
+    <script>
+        //  Panel de Indicadores de Desempeño
+        //  1) Lee los filtros  2) pide /Indicadores/datos  3) dibuja cada
+        //  módulo (tarjetas KPI + gráficas Chart.js + tabla de reporte).
+
+        const PALETA = ['#9abf17', '#3b82f6', '#84bf93', '#f59e0b', '#8b5cf6', '#06b6d4', '#ec4899', '#64748b', '#14b8a6', '#ef4444'];
+
+        // Colores fijos para etiquetas con significado (verde = bien, rojo = mal...)
+        const COLOR_ETIQUETA = {
+            'Aprobado': '#16a34a', 'Rechazado': '#dc2626',
+            'Bajo mínimo': '#dc2626', 'En rango': '#16a34a', 'Sobre máximo': '#f59e0b',
+            'Almacenado': '#16a34a', 'Por ubicar': '#f59e0b',
+            'Asistencia': '#16a34a', 'Falta': '#dc2626', 'Permiso': '#f59e0b', 'Incapacidad': '#8b5cf6', 'Vacaciones': '#3b82f6',
+            'Completada': '#16a34a', 'Cancelada': '#94a3b8', 'Pausada': '#f59e0b', 'En proceso': '#3b82f6', 'Pendiente': '#cbd5e1',
+            'Abierta': '#3b82f6', 'Recibida': '#16a34a'
+        };
+
+        // Página de origen de cada módulo (botón "Ir al módulo")
+        const URL_MODULO = {
+            inventario: '/Componente', compras: '/Ordenescompra', recepcion: '/Recepcion', produccion: '/Produccion',
+            pruebas: '/PruebasSensores', scrap: '/Scrap', downtime: '/Downtime', terminado: '/ProductoTerminado', personal: '/Personal'
+        };
+
+        let graficas = [];       
+        let moduloActivo = 'todos';
+        let ultimoResultado = null;
+        let timerAuto = null;
+
+        Chart.defaults.font.family = "'Nunito', sans-serif";
+        Chart.defaults.font.weight = 600;
+        Chart.defaults.color = '#718096';
+        Chart.defaults.plugins.legend.labels.usePointStyle = true;
+
+        // Utilidades de fecha
+        const iso = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+        function aplicarPreset(preset) {
+            const hoy = new Date();
+            let desde = new Date(hoy);
+            if (preset === 'hoy') { /* mismo día */ }
+            else if (preset === 'mes') desde = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
+            else if (preset === 'anio') desde = new Date(hoy.getFullYear(), 0, 1);
+            else desde.setDate(hoy.getDate() - (parseInt(preset) - 1));
+            $('#fDesde').val(iso(desde));
+            $('#fHasta').val(iso(hoy));
+        }
+
+        function filtros() {
+            return {
+                desde: $('#fDesde').val(),
+                hasta: $('#fHasta').val(),
+                productoId: $('#fProducto').val(),
+                maquinaId: $('#fMaquina').val()
+            };
+        }
+
+        // Carga de datos
+        function cargar() {
+            $.getJSON('/Indicadores/datos', filtros())
+                .done(function (r) {
+                    ultimoResultado = r;
+                    pintar(r);
+                    $('#txtGenerado').text('Actualizado: ' + new Date(r.generado).toLocaleString('es-MX'));
+                    $('#txtPeriodoImpresion').text('Periodo: ' + new Date(r.desde).toLocaleDateString('es-MX') + ' al ' + new Date(r.hasta).toLocaleDateString('es-MX'));
+                })
+                .fail(function (xhr) {
+                    const msg = xhr.responseJSON && xhr.responseJSON.mensaje ? xhr.responseJSON.mensaje : 'Error al cargar los indicadores.';
+                    showToast(msg, 'danger');
+                    $('#contenedorModulos').html('<div class="content-card empty-note">' + escHtml(msg) + '</div>');
+                });
+        }
+
+        // Pestañas
+        function pintarPestanas(modulos) {
+            const peor = m => m.kpis.some(k => k.estado === 'danger') ? '#dc2626' : m.kpis.some(k => k.estado === 'warn') ? '#f59e0b' : '#16a34a';
+            let html = '<button class="tab-modulo ' + (moduloActivo === 'todos' ? 'active' : '') + '" data-modulo="todos">Todos</button>';
+            modulos.forEach(m => {
+                html += '<button class="tab-modulo ' + (moduloActivo === m.clave ? 'active' : '') + '" data-modulo="' + m.clave + '" title="Semáforo: peor indicador del módulo">'
+                    + '<span class="dot" style="background:' + peor(m) + '"></span>' + escHtml(m.titulo) + '</button>';
+            });
+            $('#tabsModulos').html(html);
+        }
+
+        function mostrarModulo(clave) {
+            moduloActivo = clave;
+            $('.tab-modulo').removeClass('active');
+            $('.tab-modulo[data-modulo="' + clave + '"]').addClass('active');
+            $('.seccion-modulo').each(function () {
+                $(this).toggle(clave === 'todos' || $(this).data('modulo') === clave);
+            });
+            graficas.forEach(c => c.resize());
+        }
+
+        // Dibujo de todo el panel
+        function pintar(r) {
+            graficas.forEach(c => c.destroy());
+            graficas = [];
+            pintarPestanas(r.modulos);
+
+            const $cont = $('#contenedorModulos').empty();
+            r.modulos.forEach(m => {
+                const $sec = $('<div class="content-card seccion-modulo"></div>').attr('data-modulo', m.clave);
+
+                // Encabezado
+                const link = URL_MODULO[m.clave]
+                    ? '<a class="link-modulo no-print" href="' + URL_MODULO[m.clave] + '">Ir al módulo</a>' : '';
+                $sec.append('<div class="card-header-custom"><h3>' + escHtml(m.titulo) + '</h3>' + link + '</div>');
+                $sec.append('<p class="modulo-desc">' + escHtml(m.descripcion) + '</p>');
+
+                // Tarjetas KPI
+                const $kpis = $('<div class="kpi-grid"></div>');
+                m.kpis.forEach(k => {
+                    $kpis.append(
+                        $('<div class="kpi-tile"></div>').addClass(k.estado).attr('title', k.descripcion).html(
+                            '<div class="kpi-nombre">' + escHtml(k.nombre) + '</div>' +
+                            '<div class="kpi-valor">' + escHtml(k.valor) + '</div>' +
+                            (k.meta ? '<div class="kpi-meta">' + escHtml(k.meta) + '</div>' : '')));
+                });
+                $sec.append($kpis);
+
+                // Gráficas
+                const $row = $('<div class="row g-4"></div>');
+                m.graficas.forEach(g => {
+                    const $col = $('<div></div>').addClass(g.ancha ? 'col-12' : 'col-xl-6');
+                    const $panel = $('<div class="panel-soft"></div>').append('<h5 class="section-title">' + escHtml(g.titulo) + '</h5>');
+                    if (sinDatos(g)) {
+                        $panel.append('<div class="empty-note" style="padding: 4rem 0;">Sin datos en el periodo seleccionado.</div>');
+                    } else {
+                        const canvas = document.createElement('canvas');
+                        $panel.append($('<div class="chart-box"></div>').append(canvas));
+                        // se crea la gráfica cuando el canvas ya está en la página
+                        setTimeout(() => graficas.push(crearGrafica(canvas, g)), 0);
+                    }
+                    $row.append($col.append($panel));
+                });
+                $sec.append($row);
+
+                // Tabla de reporte
+                if (m.tabla && m.tabla.filas.length) {
+                    let t = '<details class="reporte"><summary><i class="bi bi-chevron-right"></i> '
+                        + escHtml(m.tabla.titulo) + ' <span class="badge-cute badge-cute-info">' + m.tabla.filas.length + '</span></summary>'
+                        + '<div class="tabla-scroll mt-2"><table class="table-cute"><thead><tr>'
+                        + m.tabla.columnas.map(c => '<th>' + escHtml(c) + '</th>').join('') + '</tr></thead><tbody>'
+                        + m.tabla.filas.map(f => '<tr>' + f.map(c => '<td>' + escHtml(c) + '</td>').join('') + '</tr>').join('')
+                        + '</tbody></table></div></details>';
+                    $sec.append(t);
+                }
+
+                $cont.append($sec);
+            });
+
+            mostrarModulo(r.modulos.some(m => m.clave === moduloActivo) ? moduloActivo : 'todos');
+        }
+
+        function sinDatos(g) {
+            return !g.etiquetas.length || g.series.every(s => s.valores.every(v => !v));
+        }
+
+        // Traduce una GraficaIndicador (del servidor) a configuración de Chart.js
+        function crearGrafica(canvas, g) {
+            const unidad = g.unidad ? ' ' + g.unidad : '';
+            const fmt = v => (g.unidad === '$' ? '$' : '') + Number(v).toLocaleString('es-MX', { maximumFractionDigits: 2 }) + (g.unidad && g.unidad !== '$' ? unidad : '');
+            const recortar = s => s && s.length > 22 ? s.substring(0, 21) + '…' : s;
+
+            // Dona / pastel
+            if (g.tipo === 'doughnut') {
+                const s = g.series[0];
+                return new Chart(canvas, {
+                    type: 'doughnut',
+                    data: {
+                        labels: g.etiquetas,
+                        datasets: [{
+                            label: s.nombre, data: s.valores, borderWidth: 3, borderColor: '#fff',
+                            backgroundColor: g.etiquetas.map((e, i) => COLOR_ETIQUETA[e] || PALETA[i % PALETA.length])
+                        }]
+                    },
+                    options: {
+                        maintainAspectRatio: false, cutout: '62%',
+                        plugins: {
+                            legend: { position: 'right' },
+                            tooltip: {
+                                callbacks: {
+                                    label: ctx => {
+                                        const total = ctx.dataset.data.reduce((a, b) => a + b, 0);
+                                        return ' ' + ctx.label + ': ' + fmt(ctx.parsed) + ' (' + (total ? (ctx.parsed / total * 100).toFixed(1) : 0) + ' %)';
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
+            // Pareto: barras + línea de % acumulado en un segundo eje
+            if (g.tipo === 'pareto') {
+                return new Chart(canvas, {
+                    data: {
+                        labels: g.etiquetas,
+                        datasets: [
+                            { type: 'bar', label: g.series[0].nombre, data: g.series[0].valores, backgroundColor: '#9abf17', borderRadius: 8, yAxisID: 'y', order: 2 },
+                            { type: 'line', label: g.series[1].nombre, data: g.series[1].valores, borderColor: '#dc2626', backgroundColor: '#dc2626', tension: .3, yAxisID: 'y1', order: 1 }
+                        ]
+                    },
+                    options: {
+                        maintainAspectRatio: false,
+                        interaction: { mode: 'index', intersect: false },
+                        scales: {
+                            x: { ticks: { callback: function (v) { return recortar(this.getLabelForValue(v)); } }, grid: { display: false } },
+                            y: { beginAtZero: true, title: { display: true, text: g.series[0].nombre } },
+                            y1: { position: 'right', min: 0, max: 100, grid: { drawOnChartArea: false }, ticks: { callback: v => v + ' %' } }
+                        },
+                        plugins: {
+                            tooltip: { callbacks: { label: ctx => ' ' + ctx.dataset.label + ': ' + (ctx.dataset.yAxisID === 'y1' ? ctx.parsed.y + ' %' : fmt(ctx.parsed.y)) } }
+                        }
+                    }
+                });
+            }
+
+            // Barras / líneas (una o varias series)
+            const esLinea = g.tipo === 'line';
+            const unaSerie = g.series.length === 1;
+            const datasets = g.series.map((s, i) => {
+                const color = s.color || PALETA[i % PALETA.length];
+                return {
+                    label: s.nombre,
+                    data: s.valores,
+                    borderColor: color,
+                    backgroundColor: esLinea ? color + '33' : color,
+                    fill: esLinea && unaSerie,
+                    tension: .35,
+                    pointRadius: g.etiquetas.length > 40 ? 0 : 3,
+                    borderWidth: esLinea ? 2.5 : 0,
+                    borderRadius: esLinea ? 0 : 8,
+                    maxBarThickness: 42
+                };
+            });
+            const horizontal = !!g.horizontal;
+            const ejeValor = { beginAtZero: true, stacked: !!g.apilada, ticks: { callback: v => fmt(v) } };
+            const ejeCategoria = { stacked: !!g.apilada, grid: { display: false }, ticks: { autoSkip: true, maxRotation: 45, callback: function (v) { return recortar(this.getLabelForValue(v)); } } };
+            if (g.unidad === '%') { ejeValor.max = 100; ejeValor.ticks = { callback: v => v + ' %' }; }
+
+            return new Chart(canvas, {
+                type: esLinea ? 'line' : 'bar',
+                data: { labels: g.etiquetas, datasets: datasets },
+                options: {
+                    maintainAspectRatio: false,
+                    indexAxis: horizontal ? 'y' : 'x',
+                    interaction: { mode: 'index', intersect: false },
+                    scales: horizontal ? { x: ejeValor, y: ejeCategoria } : { x: ejeCategoria, y: ejeValor },
+                    plugins: {
+                        legend: { display: !unaSerie },
+                        tooltip: { callbacks: { label: ctx => ' ' + ctx.dataset.label + ': ' + fmt(horizontal ? ctx.parsed.x : ctx.parsed.y) } }
+                    }
+                }
+            });
+        }
+
+        // Imprimir
+        function imprimir() {
+            mostrarModulo('todos');
+            $('details.reporte').attr('open', true);
+            setTimeout(() => window.print(), 300);
+        }
+
+        // Arranque
+        $(function () {
+            aplicarPreset('30');
+
+            $.getJSON('/Indicadores/catalogos').done(function (c) {
+                llenarSelect('#fProducto', c.productos, 'id', 'nombre', 'Todos');
+                llenarSelect('#fMaquina', c.maquinas, 'id', 'nombre', 'Todas');
+            });
+
+            $(document).on('click', '.chip-preset', function () {
+                $('.chip-preset').removeClass('active');
+                $(this).addClass('active');
+                aplicarPreset($(this).data('preset').toString());
+                cargar();
+            });
+            $('#fDesde, #fHasta').on('change', () => $('.chip-preset').removeClass('active'));
+            $('#fProducto, #fMaquina').on('change', cargar);
+            $(document).on('click', '.tab-modulo', function () { mostrarModulo($(this).data('modulo')); });
+
+            $('#chkAuto').on('change', function () {
+                clearInterval(timerAuto);
+                if (this.checked) { timerAuto = setInterval(cargar, 60000); showToast('Actualización automática activada (cada minuto).', 'success'); }
+            });
+
+            cargar();
+        });
+    </script>
+</body>
+</html>
